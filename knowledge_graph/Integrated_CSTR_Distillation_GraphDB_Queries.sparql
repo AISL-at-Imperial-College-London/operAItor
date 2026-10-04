@@ -1,0 +1,112 @@
+# ============================================================================
+# INTEGRATED CSTR + DISTILLATION KG — GRAPHDB SPARQL QUERY PACK
+# Named graph: <http://www.hsu-ifa.de/graphs/Integrated_CSTR_Distillation_Simulation>
+# ============================================================================
+
+PREFIX : <http://example.org/integrated_cstr_distillation#>
+PREFIX ip: <http://example.org/integrated_cstr_distillation/ontology#>
+PREFIX VDI3682: <http://www.w3id.org/hsu-aut/VDI3682#>
+PREFIX VDI2206: <http://www.w3id.org/hsu-aut/VDI2206#>
+PREFIX CPSMod: <http://www.hsu-ifa.de/ontologies/CPSMod#>
+PREFIX DIN17359: <http://www.hsu-ifa.de/ontologies/DIN17359#>
+PREFIX sosa: <http://www.w3.org/ns/sosa/>
+PREFIX UML: <http://www.hsu-ifa.de/ontologies/UMLStateMachine#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+# QUERY 1 — PROCESS OVERVIEW FOR AN LLM / AGENT
+CONSTRUCT {
+  ?process a VDI3682:Process ; rdfs:label ?processLabel .
+  ?process VDI3682:consistsOf ?po .
+  ?po a VDI3682:ProcessOperator ; rdfs:label ?poLabel .
+  ?po VDI3682:hasInput ?input ; VDI3682:hasOutput ?output .
+  ?po VDI3682:isAssignedTo ?module .
+  ?po CPSMod:processRealizesBehavior ?model .
+  ?model a VDI2206:MathematicalModel ; rdfs:label ?modelLabel ; rdfs:comment ?modelComment .
+  ?module a VDI2206:Module ; rdfs:label ?moduleLabel .
+  ?module VDI2206:ModuleConsistsOfComponent ?component .
+  ?component rdf:type ?componentType ; rdfs:label ?componentLabel .
+}
+FROM <http://www.hsu-ifa.de/graphs/Integrated_CSTR_Distillation_Simulation>
+WHERE {
+  ?process a VDI3682:Process ; rdfs:label ?processLabel .
+  OPTIONAL { ?process VDI3682:consistsOf ?po . ?po a VDI3682:ProcessOperator . OPTIONAL {?po rdfs:label ?poLabel} OPTIONAL {?po VDI3682:hasInput ?input} OPTIONAL {?po VDI3682:hasOutput ?output} OPTIONAL {?po VDI3682:isAssignedTo ?module} OPTIONAL {?po CPSMod:processRealizesBehavior ?model . OPTIONAL {?model rdfs:label ?modelLabel} OPTIONAL {?model rdfs:comment ?modelComment} } }
+  OPTIONAL { ?module a VDI2206:Module . OPTIONAL {?module rdfs:label ?moduleLabel} OPTIONAL {?module VDI2206:ModuleConsistsOfComponent ?component . OPTIONAL {?component rdf:type ?componentType} OPTIONAL {?component rdfs:label ?componentLabel} } }
+}
+
+# QUERY 2 — REGULATORY CONTROL LOOPS, PV/MV, SETPOINTS AND BOUNDS
+SELECT ?loop ?label ?pv ?pvLabel ?mv ?mvLabel ?sp ?spValue ?spMin ?spMax ?mvMin ?mvMax
+FROM <http://www.hsu-ifa.de/graphs/Integrated_CSTR_Distillation_Simulation>
+WHERE {
+  ?loop a VDI2206:InformationProcessing ; rdfs:label ?label ;
+        ip:monitorsParameter ?pv ; ip:controlsParameter ?mv ; ip:hasSetpoint ?sp .
+  ?pv rdfs:label ?pvLabel . ?mv rdfs:label ?mvLabel .
+  ?sp DIN17359:referenceValue ?spValue .
+  OPTIONAL {?loop ip:setpointMinimum ?spMin} OPTIONAL {?loop ip:setpointMaximum ?spMax}
+  OPTIONAL {?loop ip:mvMinimum ?mvMin} OPTIONAL {?loop ip:mvMaximum ?mvMax}
+} ORDER BY ?loop
+
+# QUERY 3 — SAFETY INTERLOCKS AND EXACT OVERRIDES
+CONSTRUCT {
+  ?sif a ip:SafetyInterlock ; rdfs:label ?label ; ip:monitorsParameter ?pv ;
+       ip:direction ?direction ; ip:limitValue ?limit ; ip:plantTrip ?plantTrip ; ip:hasOverrideRule ?rule .
+  ?rule ip:overrideTarget ?target ; ip:operator ?op ; ip:commandValue ?value .
+}
+FROM <http://www.hsu-ifa.de/graphs/Integrated_CSTR_Distillation_Simulation>
+WHERE {
+  ?sif a ip:SafetyInterlock ; rdfs:label ?label ; ip:monitorsParameter ?pv ;
+       ip:direction ?direction ; ip:limitValue ?limit ; ip:plantTrip ?plantTrip .
+  OPTIONAL { ?sif ip:hasOverrideRule ?rule . ?rule ip:overrideTarget ?target ; ip:operator ?op ; ip:commandValue ?value . }
+}
+
+# QUERY 4 — FAULT → SUBJECT → AFFECTED PARAMETER → SYMPTOM
+SELECT ?fault ?faultLabel ?kind ?subject ?subjectLabel ?parameter ?parameterLabel ?symptom ?symptomLabel
+FROM <http://www.hsu-ifa.de/graphs/Integrated_CSTR_Distillation_Simulation>
+WHERE {
+  ?fault a DIN17359:Fault ; rdfs:label ?faultLabel .
+  OPTIONAL {?fault ip:faultKind ?kind} OPTIONAL {?fault ip:affectsParameter ?parameter . ?parameter rdfs:label ?parameterLabel}
+  OPTIONAL {?subject DIN17359:DiagnosticSubjectHasFault ?fault . ?subject rdfs:label ?subjectLabel}
+  OPTIONAL {?fault DIN17359:FaultIsDescribedBySymptom ?symptom . ?symptom rdfs:label ?symptomLabel}
+} ORDER BY ?fault ?symptom
+
+# QUERY 5 — OPERATOR / AGENT AUTHORITY
+CONSTRUCT {
+  :OperatorAuthority a ip:OperatorAuthorityModel ; ip:allowsAction ?action ; ip:prohibitsProperty ?prohibited .
+  ?action a ip:OperatorAction ; rdfs:label ?actionLabel ; rdfs:comment ?actionComment ; ip:actsOn ?target .
+}
+FROM <http://www.hsu-ifa.de/graphs/Integrated_CSTR_Distillation_Simulation>
+WHERE {
+  :OperatorAuthority a ip:OperatorAuthorityModel .
+  OPTIONAL {:OperatorAuthority ip:allowsAction ?action . OPTIONAL {?action rdfs:label ?actionLabel} OPTIONAL {?action rdfs:comment ?actionComment} OPTIONAL {?action ip:actsOn ?target} }
+  OPTIONAL {:OperatorAuthority ip:prohibitsProperty ?prohibited}
+}
+
+# QUERY 6 — COMMAND ARBITRATION CHAIN (CTRL → SUP → SAFE → ACTUAL)
+SELECT ?stage ?label ?next ?nextLabel
+FROM <http://www.hsu-ifa.de/graphs/Integrated_CSTR_Distillation_Simulation>
+WHERE {
+  ?stage a ip:CommandStage ; rdfs:label ?label .
+  OPTIONAL {?stage ip:stageSuccessor ?next . ?next rdfs:label ?nextLabel}
+} ORDER BY ?label
+
+# QUERY 7 — ALARMS WITH RELATED SIF THRESHOLDS
+SELECT ?alarm ?alarmLabel ?tag ?direction ?alarmLimit ?priority ?sif ?sifLimit
+FROM <http://www.hsu-ifa.de/graphs/Integrated_CSTR_Distillation_Simulation>
+WHERE {
+  ?alarm a ip:Alarm ; rdfs:label ?alarmLabel ; ip:monitorsParameter ?tag ; ip:direction ?direction ; ip:limitValue ?alarmLimit ; ip:priority ?priority .
+  OPTIONAL {?alarm ip:relatedSIF ?sif . ?sif ip:limitValue ?sifLimit}
+} ORDER BY ?priority ?alarm
+
+# QUERY 8 — EPISODE OUTCOME STATE MACHINE
+CONSTRUCT {
+  :EpisodeOutcome_StateMachine a UML:StateMachine ; UML:contains ?state .
+  ?state a UML:State ; rdfs:label ?stateLabel ; rdfs:comment ?stateComment .
+  ?transition a UML:Transition ; UML:source ?source ; UML:target ?target ; UML:transitionGuard ?guard .
+}
+FROM <http://www.hsu-ifa.de/graphs/Integrated_CSTR_Distillation_Simulation>
+WHERE {
+  :EpisodeOutcome_StateMachine a UML:StateMachine .
+  { :EpisodeOutcome_StateMachine UML:contains ?state . OPTIONAL {?state rdfs:label ?stateLabel} OPTIONAL {?state rdfs:comment ?stateComment} }
+  UNION
+  { ?transition a UML:Transition ; UML:source ?source ; UML:target ?target . OPTIONAL {?transition UML:transitionGuard ?guard} }
+}
