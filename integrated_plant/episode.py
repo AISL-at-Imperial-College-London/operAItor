@@ -112,6 +112,7 @@ class EpisodeRunner:
         self.runtime_inputs.reset()
         self.records: list[dict[str, object]] = []
         self._plant_tick_index = 0
+        self.substepped_ticks = 0  # plant ticks that needed adaptive sub-stepping
         self.timing.strides()
         self.operator_throughput_target: float | None = None
         self.operator_auxiliary = {
@@ -452,7 +453,11 @@ class EpisodeRunner:
         if self.done:
             return self.outcomes.state
 
-        sol = self.plant.backward_euler_step(self.y, dt, actual, guess=self.y)
+        # Adaptive sub-stepping: split the 0.1-min step when the implicit solve stalls
+        # (sharp transitions such as SIF overrides), instead of ending the episode.
+        sol = self.plant.adaptive_step(self.y, dt, actual)
+        if getattr(sol, "nsub", 1) > 1:
+            self.substepped_ticks += 1
         if (not sol.success) or (not np.all(np.isfinite(sol.x))) or np.linalg.norm(sol.fun) > 1e-5:
             reason = f"DAE step failed/residual={np.linalg.norm(sol.fun):.3e}: {getattr(sol, 'message', '')}"
             self.outcomes.numerical_failure(tk, reason)

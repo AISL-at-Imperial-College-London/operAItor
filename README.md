@@ -1,10 +1,14 @@
-# Integrated CSTR + distillation autonomous-operation simulator — v0.5.3 prototype
+# Integrated CSTR + distillation autonomous-operation simulator — v0.5.6 prototype
 
 v0.5 keeps the compact liquid-CSTR + binary-column benchmark from v0.4, but adds the minimum infrastructure needed for abnormal-operation and autonomous-operation experiments.
 
+> **New:** async LangGraph monitoring/action agents with PCA fault detection and a
+> React web console connected to the live plant — see
+> [ASYNC_AGENTS_AND_CONSOLE.md](ASYNC_AGENTS_AND_CONSOLE.md).
+
 The design goal is **causal realism rather than high-fidelity equipment modelling**: faults should produce believable process signatures, the BPCS should react, independent SIFs should be able to override commands, final-element faults should still be able to defeat those commands, and an external actor should receive discrete decision opportunities.
 
-## What is new in v0.5 / v0.5.1 / v0.5.2 / v0.5.3
+## What is new in v0.5 / v0.5.1 / v0.5.2 / v0.5.3 / v0.5.4 / v0.5.6
 
 ### Stateful episode environment
 
@@ -32,6 +36,39 @@ The simulated process clock advances only inside `step()`. It is therefore froze
 
 The initial v0.5 actor is `PassiveActor`, which always returns `NO_ACTION`. This is the baseline against which later autonomous or human actions can be compared.
 
+
+
+
+### Console workflow fix (v0.5.6)
+
+The episode selector now **loads the selected episode immediately**.  The older
+console required a second click on *Load / reset selected episode*, which made it
+easy to leave `nominal_hold` running after choosing Variability, Surprise, or a
+curated case.  The load/reset button remains available for an explicit restart.
+
+The master ground-truth panel now shows the **complete scheduled event list**
+with pending/active/done state and event times.  This is particularly useful for
+random normal-variability runs where the first 15-min disturbance may begin well
+after the start of the episode.
+
+Master fault/disturbance injection into a completed episode now automatically
+resets the currently selected episode before arming the injection, so an event can
+never be silently added to a simulation whose clock can no longer advance.
+
+The Overview/trend tabs are now at the top of the main workspace.  The status
+banner, reactor/column scalar faceplates, ground-truth summary and pump status
+have been moved **below the tabbed displays** to make the live graphics easier to
+see.
+
+### Live process overview graphic (v0.5.4)
+
+The web operator console now includes an **Overview** tab ahead of Reactor, Column, Controls/MVs and Utilities. It embeds the process faceplate graphic in `static/process_overview.png` and overlays live simulator values, operator-alarm lamps, executive SIF lamps and duty/standby pump states.
+
+- Scalar values on the graphic update from the same measured/actual signals used elsewhere in the console.
+- Ordinary alarm lamps are white when normal and flash yellow while the corresponding operator alarm is active.
+- Executive SIF lamps are white when clear and flash red while the corresponding SIF latch is active.
+- Pump A/B badges show RUN/STBY and flash red when the selected pump is failed.
+- The overview is display-only: all operator actions and master fault/disturbance injections remain in the existing side panels.
 
 ### Operator/agent action interface (v0.5.3)
 
@@ -268,29 +305,6 @@ Initial consequence checks include reactor overpressure exposure, column overpre
 The dry-tray / phase-disappearance problem is **not** solved in v0.5. If a future non-trip scenario drives tray holdup outside the defensible region, the environment should terminate as `MODEL_LIMIT` rather than treating the resulting equilibrium-stage solution as physically valid.
 
 ## Running one episode
-
-Each run now saves the episode CSV and three PNG dashboards in `episode_results`
-(or `--output-dir`): `<episode>_process.png`, `<episode>_actuators.png`, and
-`<episode>_safety.png`. The figures show true/measured process variables,
-setpoints and SIF limits, all four command stages, alarms, latched safety
-functions and selected-pump failures. Event onsets and termination are marked;
-post-termination padding is shaded and excluded from the plotted trajectories.
-
-Use `--plot` to also display the figures, or `--no-plots` to save CSV only:
-
-```powershell
-.\.venv\Scripts\python.exe run_v05_episode.py --mode curated --scenario h2_pcv_capacity_degradation --plot
-```
-
-Plot an existing episode CSV without rerunning the simulation:
-
-```powershell
-.\.venv\Scripts\python.exe plot_v05_results.py episode_results\nominal_hold.csv --plot
-```
-
-Plotting requires Matplotlib (`python -m pip install matplotlib`). When plotting
-an existing CSV, the SIF reference lines use the benchmark's default safety
-configuration; the runner uses its actual safety configuration.
 
 Examples:
 

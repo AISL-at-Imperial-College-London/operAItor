@@ -1,6 +1,12 @@
 # Master operator console
 
-The v0.5.3 operator layer is intended as a **master/operator-training view** of the simulator. It uses the same `EpisodeRunner`, regulatory controllers, SIFs, fault engines and physical model as the batch runs.
+The v0.5.6 operator layer is intended as a **master/operator-training view** of the simulator. It uses the same `EpisodeRunner`, regulatory controllers, SIFs, fault engines and physical model as the batch runs.
+
+## Overview faceplate
+
+The first web-console tab is a live process overview. The background artwork is `static/process_overview.png`; Bokeh overlays the current simulator values rather than relying on the illustrative values baked into the image. Small local alarm lamps are white when normal and flash yellow while an operator alarm is active. The four executive alarm lamps shown on the graphic flash red when their corresponding SIF latch is active. Pump A/B badges follow the currently selected duty/standby equipment and indicate a selected failed pump with a red flash.
+
+The faceplate is intentionally an operator display only. Scenario injection, sensor/actuator faults and utility disturbances remain confined to the Master injections panel and are not exposed as operator/agent actions.
 
 ## Recommended way to use it
 
@@ -52,6 +58,7 @@ The main area contains:
 - CSTR faceplate
 - distillation-column faceplate
 - master/ground-truth panel
+- an **Overview** tab with the process faceplate graphic, live scalar readings, flashing operator alarms, executive SIF lamps and dynamic duty/standby pump status
 - live trends grouped into Reactor, Column, Controls/MVs and Utilities tabs
 - active alarm table
 - alarm event history
@@ -179,8 +186,13 @@ These are **prototype/operator-training setpoints**, not engineered plant alarm 
 
 ## Initial validation
 
-The operator-layer regression suite is `test_operator_layer.py`. Together with the existing tests, **37 tests currently pass** in v0.5.3, including direct tests of runtime disturbance injection, persistent setpoint/MANUAL actions, auxiliary commands, pump trips/spare switchover and pump-trip alarms.
+The operator-layer regression suite is `test_operator_layer.py`. Together with the existing tests, **40 tests currently pass** in v0.5.6, including direct tests of runtime disturbance injection, persistent setpoint/MANUAL actions, auxiliary commands, pump trips/spare switchover and pump-trip alarms.
 
 A 180-minute nominal run and the seeded +/-10% normal-disturbance run (`seed=20261004`) were checked against the initial alarm settings and produced no nuisance alarm activations.
 
 v0.5.3 retains the v0.5.1 pressure-sampling fix by using a **6 s physical/SIF/alarm clock**, a **1 min BPCS controller clock**, and an effective H2-system gas volume of about **25 m3**.  With the severe `h2_pcv_stuck_closed` case, the pressure excursion is now resolved through multiple samples before the 4.0 bar SIF threshold; the BDV then acts on the fast SIF clock.  This severe case remains primarily a protection-system test.  For human/agent intervention studies, use the new `h2_pcv_capacity_degradation` case, which develops over 10 min and creates a much larger diagnosis/action window.
+
+
+## v0.5.6 alarm-lamp annunciation fix
+
+The Overview faceplate now keeps ordinary operator alarms visibly annunciated through the full alarm state machine. Unacknowledged ACTIVE and returned-unacknowledged (RTN_UNACK) alarms flash yellow/dark-amber until acknowledgement; acknowledged active alarms remain steady amber; normal lamps are white. This fixes the case where a fast SIF response returned a PV below its operator alarm limit before the alarm was acknowledged, leaving the alarm visible in the table but no longer flashing on the faceplate.

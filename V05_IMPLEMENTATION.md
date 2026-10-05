@@ -145,7 +145,7 @@ The action API is present so those additions do not require changing the episode
 - Automated test suite at packaging time: **31 passed**.
 
 
-## v0.5.3 operator/action and spare-pump pass
+## v0.5.4 operator/action and spare-pump pass
 
 - Added persistent restricted operator/agent actions for throughput, SP changes, AUTO/MANUAL, manual MV output, auxiliary BDV/emergency cooling, alarm acknowledgement, SIF reset, and pump switchover.
 - Added PI tracking for bumpless AUTO/MANUAL transfer.
@@ -156,3 +156,25 @@ The action API is present so those additions do not require changing the episode
 - Verified the master runtime disturbance path: a +10% cooling-water temperature injection changes 298.15 K to 327.965 K on the next process advance and remains active for 15 simulated minutes.
 - Added machine-readable `EpisodeRunner.action_catalog()` for later agent tool/system-prompt generation.
 - Regression suite: 37 tests passing.
+
+
+## v0.5.4 operator overview
+
+Added a live Bokeh Overview tab using `static/process_overview.png` as the process faceplate. Live scalar overlays, alarm/SIF lamps and pump A/B state are updated from `EpisodeRunner` state without changing the plant, control, fault, SIF or scenario equations.
+
+## v0.5.6 console episode-selection fix
+
+- Episode dropdown changes now immediately instantiate the selected nominal,
+  variability, surprise, or curated `EpisodeSpec`; the console can no longer
+  continue `nominal_hold` merely because the user forgot a second load click.
+- Horizon, seed and trip-termination configuration changes rebuild the episode
+  while paused.
+- Pressing Run after a completed/terminated episode reloads the selected episode
+  before starting.
+- Manual master injections into a completed episode automatically reset the
+  selected episode before the event is added.
+- Master ground truth now shows the full pending/active/done event schedule with
+  event times.
+- Overview/trend tabs moved above the scalar faceplate/status region.
+- Added console workflow regression tests; full suite: 40 passing tests.
+

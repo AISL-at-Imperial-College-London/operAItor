@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 from html import escape
+from pathlib import Path
+import base64
 
 from bokeh.io import curdoc
 from bokeh.layouts import column, row, gridplot
@@ -38,6 +40,7 @@ env: EpisodeRunner | None = None
 running = False
 pending_reset_sif = False
 periodic_handle = None
+_loading_episode = False
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +90,150 @@ alarm_source = ColumnDataSource(dict(priority=[], alarm_id=[], state=[], value=[
 alarm_history_source = ColumnDataSource(dict(time_min=[], priority=[], alarm_id=[], transition=[], value=[], description=[]))
 
 
+
+# ---------------------------------------------------------------------------
+# Live overview / faceplate graphic
+# ---------------------------------------------------------------------------
+_OVERVIEW_W = 1670
+_OVERVIEW_H = 942
+_OVERVIEW_IMAGE_PATH = Path(__file__).with_name("static") / "process_overview.png"
+_OVERVIEW_IMAGE_URI = "data:image/png;base64," + base64.b64encode(_OVERVIEW_IMAGE_PATH.read_bytes()).decode("ascii")
+_overview_flash_phase = False
+
+
+def _oy(screen_y: float) -> float:
+    """Convert image pixel Y (origin at top) to Bokeh data Y (origin at bottom)."""
+    return _OVERVIEW_H - float(screen_y)
+
+
+# These rectangles intentionally cover the illustrative placeholder values
+# baked into the artwork.  The live operator values are then rendered on top.
+_OVERVIEW_VALUE_SPECS = (
+    ("r_temp", 197, 360, 158, 31),
+    ("r_press", 197, 397, 158, 31),
+    ("r_level", 197, 435, 158, 31),
+    ("r_x", 197, 472, 158, 31),
+    ("heater", 237, 642, 116, 31),
+    ("h2", 628, 146, 138, 30),
+    ("col_press", 796, 301, 151, 31),
+    ("top_temp", 795, 365, 151, 31),
+    ("feed_temp", 779, 446, 158, 31),
+    ("bottom_temp", 795, 554, 151, 31),
+    ("reflux", 1193, 330, 128, 31),
+    ("cooling", 1447, 132, 147, 31),
+    ("dr_level", 1563, 243, 127, 31),
+    ("dist_x", 1563, 279, 127, 31),
+    ("distillate", 1563, 315, 127, 31),
+    ("steam", 1434, 626, 119, 31),
+    ("rb_level", 1212, 711, 151, 31),
+    ("bottoms", 1443, 719, 141, 31),
+    ("btm_x", 1443, 757, 141, 31),
+)
+
+overview_value_source = ColumnDataSource(dict(
+    x=[x for _, x, _, _, _ in _OVERVIEW_VALUE_SPECS],
+    y=[_oy(y) for _, _, y, _, _ in _OVERVIEW_VALUE_SPECS],
+    w=[w for _, _, _, w, _ in _OVERVIEW_VALUE_SPECS],
+    h=[h for _, _, _, _, h in _OVERVIEW_VALUE_SPECS],
+    text=["" for _ in _OVERVIEW_VALUE_SPECS],
+))
+
+# Small alarm lamps beside the scalar readouts.  Lamps are white in the normal
+# state and flash yellow whenever an associated operator alarm is active.
+_OVERVIEW_INDICATOR_SPECS = (
+    ("r_temp", 295, 360, "cstr_temperature_K"),
+    ("r_press", 295, 397, "cstr_pressure_bar"),
+    ("r_level", 295, 435, "cstr_holdup_kmol"),
+    ("r_x", 295, 472, None),
+    ("h2", 540, 146, None),
+    ("col_press", 884, 301, "column_pressure_bar"),
+    ("top_temp", 884, 365, "top_temperature_K"),
+    ("feed_temp", 884, 446, None),
+    ("bottom_temp", 884, 554, "bottom_temperature_K"),
+    ("reflux", 1110, 330, None),
+    ("cooling", 1388, 132, None),
+    ("dr_level", 1489, 243, "drum_holdup_kmol"),
+    ("dist_x", 1489, 279, "distillate_x_acetone"),
+    ("distillate", 1489, 315, None),
+    ("heater", 171, 642, None),
+    ("steam", 1368, 626, None),
+    ("rb_level", 1127, 711, "reboiler_holdup_kmol"),
+    ("bottoms", 1368, 719, None),
+    ("btm_x", 1368, 757, "bottoms_x_acetone"),
+)
+overview_indicator_source = ColumnDataSource(dict(
+    x=[x for _, x, _, _ in _OVERVIEW_INDICATOR_SPECS],
+    y=[_oy(y) for _, _, y, _ in _OVERVIEW_INDICATOR_SPECS],
+    fill=["#f8fbff" for _ in _OVERVIEW_INDICATOR_SPECS],
+    line=["#9fc4dc" for _ in _OVERVIEW_INDICATOR_SPECS],
+))
+
+# Executive alarm lamps shown in the lower-left dedicated panel of the artwork.
+_OVERVIEW_EXEC_SPECS = (
+    ("R_P_HH", 89, 856),
+    ("R_L_LL", 199, 856),
+    ("DR_L_LL", 311, 856),
+    ("COL_P_HH", 432, 856),
+)
+overview_exec_source = ColumnDataSource(dict(
+    x=[x for _, x, _ in _OVERVIEW_EXEC_SPECS],
+    y=[_oy(y) for _, _, y in _OVERVIEW_EXEC_SPECS],
+    color=["#f8fbff" for _ in _OVERVIEW_EXEC_SPECS],
+))
+
+_OVERVIEW_PUMP_BADGES = (
+    ("FEED", "A", 151, 303), ("FEED", "B", 227, 303),
+    ("CSTR_OUTLET", "A", 492, 718), ("CSTR_OUTLET", "B", 569, 718),
+    ("REFLUX", "A", 1138, 469), ("REFLUX", "B", 1215, 469),
+    ("DISTILLATE", "A", 1324, 531), ("DISTILLATE", "B", 1401, 531),
+    ("BOTTOMS", "A", 1139, 862), ("BOTTOMS", "B", 1216, 862),
+)
+overview_pump_source = ColumnDataSource(dict(
+    x=[x for _, _, x, _ in _OVERVIEW_PUMP_BADGES],
+    y=[_oy(y) for _, _, _, y in _OVERVIEW_PUMP_BADGES],
+    text=[f"{side} STBY" for _, side, _, _ in _OVERVIEW_PUMP_BADGES],
+    fill=["#0d2638" for _ in _OVERVIEW_PUMP_BADGES],
+    line=["#5b7890" for _ in _OVERVIEW_PUMP_BADGES],
+    text_color=["#d6e6f2" for _ in _OVERVIEW_PUMP_BADGES],
+))
+
+overview_plot = figure(
+    width=_OVERVIEW_W, height=_OVERVIEW_H, sizing_mode="scale_width",
+    x_range=(0, _OVERVIEW_W), y_range=(0, _OVERVIEW_H),
+    toolbar_location=None, min_border=0, outline_line_color=None,
+    background_fill_color="#061b28",
+)
+overview_plot.axis.visible = False
+overview_plot.grid.visible = False
+overview_plot.image_url(
+    url=[_OVERVIEW_IMAGE_URI], x=0, y=0, w=_OVERVIEW_W, h=_OVERVIEW_H,
+    anchor="bottom_left",
+)
+# Value-card masks and live scalar values.
+overview_plot.rect("x", "y", "w", "h", source=overview_value_source,
+                   fill_color="#082438", fill_alpha=0.98,
+                   line_color="#2d6d94", line_width=1.2)
+overview_plot.text("x", "y", text="text", source=overview_value_source,
+                   text_align="center", text_baseline="middle",
+                   text_color="#f1f7fb", text_font_size="12px",
+                   text_font="Arial")
+# Ordinary alarm lamps.  Use a slightly larger live glyph than the baked-in
+# white placeholder so an active lamp remains clearly visible on the faceplate.
+overview_plot.rect("x", "y", 24, 24, source=overview_indicator_source,
+                   fill_color="fill", line_color="line", line_width=3)
+# Executive alarm lamps.
+overview_plot.rect("x", "y", 22, 22, source=overview_exec_source,
+                   fill_color="color", line_color="color", line_width=2)
+# Pump A/B selection / availability badges.
+overview_plot.rect("x", "y", 70, 28, source=overview_pump_source,
+                   fill_color="fill", fill_alpha=0.96, line_color="line", line_width=1.4)
+overview_plot.text("x", "y", text="text", source=overview_pump_source,
+                   text_align="center", text_baseline="middle",
+                   text_color="text_color", text_font_size="10px",
+                   text_font_style="bold")
+
+overview_tab = TabPanel(title="Overview", child=overview_plot)
+
 def _make_plot(title, y_label, series):
     p = figure(height=220, sizing_mode="stretch_width", title=title,
                x_axis_label="Simulated time [min]", y_axis_label=y_label,
@@ -126,7 +273,7 @@ utilities_tab = TabPanel(title="Utilities", child=gridplot([
     [_make_plot("Steam header pressure", "bar", [("steam_press", "Steam P")]),
      _make_plot("Condenser cooling effectiveness", "fraction", [("cool_eff", "Cooling effectiveness")])],
 ], sizing_mode="stretch_width"))
-trend_tabs = Tabs(tabs=[reactor_tab, column_tab, controls_tab, utilities_tab], sizing_mode="stretch_width")
+trend_tabs = Tabs(tabs=[overview_tab, reactor_tab, column_tab, controls_tab, utilities_tab], sizing_mode="stretch_width")
 
 
 def _clear_sources():
@@ -222,6 +369,152 @@ def _loop_line(loop_id):
     return f"<b>{loop_id}</b> {x['mode']} &nbsp; SP {x['setpoint']:.3g} &nbsp; OP {x['last_output']:.3g}"
 
 
+
+def _overview_text_values() -> dict[str, str]:
+    assert env is not None
+    m, u = env.last_measured, env.last_actual
+    yc, _ = plant.split_state(env.y)
+    h2 = plant.cstr.h2_flow_components(yc, plant._cstr_inputs(u))
+    return {
+        "r_temp": f"T_R = {m['cstr_temperature_K']:.1f} K",
+        "r_press": f"P_R = {m['cstr_pressure_bar']:.3f} bar",
+        "r_level": f"M_R = {m['cstr_holdup_kmol']:.1f} kmol",
+        "r_x": f"x_B = {m['cstr_x_acetone']:.3f}",
+        "heater": f"HV = {100*u.cstr_heater_factor:.0f} %",
+        "h2": f"F_H2 = {h2['total_kmol_h']:.1f} kmol/h",
+        "col_press": f"P_COL = {m['column_pressure_bar']:.3f} bar",
+        "top_temp": f"T_TOP = {m['top_temperature_K']:.1f} K",
+        "feed_temp": f"T_FEED = {u.fresh_feed_temperature_K:.1f} K",
+        "bottom_temp": f"T_BOT = {m['bottom_temperature_K']:.1f} K",
+        "reflux": f"R = {u.reflux_flow:.1f} kmol/h",
+        "cooling": f"CWV = {100*u.condenser_cooling_valve:.0f} %",
+        "dr_level": f"M_D = {m['drum_holdup_kmol']:.1f} kmol",
+        "dist_x": f"x_D = {m['distillate_x_acetone']:.3f}",
+        "distillate": f"D = {u.distillate_flow:.1f} kmol/h",
+        "steam": f"SV = {100*u.steam_factor:.0f} %",
+        "rb_level": f"M_B = {m['reboiler_holdup_kmol']:.1f} kmol",
+        "bottoms": f"B = {u.bottoms_flow:.1f} kmol/h",
+        "btm_x": f"x_BOT = {m['bottoms_x_acetone']:.3f}",
+    }
+
+
+def _tag_alarm_visual_state(tag: str | None) -> str:
+    """Return the most important operator-alarm state for a faceplate tag.
+
+    A returned-but-unacknowledged alarm must remain visually annunciated until
+    the operator acknowledges it.  The earlier console used ``AlarmStatus.active``
+    here, which intentionally excludes RTN_UNACK; that made a short-lived alarm
+    disappear from the faceplate even though it was still listed in the alarm
+    table below.
+    """
+    if env is None or tag is None:
+        return "NORMAL"
+    states = [s.state.value for s in env.alarms.status.values() if s.definition.tag == tag]
+    if "ACTIVE_UNACK" in states:
+        return "ACTIVE_UNACK"
+    if "RTN_UNACK" in states:
+        return "RTN_UNACK"
+    if "ACTIVE_ACK" in states:
+        return "ACTIVE_ACK"
+    return "NORMAL"
+
+
+def _refresh_overview_values():
+    vals = _overview_text_values()
+    overview_value_source.data = dict(
+        x=list(overview_value_source.data["x"]),
+        y=list(overview_value_source.data["y"]),
+        w=list(overview_value_source.data["w"]),
+        h=list(overview_value_source.data["h"]),
+        text=[vals[key] for key, *_ in _OVERVIEW_VALUE_SPECS],
+    )
+
+    # Update pump duty/standby state.  A failed selected pump flashes red in the
+    # dedicated 500 ms flash callback; healthy selected pumps are green.
+    ps = env.pumps.snapshot(env.t_h, env.spec.pump_faults)
+    texts, fills, lines, tcols = [], [], [], []
+    for train_id, side, _, _ in _OVERVIEW_PUMP_BADGES:
+        x = ps[train_id]
+        pump_id = x["primary"] if side == "A" else x["spare"]
+        selected = x["active_pump"] == pump_id
+        failed = x["primary_failed"] if side == "A" else x["spare_failed"]
+        if selected and not failed:
+            texts.append(f"{side} RUN"); fills.append("#003c23"); lines.append("#00d96b"); tcols.append("#33ff99")
+        elif selected and failed:
+            texts.append(f"{side} FAIL"); fills.append("#401216"); lines.append("#ff3b45"); tcols.append("#ffb5b8")
+        elif failed:
+            texts.append(f"{side} FAIL"); fills.append("#2a1012"); lines.append("#b6242c"); tcols.append("#ff9197")
+        else:
+            texts.append(f"{side} STBY"); fills.append("#0d2638"); lines.append("#5b7890"); tcols.append("#d6e6f2")
+    overview_pump_source.data = dict(
+        x=list(overview_pump_source.data["x"]), y=list(overview_pump_source.data["y"]),
+        text=texts, fill=fills, line=lines, text_color=tcols,
+    )
+
+
+def _refresh_overview_indicators():
+    if env is None:
+        return
+    # A lamp flashes between its active colour and white.  This is deliberately
+    # independent of simulation time, so alarms continue to flash while paused.
+    ordinary_fill, ordinary_line = [], []
+    for _, _, _, tag in _OVERVIEW_INDICATOR_SPECS:
+        state = _tag_alarm_visual_state(tag)
+        if state in ("ACTIVE_UNACK", "RTN_UNACK"):
+            # Flash between bright yellow and dark amber, rather than yellow and
+            # white.  The artwork contains a baked-in white placeholder lamp, so
+            # a white flash phase was visually indistinguishable from NORMAL.
+            ordinary_fill.append("#ffd400" if _overview_flash_phase else "#6f5900")
+            ordinary_line.append("#fff176")
+        elif state == "ACTIVE_ACK":
+            ordinary_fill.append("#ffb300")
+            ordinary_line.append("#ffd54f")
+        else:
+            ordinary_fill.append("#f8fbff")
+            ordinary_line.append("#9fc4dc")
+    overview_indicator_source.data = dict(
+        x=list(overview_indicator_source.data["x"]),
+        y=list(overview_indicator_source.data["y"]),
+        fill=ordinary_fill,
+        line=ordinary_line,
+    )
+
+    latched = set(env.last_safety_result.latched_causes)
+    exec_colors = [
+        ("#ff3038" if _overview_flash_phase else "#f8fbff") if cause in latched else "#f8fbff"
+        for cause, _, _ in _OVERVIEW_EXEC_SPECS
+    ]
+    overview_exec_source.data = dict(
+        x=list(overview_exec_source.data["x"]),
+        y=list(overview_exec_source.data["y"]),
+        color=exec_colors,
+    )
+
+    # Flash the badge of a selected failed duty/standby pump red.
+    ps = env.pumps.snapshot(env.t_h, env.spec.pump_faults)
+    data = {k: list(v) for k, v in overview_pump_source.data.items()}
+    for i, (train_id, side, _, _) in enumerate(_OVERVIEW_PUMP_BADGES):
+        x = ps[train_id]
+        pump_id = x["primary"] if side == "A" else x["spare"]
+        selected = x["active_pump"] == pump_id
+        failed = x["primary_failed"] if side == "A" else x["spare_failed"]
+        if selected and failed:
+            data["fill"][i] = "#ff3038" if _overview_flash_phase else "#401216"
+            data["line"][i] = "#ff3038"
+            data["text_color"][i] = "#ffffff"
+    overview_pump_source.data = data
+
+
+def _refresh_overview():
+    _refresh_overview_values()
+    _refresh_overview_indicators()
+
+
+def _overview_flash_tick():
+    global _overview_flash_phase
+    _overview_flash_phase = not _overview_flash_phase
+    _refresh_overview_indicators()
+
 def _refresh_faceplates():
     assert env is not None
     m, u = env.last_measured, env.last_actual
@@ -285,16 +578,33 @@ def _refresh_truth_panel():
     af = env.spec.actuator_faults.active_faults(env.t_h)
     sf = env.spec.sensor_faults.active_faults(env.t_h)
     pf = env.spec.pump_faults.active_faults(env.t_h)
-    scheduled = env.spec.scenario.active_events(env.t_h)
+    active_scheduled = env.spec.scenario.active_events(env.t_h)
+    schedule_bits = []
+    for ev in env.spec.scenario.events:
+        start_min = 60.0 * ev.start_h
+        end_min = None if ev.end_h is None else 60.0 * ev.end_h
+        if ev.active(env.t_h):
+            phase = "ACTIVE"
+        elif env.t_h < ev.start_h:
+            phase = "pending"
+        else:
+            phase = "done"
+        interval = f"@ {start_min:.1f} min" if end_min is None else f"@ {start_min:.1f}–{end_min:.1f} min"
+        schedule_bits.append(f"{ev.name} ({phase}, {interval})")
+    schedule_text = "; ".join(schedule_bits) or "none"
     truth_panel.text = """
     <div style='border:1px solid #999;padding:10px;border-radius:4px'>
       <h3 style='margin:0 0 6px 0'>Master / ground truth</h3>
-      <b>Scenario events:</b> %s<br><b>Runtime injections:</b> %s<br>
+      <b>Loaded episode:</b> %s<br>
+      <b>Scenario schedule:</b> %s<br>
+      <b>Active scheduled events:</b> %s<br><b>Runtime injections:</b> %s<br>
       <b>Actuator faults:</b> %s<br><b>Sensor faults:</b> %s<br><b>Pump faults:</b> %s<br>
       <b>SIF latched:</b> %s<br><b>Plant-trip latch:</b> %s<br>
       <b>Last operator action:</b> %s
     </div>""" % (
-        escape(", ".join(x.name for x in scheduled) or "none"),
+        escape(env.spec.name),
+        escape(schedule_text),
+        escape(", ".join(x.name for x in active_scheduled) or "none"),
         escape(", ".join(x.name for x in rt) or "none"),
         escape(", ".join(x.name for x in af) or "none"),
         escape(", ".join(x.name for x in sf) or "none"),
@@ -327,7 +637,7 @@ def _refresh_status():
 
 
 def _refresh_all():
-    _refresh_status(); _refresh_faceplates(); _refresh_alarm_table(); _refresh_truth_panel(); _sync_operator_widgets()
+    _refresh_status(); _refresh_faceplates(); _refresh_alarm_table(); _refresh_truth_panel(); _refresh_overview(); _sync_operator_widgets()
 
 
 # ---------------------------------------------------------------------------
@@ -343,12 +653,59 @@ ack_button = Button(label="Acknowledge all alarms", button_type="warning", width
 reset_sif_button = Button(label="Request SIF reset", width=150)
 
 
-def _new_environment():
-    global env, pending_reset_sif, running
-    running = False; pending_reset_sif = False
-    env = EpisodeRunner(plant, _build_spec(), timing=EpisodeTiming(plant_step_min=0.1, decision_interval_min=0.5, control_interval_min=1.0))
-    _clear_sources(); _append_point(); _refresh_all(); run_button.label = "Run"
-    message_div.text = f"Loaded episode <b>{escape(env.spec.name)}</b>."
+def _new_environment(reason: str = "manual"):
+    global env, pending_reset_sif, running, _loading_episode
+    if _loading_episode:
+        return
+    _loading_episode = True
+    try:
+        running = False
+        pending_reset_sif = False
+        spec = _build_spec()
+        env = EpisodeRunner(
+            plant, spec,
+            timing=EpisodeTiming(plant_step_min=0.1, decision_interval_min=0.5, control_interval_min=1.0),
+        )
+        _clear_sources()
+        _append_point()
+        _refresh_all()
+        run_button.label = "Run"
+        message_div.text = (
+            f"Loaded episode <b>{escape(env.spec.name)}</b> at t=0.0 min "
+            f"({escape(reason)}). Press <b>Run</b> or use Step controls to advance."
+        )
+    finally:
+        _loading_episode = False
+
+
+def _ensure_live_environment_for_injection():
+    """Ensure a master injection is applied to a live episode.
+
+    The old console accepted injections even after the episode had terminated,
+    so the ground-truth event existed but process time could no longer advance.
+    For master-console use this is surprising.  A terminated episode is now
+    transparently reset using the currently selected episode before an
+    injection is armed.
+    """
+    global env
+    if env is None or env.done:
+        _new_environment(reason="automatic reset before master injection")
+    return env
+
+
+def _on_episode_selection_change(attr, old, new):
+    # Selecting an episode should actually load it.  This removes the previous
+    # two-step dropdown + load-button ambiguity that made the console appear to
+    # keep running nominal_hold.
+    _new_environment(reason=f"episode selection changed to {new}")
+
+
+def _on_episode_config_change(attr, old, new):
+    # Horizon/seed changes alter the generated schedule, so rebuild immediately
+    # when the episode is not actively running.  While running we leave the
+    # current run untouched; the explicit load/reset button can still be used.
+    if not running:
+        _new_environment(reason="episode configuration changed")
 
 
 def _one_tick():
@@ -378,7 +735,11 @@ def _restart_periodic():
 
 def _toggle_run():
     global running
-    running = not running; run_button.label = "Pause" if running else "Run"; _refresh_status()
+    if env is None or env.done:
+        _new_environment(reason="Run pressed after completed/terminated episode")
+    running = not running
+    run_button.label = "Pause" if running else "Run"
+    _refresh_status()
 
 
 def _step(n):
@@ -401,8 +762,13 @@ def _request_sif_reset():
 
 run_button.on_click(_toggle_run)
 step1_button.on_click(lambda: _step(2)); step5_button.on_click(lambda: _step(10))
-load_episode_button.on_click(_new_environment); ack_button.on_click(_ack_all); reset_sif_button.on_click(_request_sif_reset)
+load_episode_button.on_click(lambda: _new_environment(reason="Load/reset button"))
+ack_button.on_click(_ack_all); reset_sif_button.on_click(_request_sif_reset)
 speed_select.on_change("value", lambda attr, old, new: _restart_periodic())
+scenario_select.on_change("value", _on_episode_selection_change)
+horizon_spinner.on_change("value", _on_episode_config_change)
+seed_spinner.on_change("value", _on_episode_config_change)
+stop_on_trip_checkbox.on_change("active", _on_episode_config_change)
 
 
 # ---------------------------------------------------------------------------
@@ -527,6 +893,7 @@ def _end_h(duration_min):
 
 
 def _inject_disturbance():
+    _ensure_live_environment_for_injection()
     target = disturbance_map[disturbance_select.value]; mult = float(disturbance_direction.value)
     event = RuntimeInputEvent(
         name=f"manual_{target}_{'up' if mult > 1 else 'down'}_{60*env.t_h:.1f}min",
@@ -542,6 +909,7 @@ def _inject_disturbance():
 
 
 def _inject_actuator():
+    _ensure_live_environment_for_injection()
     target, mode = actuator_target.value, actuator_mode.value; frac = float(actuator_severity.value)/100.0
     kwargs = dict(name=f"manual_{target}_{mode}_{60*env.t_h:.1f}min", target=target, start_h=env.t_h, end_h=_end_h(actuator_duration.value), mode=mode)
     if mode == "capacity": kwargs["capacity_fraction"] = frac
@@ -553,6 +921,7 @@ def _inject_actuator():
 
 
 def _inject_pump_fault():
+    _ensure_live_environment_for_injection()
     pid = pump_fault_target.value
     env.spec.pump_faults.faults.append(PumpFault(name=f"manual_{pid}_trip_{60*env.t_h:.1f}min", pump_id=pid, start_h=env.t_h, end_h=_end_h(pump_fault_duration.value)))
     message_div.text = f"Tripped pump {escape(pid)}. A healthy standby must be selected from Operator actions."
@@ -560,6 +929,7 @@ def _inject_pump_fault():
 
 
 def _inject_sensor():
+    _ensure_live_environment_for_injection()
     target, mode = sensor_target.value, sensor_mode.value
     truth0 = plant.measurements(env.y)[target]; bias = float(truth0)*float(sensor_bias_pct.value)/100.0
     env.spec.sensor_faults.faults.append(SensorFault(name=f"manual_{target}_{mode}_{60*env.t_h:.1f}min", target=target, start_h=env.t_h, end_h=_end_h(sensor_duration.value), mode=mode, bias=bias if mode == "bias" else 0.0))
@@ -568,6 +938,7 @@ def _inject_sensor():
 
 
 def _inject_process():
+    _ensure_live_environment_for_injection()
     ftype = process_fault_type.value; sev = float(process_severity.value); end = _end_h(process_duration.value)
     if ftype == "catalyst_activity_loss": target, mode, value = "catalyst_activity", "set", max(0.0, 1.0-sev/100.0)
     elif ftype == "condenser_cooling_loss": target, mode, value = "condenser_cooling_effectiveness", "set", max(0.0, 1.0-sev/100.0)
@@ -623,9 +994,10 @@ injection_panel = column(
 )
 
 main = column(
+    trend_tabs,
     status_banner,
     row(reactor_faceplate, column_faceplate, truth_panel, sizing_mode="stretch_width"),
-    pump_panel, trend_tabs,
+    pump_panel,
     Div(text="<h2>Operator alarms</h2>"), alarm_table,
     Div(text="<h3>Alarm event history</h3>"), alarm_history_table,
     message_div, sizing_mode="stretch_width",
@@ -634,5 +1006,6 @@ main = column(
 sidebar = column(run_controls, operator_panel, injection_panel, width=390)
 DOC.add_root(row(sidebar, main, sizing_mode="stretch_width"))
 
-_new_environment()
+_new_environment(reason="initial load")
 _restart_periodic()
+DOC.add_periodic_callback(_overview_flash_tick, 500)

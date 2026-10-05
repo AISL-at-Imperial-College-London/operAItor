@@ -34,11 +34,7 @@ def main():
     ap.add_argument("--control-interval-min", type=float, default=1.0)
     ap.add_argument("--decision-interval-min", type=float, default=5.0)
     ap.add_argument("--output-dir", default="episode_results")
-    ap.add_argument("--plot", action="store_true", help="Also display the result figures after saving PNGs")
-    ap.add_argument("--no-plots", action="store_true", help="Save CSV only; skip PNG generation")
     args = ap.parse_args()
-    if args.plot and args.no_plots:
-        ap.error("--plot and --no-plots cannot be used together")
 
     spec = build_spec(args)
     plant = IntegratedPlantDAE()
@@ -54,23 +50,12 @@ def main():
     path = out / f"{spec.name}.csv"
     write_records_csv(records, path)
 
-    plot_paths = []
-    if not args.no_plots:
-        from integrated_plant.episode_plotting import plot_episode_results
-        plot_paths = plot_episode_results(
-            records, out, name=spec.name, safety_config=env.safety.cfg,
-            terminal_time_min=None if state.terminal_time_h is None else 60 * state.terminal_time_h,
-            show=args.plot,
-        )
-
     print("\nEpisode outcome")
     print(f"  name:          {spec.name}")
     print(f"  status:        {state.status.value}")
     print(f"  reason:        {state.reason}")
     print(f"  terminal time: {None if state.terminal_time_h is None else 60*state.terminal_time_h:.1f} min")
     print(f"  saved:         {path}")
-    for plot_path in plot_paths:
-        print(f"  plot:          {plot_path}")
     if spec.scenario.events:
         print("  scheduled events:")
         for e in spec.scenario.events:

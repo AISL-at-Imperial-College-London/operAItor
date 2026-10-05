@@ -215,6 +215,54 @@ class IntegratedPlantDAE:
             ftol=1e-10, xtol=1e-10, gtol=1e-10,
         )
 
+    def adaptive_step(self, y_old: np.ndarray, dt_h: float,
+                      inputs: Optional[PlantInputs] = None,
+                      tol: float = 1e-5, max_halvings: int = 5):
+        """Backward-Euler step with automatic sub-stepping.
+
+        A fixed step can be too large for the nonlinear solve at sharp transitions
+        (SIF overrides, a column losing vapour flow, a vessel nearly empty): the
+        solver then stalls with a residual around 1e-3 and the episode would end
+        in NUMERICAL_FAILURE. Here the fast ``hybr`` solve is tried first; if it
+        does not converge the interval is split in halves recursively (down to
+        dt / 2**max_halvings), and the slow least-squares fallback is only used
+        at the smallest sub-step. Returns an OptimizeResult whose ``fun`` is the
+        residual of the last sub-step and ``nsub`` the number of sub-steps used.
+        """
+        u = self.default_inputs() if inputs is None else inputs
+        mask = self.differential_mask
+
+        def converged(sol) -> bool:
+            return np.all(np.isfinite(sol.x)) and np.linalg.norm(sol.fun) <= tol
+
+        def fast(y: np.ndarray, dt: float):
+            def fun(y_new):
+                ydot = np.zeros_like(y_new)
+                ydot[mask] = (y_new[mask] - y[mask]) / dt
+                return self.scaled_residual(0.0, y_new, ydot, u)
+            return root(fun, y, method="hybr", options={"xtol": 1e-9, "maxfev": 2000})
+
+        last = {"sol": None, "nsub": 0}
+
+        def advance(y: np.ndarray, dt: float, depth: int):
+            sol = fast(y, dt)
+            if not converged(sol) and depth >= max_halvings:
+                sol = self.backward_euler_step(y, dt, u, guess=y)  # least-squares fallback
+            if converged(sol):
+                last["sol"], last["nsub"] = sol, last["nsub"] + 1
+                return sol.x
+            if depth >= max_halvings:
+                last["sol"] = sol
+                return None
+            mid = advance(y, dt / 2.0, depth + 1)
+            return None if mid is None else advance(mid, dt / 2.0, depth + 1)
+
+        y_new = advance(np.asarray(y_old, dtype=float), dt_h, 0)
+        sol = last["sol"]
+        ok = y_new is not None
+        return OptimizeResult(x=y_new if ok else sol.x, fun=sol.fun, success=ok, nsub=last["nsub"],
+                              message="ok" if ok else getattr(sol, "message", "sub-stepping failed"))
+
     def measurements(self, y: np.ndarray) -> dict[str, float]:
         yc, ycol = self.split_state(y)
         rb = ycol[self.column.reboiler_offset : self.column.reboiler_offset + 8]
