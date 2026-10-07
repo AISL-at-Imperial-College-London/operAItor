@@ -15,6 +15,7 @@ Modes
 from __future__ import annotations
 
 import asyncio
+import time
 from dataclasses import asdict, replace
 import itertools
 from pathlib import Path
@@ -39,7 +40,7 @@ class AsyncSupervisor:
                  kg: KnowledgeGraph | None = None, pca: PCAMonitor | None = None,
                  action_agent=None, planner=None):
         # Live sessions can run many faults (campaigns), so do not cap the action count.
-        self.cfg = replace(cfg or make_config("rule"), max_actions=10**9)
+        self.cfg = replace(cfg or make_config("passive"), max_actions=10**9)
         self.service = service
         self.mode = mode
         self.kg = kg or KnowledgeGraph()
@@ -61,7 +62,10 @@ class AsyncSupervisor:
         self._last_applied_t: float | None = None  # sim time of the last action the agents applied
 
         service.command_handlers.update({"agent_mode": self._cmd_mode, "agent_approve": self._cmd_approve,
-                                         "agent_dismiss": self._cmd_dismiss})
+                                         "agent_dismiss": self._cmd_dismiss, "diagnose_now": self._cmd_diagnose})
+        self._last_monitor: dict | None = None  # latest monitoring result, for on-demand LLM diagnosis
+        self._last_obs: dict | None = None
+        self._diagnoser = None
         service.on_load.append(self._on_load)
         service.hello_extras.append(self._hello)
 
@@ -76,6 +80,7 @@ class AsyncSupervisor:
             if self.mode == "off" or obs["time_min"] == last_t:
                 continue
             last_t = obs["time_min"]
+            self._last_obs = obs
             try:
                 await self.graph.ainvoke({"observation": obs, "catalog": catalog})
                 if self.mode == "autonomous":
@@ -142,9 +147,11 @@ class AsyncSupervisor:
         """Translate graph events into the console's 'monitor' / 'agent' messages."""
         kind = event["event"]
         if kind == "monitor":
+            self._last_monitor = event
             await self.service.broadcast({"type": "monitor", **event["detection"], "diagnosis": event["diagnosis"]})
             return
         body = {k: v for k, v in event.items() if k not in ("event", "t")}
+        body["wall"] = time.time()  # wall-clock stamp: decision / LLM / twin overheads
         await self.service.broadcast({"type": "agent", "stage": _STAGE.get(kind, kind), "time_min": event["t"], **body})
         if kind in ("plan", "proposal") and (self.cfg.proposer == "llm" or self.cfg.planner == "llm"):
             await self.service.broadcast({"type": "llm_usage", **USAGE.summary()})
@@ -185,6 +192,24 @@ class AsyncSupervisor:
         self.mode = mode
         await self.service.broadcast({"type": "agent_mode", "mode": mode})
         return {"ok": True, "summary": f"agent mode {mode}"}
+
+    async def _cmd_diagnose(self, msg: dict) -> dict:
+        """Ask the LLM diagnosis agent to explain the latest PCA / rule evidence now."""
+        if self._last_monitor is None:
+            return {"ok": False, "summary": "no monitoring result yet"}
+        if self._diagnoser is None:
+            try:
+                from .diagnosis_llm import LLMDiagnoser
+                self._diagnoser = LLMDiagnoser(self.cfg.llm_model, self.cfg.llm_timeout_s, kg=self.kg)
+            except Exception as exc:  # no LLM configured
+                return {"ok": False, "summary": f"LLM diagnosis unavailable: {exc}"}
+        det, diag = self._last_monitor["detection"], self._last_monitor["diagnosis"]
+        verdict = await self._diagnoser.diagnose(det, diag.get("heuristic") or diag, self._last_obs)
+        await self.service.broadcast({"type": "agent", "stage": "llm_diagnosis", "time_min": det["time_min"],
+                                      "on_demand": True, "cycle": self.ctx.cycle, **verdict})
+        await self.service.broadcast({"type": "llm_usage", **USAGE.summary()})
+        return {"ok": verdict.get("ok", False),
+                "summary": verdict.get("summary") or verdict.get("error") or "diagnosis done"}
 
     async def _cmd_approve(self, msg: dict) -> dict:
         p = self.pending.pop(int(msg["proposal_id"]), None)

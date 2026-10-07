@@ -15,6 +15,10 @@ Costs [USD per hour]
   IPA feed          fresh feed [kmol/h] x 60.10 kg/kmol x price
   reboiler steam    reboiler duty [MW] x steam price
   reactor heating   CSTR jacket duty [MW] x hot-utility price
+Inventory
+  the change in liquid hold-up (reactor + reboiler + reflux drum) over the window is valued at the
+  IPA price: drawing hold-up down (lower level setpoints, feed cut) sells material the plant
+  already had, so without this term it would look like profit.
 Plant trip (a plant-trip SIF latches: R_P_HHH, RB_L_HH, DR_L_LL, DR_L_HH, COL_P_HH)
   the plant is down for the rest of the scenario window (no revenue, no costs) and pays
   SHUTDOWN_COST + STARTUP_COST once (flaring/off-spec during restart, restart utilities, labour).
@@ -62,6 +66,14 @@ def hourly_margin(summary: dict, prices: Prices = PRICES) -> dict:
     return {"acetone": acetone, "ipa_credit": ipa_credit, "h2": h2, "feed": -feed, "steam": -steam,
             "heating": -heat, "margin": acetone + ipa_credit + h2 - feed - steam - heat,
             "on_spec": bool(on_spec), "on_spec_kmol_h": D * xD if on_spec else 0.0}
+
+
+INVENTORY_TAGS = ("cstr_holdup_kmol", "reboiler_holdup_kmol", "drum_holdup_kmol")
+
+
+def inventory_value(tick: dict, prices: Prices = PRICES) -> float:
+    """USD value of the liquid hold-up in one recorded tick (valued as IPA feed)."""
+    return sum(tick[k] for k in INVENTORY_TAGS) * MW_IPA / 1000 * prices.ipa_usd_t
 
 
 def prices_dict(prices: Prices = PRICES) -> dict:

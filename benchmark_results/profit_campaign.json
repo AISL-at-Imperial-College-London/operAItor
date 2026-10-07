@@ -11,6 +11,86 @@
   "startup_cost_usd": 15000.0,
   "trip_penalty_usd": 20000.0
  },
+ "configs": {
+  "lucky": {
+   "label": "LLM, no validation (feeling lucky)",
+   "preset": "llm_lucky",
+   "n": 20,
+   "complete": true,
+   "trips": 12,
+   "sif_trips": 10,
+   "profit": -242685.0,
+   "passive_profit_same": -364892.0,
+   "saving": 122207.0,
+   "llm_calls": 362,
+   "llm_cost_usd": 0.3157,
+   "llm_tokens": 3644925,
+   "timed_runs": 20,
+   "decision_s": 2608.6,
+   "llm_s": 2604.9,
+   "twin_s": 0,
+   "n_decisions": 362,
+   "n_llm_calls_timed": 362,
+   "n_twin_rollouts": 0,
+   "mean_decision_s": 7.21,
+   "mean_llm_latency_s": 7.2,
+   "run_wall_s": 5959.0
+  },
+  "judge": {
+   "label": "LLM + LLM judge",
+   "preset": "llm_judge",
+   "n": 20,
+   "complete": true,
+   "trips": 9,
+   "sif_trips": 9,
+   "profit": -172051.0,
+   "passive_profit_same": -364892.0,
+   "saving": 192841.0,
+   "llm_calls": 1072,
+   "llm_cost_usd": 0.8703,
+   "llm_tokens": 10592594,
+   "timed_runs": 20,
+   "decision_s": 7353.1,
+   "llm_s": 7349.1,
+   "twin_s": 0,
+   "n_decisions": 353,
+   "n_llm_calls_timed": 1072,
+   "n_twin_rollouts": 0,
+   "mean_decision_s": 20.83,
+   "mean_llm_latency_s": 6.86,
+   "run_wall_s": 10453.8
+  },
+  "llmtwin": {
+   "label": "LLM + digital twin",
+   "preset": "llm",
+   "n": 20,
+   "complete": true,
+   "trips": 7,
+   "sif_trips": 4,
+   "profit": -134083.0,
+   "passive_profit_same": -364892.0,
+   "saving": 230809.0,
+   "llm_calls": 1023,
+   "llm_cost_usd": 0.8511,
+   "llm_tokens": 10432917,
+   "timed_runs": 20,
+   "decision_s": 60532.0,
+   "llm_s": 6799.4,
+   "twin_s": 53718.1,
+   "n_decisions": 265,
+   "n_llm_calls_timed": 1023,
+   "n_twin_rollouts": 1082,
+   "mean_decision_s": 228.42,
+   "mean_llm_latency_s": 6.65,
+   "run_wall_s": 64778.9
+  }
+ },
+ "mode_labels": {
+  "passive": "No agents",
+  "lucky": "LLM, no validation (feeling lucky)",
+  "judge": "LLM + LLM judge",
+  "llmtwin": "LLM + digital twin"
+ },
  "protocol": {
   "onset_min": 10.0,
   "lift_after_trip_min": 10.0,
@@ -18,7 +98,11 @@
   "probe_window_min": 240.0,
   "min_window_min": 120.0,
   "tail_min": 60.0,
-  "agent_preset": "rule_twin"
+  "agent_modes": {
+   "lucky": "llm_lucky",
+   "judge": "llm_judge",
+   "llmtwin": "llm"
+  }
  },
  "single_fault_footprints": {
   "reflux_pump_trip": [
@@ -89,39 +173,106 @@
    "passive_trip_min": 24.4,
    "passive_sifs": [],
    "passive_status": "MODEL_LIMIT",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -20186.0,
-   "agents_profit": 1489.0,
-   "saving": 21674.0,
-   "agents_loss_vs_nominal": -44.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -19859.0,
    "passive_off_spec_min": 7.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 12.500000000000021,
-   "agent_actions": [
-    [
-     12.500000000000021,
-     "restoring",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "REFLUX"
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 0,
-   "agent_fallbacks": 0,
-   "agent_alarm_acks": 1,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "DIST_X_L",
     "P201_TRIP"
    ],
    "footprint_overlap": [],
-   "interaction": null
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 1484.0,
+     "saving": 21343.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 4,
+     "proposals": 4,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 31343,
+      "output_tokens": 2518,
+      "cost_usd": 0.002574
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 18.794,
+      "twin_s": 0,
+      "decision_s": 18.85,
+      "n_llm_calls": 4,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 223.4
+    },
+    "judge": {
+     "profit": 14.0,
+     "saving": 19873.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 15,
+     "proposals": 21,
+     "reprompts": 6,
+     "llm_usage": {
+      "calls": 42,
+      "input_tokens": 354691,
+      "output_tokens": 38717,
+      "cost_usd": 0.033221
+     },
+     "judge_rejections": 6,
+     "judge_calls": 21,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "RB_L_LL"
+     ],
+     "timing": {
+      "llm_s": 281.395,
+      "twin_s": 0,
+      "decision_s": 281.534,
+      "n_llm_calls": 42,
+      "n_twin_rollouts": 0,
+      "n_decisions": 15
+     },
+     "wall_s": 463.7
+    },
+    "llmtwin": {
+     "profit": 1484.0,
+     "saving": 21343.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 3,
+     "proposals": 5,
+     "reprompts": 2,
+     "llm_usage": {
+      "calls": 5,
+      "input_tokens": 37345,
+      "output_tokens": 3195,
+      "cost_usd": 0.003145
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 23.428,
+      "twin_s": 149.949,
+      "decision_s": 173.449,
+      "n_llm_calls": 5,
+      "n_twin_rollouts": 5,
+      "n_decisions": 3
+     },
+     "wall_s": 378.5
+    }
+   }
   },
   {
    "id": "S02",
@@ -140,39 +291,104 @@
     "RB_L_HH"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -20312.0,
-   "agents_profit": 1441.0,
-   "saving": 21753.0,
-   "agents_loss_vs_nominal": 4.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -19275.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 15.000000000000037,
-   "agent_actions": [
-    [
-     15.000000000000037,
-     "restoring",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "BOTTOMS"
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 0,
-   "agent_fallbacks": 0,
-   "agent_alarm_acks": 1,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "RB_L_HH",
     "P203_TRIP"
    ],
    "footprint_overlap": [],
-   "interaction": null
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 1346.0,
+     "saving": 20621.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 20,
+     "proposals": 21,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 21,
+      "input_tokens": 179736,
+      "output_tokens": 20569,
+      "cost_usd": 0.017214
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 141.205,
+      "twin_s": 0,
+      "decision_s": 141.392,
+      "n_llm_calls": 21,
+      "n_twin_rollouts": 0,
+      "n_decisions": 21
+     },
+     "wall_s": 334.3
+    },
+    "judge": {
+     "profit": 1324.0,
+     "saving": 20599.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 21,
+     "proposals": 31,
+     "reprompts": 10,
+     "llm_usage": {
+      "calls": 62,
+      "input_tokens": 518804,
+      "output_tokens": 56127,
+      "cost_usd": 0.048391
+     },
+     "judge_rejections": 10,
+     "judge_calls": 31,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 412.93,
+      "twin_s": 0,
+      "decision_s": 413.134,
+      "n_llm_calls": 62,
+      "n_twin_rollouts": 0,
+      "n_decisions": 21
+     },
+     "wall_s": 578.4
+    },
+    "llmtwin": {
+     "profit": 1448.0,
+     "saving": 20723.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 1,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 1,
+      "input_tokens": 8729,
+      "output_tokens": 420,
+      "cost_usd": 0.000604
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 3.334,
+      "twin_s": 39.415,
+      "decision_s": 42.79,
+      "n_llm_calls": 1,
+      "n_twin_rollouts": 1,
+      "n_decisions": 1
+     },
+     "wall_s": 237.2
+    }
+   }
   },
   {
    "id": "S03",
@@ -191,39 +407,106 @@
     "DR_L_HH"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -20763.0,
-   "agents_profit": 1435.0,
-   "saving": 22198.0,
-   "agents_loss_vs_nominal": 10.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -19848.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 13.500000000000028,
-   "agent_actions": [
-    [
-     13.500000000000028,
-     "restoring",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "DISTILLATE"
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 0,
-   "agent_fallbacks": 0,
-   "agent_alarm_acks": 1,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "DR_L_HH",
     "P202_TRIP"
    ],
    "footprint_overlap": [],
-   "interaction": null
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": -571.0,
+     "saving": 19277.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 22,
+     "proposals": 22,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 22,
+      "input_tokens": 192876,
+      "output_tokens": 24768,
+      "cost_usd": 0.019551
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 160.718,
+      "twin_s": 0,
+      "decision_s": 160.914,
+      "n_llm_calls": 22,
+      "n_twin_rollouts": 0,
+      "n_decisions": 22
+     },
+     "wall_s": 374.7
+    },
+    "judge": {
+     "profit": 1481.0,
+     "saving": 21329.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 11,
+     "proposals": 16,
+     "reprompts": 5,
+     "llm_usage": {
+      "calls": 32,
+      "input_tokens": 268592,
+      "output_tokens": 27290,
+      "cost_usd": 0.024346
+     },
+     "judge_rejections": 5,
+     "judge_calls": 16,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 206.096,
+      "twin_s": 0,
+      "decision_s": 206.204,
+      "n_llm_calls": 32,
+      "n_twin_rollouts": 0,
+      "n_decisions": 11
+     },
+     "wall_s": 390.0
+    },
+    "llmtwin": {
+     "profit": 1439.0,
+     "saving": 21287.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 2,
+     "proposals": 3,
+     "reprompts": 1,
+     "llm_usage": {
+      "calls": 3,
+      "input_tokens": 25565,
+      "output_tokens": 1694,
+      "cost_usd": 0.001956
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 12.558,
+      "twin_s": 92.726,
+      "decision_s": 105.349,
+      "n_llm_calls": 3,
+      "n_twin_rollouts": 3,
+      "n_decisions": 2
+     },
+     "wall_s": 299.3
+    }
+   }
   },
   {
    "id": "S04",
@@ -242,33 +525,9 @@
     "DR_L_LL"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1717.0,
-   "passive_profit": -16920.0,
-   "agents_profit": 1877.0,
-   "saving": 18797.0,
-   "agents_loss_vs_nominal": -160.0,
+   "nominal_profit": 1714.0,
+   "passive_profit": -19835.0,
    "passive_off_spec_min": 19.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 13.000000000000025,
-   "agent_actions": [
-    [
-     13.000000000000025,
-     "restoring",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "FEED"
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 0,
-   "agent_fallbacks": 0,
-   "agent_alarm_acks": 1,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "R_T_H",
     "R_L_L",
@@ -277,7 +536,98 @@
     "P101_TRIP"
    ],
    "footprint_overlap": [],
-   "interaction": null
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 1070.0,
+     "saving": 20905.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 24,
+     "proposals": 24,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 24,
+      "input_tokens": 205066,
+      "output_tokens": 25238,
+      "cost_usd": 0.020349
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 164.69,
+      "twin_s": 0,
+      "decision_s": 164.991,
+      "n_llm_calls": 24,
+      "n_twin_rollouts": 0,
+      "n_decisions": 24
+     },
+     "wall_s": 405.9
+    },
+    "judge": {
+     "profit": 1699.0,
+     "saving": 21534.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 5,
+     "proposals": 6,
+     "reprompts": 1,
+     "llm_usage": {
+      "calls": 12,
+      "input_tokens": 104605,
+      "output_tokens": 9047,
+      "cost_usd": 0.008849
+     },
+     "judge_rejections": 1,
+     "judge_calls": 6,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 63.994,
+      "twin_s": 0,
+      "decision_s": 64.039,
+      "n_llm_calls": 12,
+      "n_twin_rollouts": 0,
+      "n_decisions": 5
+     },
+     "wall_s": 261.1
+    },
+    "llmtwin": {
+     "profit": 1804.0,
+     "saving": 21639.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 8,
+     "proposals": 32,
+     "reprompts": 20,
+     "llm_usage": {
+      "calls": 32,
+      "input_tokens": 290344,
+      "output_tokens": 28179,
+      "cost_usd": 0.025789
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 208.833,
+      "twin_s": 1348.881,
+      "decision_s": 1558.111,
+      "n_llm_calls": 32,
+      "n_twin_rollouts": 31,
+      "n_decisions": 12
+     },
+     "wall_s": 1802.2
+    }
+   }
   },
   {
    "id": "S05",
@@ -296,76 +646,9 @@
     "R_L_HH"
    ],
    "passive_status": "RUNNING",
-   "agents_trip_min": null,
-   "agents_sifs": [
-    "R_L_HH"
-   ],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": 1233.0,
-   "agents_profit": 1630.0,
-   "saving": 397.0,
-   "agents_loss_vs_nominal": -185.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": 412.0,
    "passive_off_spec_min": 16.0,
-   "agents_off_spec_min": 16.5,
-   "agent_detection_min": 12.500000000000021,
-   "agent_actions": [
-    [
-     23.49999999999995,
-     "mitigation",
-     [
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 35.0
-      }
-     ]
-    ],
-    [
-     49.50000000000033,
-     "mitigation",
-     [
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 42.0
-      }
-     ]
-    ],
-    [
-     79.50000000000102,
-     "mitigation",
-     [
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 50.4
-      }
-     ]
-    ],
-    [
-     89.50000000000125,
-     "mitigation",
-     [
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 60.5
-      }
-     ]
-    ],
-    [
-     114.50000000000183,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 337.7
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 80,
-   "agent_fallbacks": 5,
-   "agent_alarm_acks": 6,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "R_P_H",
     "R_L_H",
@@ -376,7 +659,109 @@
     "BTM_X_H"
    ],
    "footprint_overlap": [],
-   "interaction": null
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": -19600.0,
+     "saving": -20012.0,
+     "trip_min": 94.1,
+     "status": "NUMERICAL_FAILURE",
+     "sifs": [
+      "RB_L_LL",
+      "R_L_HH"
+     ],
+     "actions": 18,
+     "proposals": 18,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 18,
+      "input_tokens": 164239,
+      "output_tokens": 17638,
+      "cost_usd": 0.015267
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "RB_L_LL"
+     ],
+     "timing": {
+      "llm_s": 120.319,
+      "twin_s": 0,
+      "decision_s": 120.49,
+      "n_llm_calls": 18,
+      "n_twin_rollouts": 0,
+      "n_decisions": 18
+     },
+     "wall_s": 308.4
+    },
+    "judge": {
+     "profit": -381.0,
+     "saving": -793.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_L_HH"
+     ],
+     "actions": 21,
+     "proposals": 34,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 67,
+      "input_tokens": 601417,
+      "output_tokens": 60309,
+      "cost_usd": 0.054194
+     },
+     "judge_rejections": 12,
+     "judge_calls": 33,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 431.337,
+      "twin_s": 0,
+      "decision_s": 431.555,
+      "n_llm_calls": 67,
+      "n_twin_rollouts": 0,
+      "n_decisions": 22
+     },
+     "wall_s": 608.6
+    },
+    "llmtwin": {
+     "profit": -19579.0,
+     "saving": -19991.0,
+     "trip_min": 94.9,
+     "status": "NUMERICAL_FAILURE",
+     "sifs": [
+      "RB_L_LL",
+      "R_L_HH"
+     ],
+     "actions": 7,
+     "proposals": 48,
+     "reprompts": 36,
+     "llm_usage": {
+      "calls": 48,
+      "input_tokens": 450118,
+      "output_tokens": 41714,
+      "cost_usd": 0.039192
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "R_L_L",
+      "RB_L_LL"
+     ],
+     "timing": {
+      "llm_s": 313.375,
+      "twin_s": 2956.534,
+      "decision_s": 3270.531,
+      "n_llm_calls": 48,
+      "n_twin_rollouts": 53,
+      "n_decisions": 12
+     },
+     "wall_s": 3517.7
+    }
+   }
   },
   {
    "id": "S06",
@@ -397,175 +782,111 @@
     "R_P_HH"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [
-    "R_P_HH"
-   ],
-   "agents_status": "RUNNING",
-   "nominal_profit": 2799.0,
-   "passive_profit": -21029.0,
-   "agents_profit": 2808.0,
-   "saving": 23836.0,
-   "agents_loss_vs_nominal": -8.0,
+   "nominal_profit": 2801.0,
+   "passive_profit": -20011.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 18.5,
-   "agent_actions": [
-    [
-     19.49999999999999,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ],
-    [
-     29.49999999999989,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.0
-      }
-     ]
-    ],
-    [
-     31.499999999999915,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ],
-    [
-     41.50000000000014,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.0
-      }
-     ]
-    ],
-    [
-     43.50000000000019,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ],
-    [
-     53.500000000000426,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.0
-      }
-     ]
-    ],
-    [
-     55.50000000000047,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ],
-    [
-     65.5000000000007,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.0
-      }
-     ]
-    ],
-    [
-     67.50000000000074,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ],
-    [
-     77.50000000000098,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.0
-      }
-     ]
-    ],
-    [
-     81.50000000000107,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ],
-    [
-     111.50000000000176,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.0
-      }
-     ]
-    ],
-    [
-     115.50000000000185,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 160,
-   "agent_fallbacks": 13,
-   "agent_alarm_acks": 18,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "R_P_H",
     "R_P_HH",
     "RB_L_HH"
    ],
    "footprint_overlap": [],
-   "interaction": null
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 1637.0,
+     "saving": 21648.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 47,
+     "proposals": 48,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 48,
+      "input_tokens": 451366,
+      "output_tokens": 52772,
+      "cost_usd": 0.043677
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 355.05,
+      "twin_s": 0,
+      "decision_s": 355.466,
+      "n_llm_calls": 48,
+      "n_twin_rollouts": 0,
+      "n_decisions": 48
+     },
+     "wall_s": 724.2
+    },
+    "judge": {
+     "profit": 1425.0,
+     "saving": 21436.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 48,
+     "proposals": 82,
+     "reprompts": 32,
+     "llm_usage": {
+      "calls": 159,
+      "input_tokens": 1462304,
+      "output_tokens": 147611,
+      "cost_usd": 0.13216
+     },
+     "judge_rejections": 29,
+     "judge_calls": 77,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 1080.295,
+      "twin_s": 0,
+      "decision_s": 1080.891,
+      "n_llm_calls": 159,
+      "n_twin_rollouts": 0,
+      "n_decisions": 50
+     },
+     "wall_s": 1448.4
+    },
+    "llmtwin": {
+     "profit": 1746.0,
+     "saving": 21757.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 19,
+     "proposals": 144,
+     "reprompts": 108,
+     "llm_usage": {
+      "calls": 144,
+      "input_tokens": 1389550,
+      "output_tokens": 146423,
+      "cost_usd": 0.128047
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 1043.8,
+      "twin_s": 7970.366,
+      "decision_s": 9016.73,
+      "n_llm_calls": 144,
+      "n_twin_rollouts": 154,
+      "n_decisions": 36
+     },
+     "wall_s": 9403.4
+    }
+   }
   },
   {
    "id": "S07",
@@ -584,24 +905,9 @@
     "R_T_HH"
    ],
    "passive_status": "RUNNING",
-   "agents_trip_min": null,
-   "agents_sifs": [
-    "R_T_HH"
-   ],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": 1317.0,
-   "agents_profit": 1341.0,
-   "saving": 24.0,
-   "agents_loss_vs_nominal": 104.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": 1473.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 11.500000000000016,
-   "agent_actions": [],
-   "agent_reprompts": 92,
-   "agent_fallbacks": 0,
-   "agent_alarm_acks": 4,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "R_P_H",
     "R_P_HH",
@@ -609,7 +915,109 @@
     "R_T_HH"
    ],
    "footprint_overlap": [],
-   "interaction": null
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": -19790.0,
+     "saving": -21263.0,
+     "trip_min": 79.1,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL",
+      "R_T_HH"
+     ],
+     "actions": 16,
+     "proposals": 16,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 16,
+      "input_tokens": 147366,
+      "output_tokens": 16192,
+      "cost_usd": 0.013845
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "R_L_H",
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 114.524,
+      "twin_s": 0,
+      "decision_s": 114.671,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 0,
+      "n_decisions": 16
+     },
+     "wall_s": 257.1
+    },
+    "judge": {
+     "profit": -19430.0,
+     "saving": -20903.0,
+     "trip_min": 97.6,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL",
+      "R_T_HH"
+     ],
+     "actions": 20,
+     "proposals": 24,
+     "reprompts": 4,
+     "llm_usage": {
+      "calls": 47,
+      "input_tokens": 418871,
+      "output_tokens": 38942,
+      "cost_usd": 0.03652
+     },
+     "judge_rejections": 3,
+     "judge_calls": 23,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 280.944,
+      "twin_s": 0,
+      "decision_s": 281.11,
+      "n_llm_calls": 47,
+      "n_twin_rollouts": 0,
+      "n_decisions": 20
+     },
+     "wall_s": 417.1
+    },
+    "llmtwin": {
+     "profit": 1505.0,
+     "saving": 32.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_T_HH"
+     ],
+     "actions": 6,
+     "proposals": 64,
+     "reprompts": 48,
+     "llm_usage": {
+      "calls": 64,
+      "input_tokens": 587092,
+      "output_tokens": 54393,
+      "cost_usd": 0.051112
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 396.054,
+      "twin_s": 3731.993,
+      "decision_s": 4128.91,
+      "n_llm_calls": 64,
+      "n_twin_rollouts": 69,
+      "n_decisions": 16
+     },
+     "wall_s": 4353.0
+    }
+   }
   },
   {
    "id": "S08",
@@ -628,135 +1036,9 @@
     "DR_L_LL"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -20253.0,
-   "agents_profit": 372.0,
-   "saving": 20625.0,
-   "agents_loss_vs_nominal": 1073.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -20857.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 11.500000000000016,
-   "agent_actions": [
-    [
-     11.500000000000016,
-     "mitigation",
-     [
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 50.0
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 345.0
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 335.7
-      }
-     ]
-    ],
-    [
-     47.00000000000027,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 332.7
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 348.0
-      },
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 60.0
-      }
-     ]
-    ],
-    [
-     57.000000000000504,
-     "mitigation",
-     [
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 72.0
-      }
-     ]
-    ],
-    [
-     63.00000000000064,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 351.0
-      }
-     ]
-    ],
-    [
-     73.00000000000087,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 354.0
-      },
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 86.4
-      }
-     ]
-    ],
-    [
-     83.00000000000111,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 354.4223
-      }
-     ]
-    ],
-    [
-     113.00000000000179,
-     "mitigation",
-     [
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 100.0
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 68,
-   "agent_fallbacks": 7,
-   "agent_alarm_acks": 3,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "DR_L_LL",
     "COL_P_H",
@@ -764,7 +1046,117 @@
     "BTM_X_H"
    ],
    "footprint_overlap": [],
-   "interaction": null
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": -20847.0,
+     "saving": 10.0,
+     "trip_min": 21.6,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 4,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 31844,
+      "output_tokens": 3263,
+      "cost_usd": 0.002897
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 25.604,
+      "twin_s": 0,
+      "decision_s": 25.677,
+      "n_llm_calls": 4,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 68.2
+    },
+    "judge": {
+     "profit": -20851.0,
+     "saving": 6.0,
+     "trip_min": 21.6,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 5,
+     "reprompts": 1,
+     "llm_usage": {
+      "calls": 10,
+      "input_tokens": 82154,
+      "output_tokens": 8630,
+      "cost_usd": 0.00756
+     },
+     "judge_rejections": 1,
+     "judge_calls": 5,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 61.721,
+      "twin_s": 0,
+      "decision_s": 61.761,
+      "n_llm_calls": 10,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 93.6
+    },
+    "llmtwin": {
+     "profit": -20852.0,
+     "saving": 5.0,
+     "trip_min": 21.6,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 1,
+     "proposals": 16,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 16,
+      "input_tokens": 134593,
+      "output_tokens": 14682,
+      "cost_usd": 0.012602
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 102.274,
+      "twin_s": 205.182,
+      "decision_s": 307.638,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 18,
+      "n_decisions": 4
+     },
+     "wall_s": 355.1
+    }
+   }
   },
   {
    "id": "S09",
@@ -783,94 +1175,114 @@
     "DR_L_LL"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -21502.0,
-   "agents_profit": -5336.0,
-   "saving": 16166.0,
-   "agents_loss_vs_nominal": 6781.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -22684.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 53.0,
-   "agent_detection_min": 12.500000000000021,
-   "agent_actions": [
-    [
-     23.49999999999995,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 334.7
-      }
-     ]
-    ],
-    [
-     33.49999999999996,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 337.7
-      }
-     ]
-    ],
-    [
-     53.500000000000426,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 334.7
-      }
-     ]
-    ],
-    [
-     63.500000000000654,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      }
-     ]
-    ],
-    [
-     73.50000000000088,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      }
-     ]
-    ],
-    [
-     93.50000000000135,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 64,
-   "agent_fallbacks": 6,
-   "agent_alarm_acks": 2,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "DR_L_LL"
    ],
    "footprint_overlap": [],
-   "interaction": null
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": -26193.0,
+     "saving": -3509.0,
+     "trip_min": 96.1,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 17,
+     "proposals": 17,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 17,
+      "input_tokens": 146670,
+      "output_tokens": 19427,
+      "cost_usd": 0.015104
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "DIST_X_L"
+     ],
+     "timing": {
+      "llm_s": 130.588,
+      "twin_s": 0,
+      "decision_s": 130.749,
+      "n_llm_calls": 17,
+      "n_twin_rollouts": 0,
+      "n_decisions": 17
+     },
+     "wall_s": 304.6
+    },
+    "judge": {
+     "profit": -20987.0,
+     "saving": 1697.0,
+     "trip_min": 22.6,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 3,
+     "proposals": 4,
+     "reprompts": 1,
+     "llm_usage": {
+      "calls": 8,
+      "input_tokens": 69554,
+      "output_tokens": 7853,
+      "cost_usd": 0.006619
+     },
+     "judge_rejections": 1,
+     "judge_calls": 4,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 53.901,
+      "twin_s": 0,
+      "decision_s": 53.928,
+      "n_llm_calls": 8,
+      "n_twin_rollouts": 0,
+      "n_decisions": 3
+     },
+     "wall_s": 87.2
+    },
+    "llmtwin": {
+     "profit": -7119.0,
+     "saving": 15565.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 6,
+     "proposals": 72,
+     "reprompts": 54,
+     "llm_usage": {
+      "calls": 72,
+      "input_tokens": 634900,
+      "output_tokens": 69395,
+      "cost_usd": 0.059503
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DIST_X_L"
+     ],
+     "timing": {
+      "llm_s": 497.076,
+      "twin_s": 3091.758,
+      "decision_s": 3589.686,
+      "n_llm_calls": 72,
+      "n_twin_rollouts": 75,
+      "n_decisions": 18
+     },
+     "wall_s": 3789.8
+    }
+   }
   },
   {
    "id": "S10",
@@ -891,44 +1303,112 @@
     "R_P_HH"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [
-    "R_P_HH"
-   ],
-   "agents_status": "RUNNING",
-   "nominal_profit": 3068.0,
-   "passive_profit": -20758.0,
-   "agents_profit": 3082.0,
-   "saving": 23840.0,
-   "agents_loss_vs_nominal": -14.0,
+   "nominal_profit": 3077.0,
+   "passive_profit": -19765.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 11.500000000000016,
-   "agent_actions": [
-    [
-     82.5000000000011,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 188,
-   "agent_fallbacks": 1,
-   "agent_alarm_acks": 0,
-   "alarms_listed_at_end_agents": [
-    "R_P_H",
-    "R_P_HH"
-   ],
    "alarms_listed_at_end_passive": [
     "RB_L_HH"
    ],
    "footprint_overlap": [],
-   "interaction": null
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": -19106.0,
+     "saving": 659.0,
+     "trip_min": 156.8,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL",
+      "R_P_HH"
+     ],
+     "actions": 29,
+     "proposals": 29,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 29,
+      "input_tokens": 268815,
+      "output_tokens": 32513,
+      "cost_usd": 0.026446
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 222.944,
+      "twin_s": 0,
+      "decision_s": 223.217,
+      "n_llm_calls": 29,
+      "n_twin_rollouts": 0,
+      "n_decisions": 29
+     },
+     "wall_s": 488.5
+    },
+    "judge": {
+     "profit": 2323.0,
+     "saving": 22088.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 42,
+     "proposals": 89,
+     "reprompts": 42,
+     "llm_usage": {
+      "calls": 173,
+      "input_tokens": 1604395,
+      "output_tokens": 161824,
+      "cost_usd": 0.144949
+     },
+     "judge_rejections": 41,
+     "judge_calls": 84,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "R_L_L"
+     ],
+     "timing": {
+      "llm_s": 1329.98,
+      "twin_s": 0,
+      "decision_s": 1330.625,
+      "n_llm_calls": 173,
+      "n_twin_rollouts": 0,
+      "n_decisions": 47
+     },
+     "wall_s": 1735.6
+    },
+    "llmtwin": {
+     "profit": 2768.0,
+     "saving": 22533.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 12,
+     "proposals": 133,
+     "reprompts": 99,
+     "llm_usage": {
+      "calls": 133,
+      "input_tokens": 1219785,
+      "output_tokens": 124257,
+      "cost_usd": 0.110692
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 898.716,
+      "twin_s": 8261.521,
+      "decision_s": 9161.934,
+      "n_llm_calls": 133,
+      "n_twin_rollouts": 150,
+      "n_decisions": 34
+     },
+     "wall_s": 9682.1
+    }
+   }
   },
   {
    "id": "D01",
@@ -950,35 +1430,9 @@
     "R_P_HH"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [
-    "R_P_HH"
-   ],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -20294.0,
-   "agents_profit": 1458.0,
-   "saving": 21752.0,
-   "agents_loss_vs_nominal": -13.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -19322.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 11.500000000000016,
-   "agent_actions": [
-    [
-     13.500000000000028,
-     "mitigation",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "BOTTOMS"
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 88,
-   "agent_fallbacks": 1,
-   "agent_alarm_acks": 3,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "RB_L_HH",
     "P203_TRIP"
@@ -986,7 +1440,102 @@
    "footprint_overlap": [
     []
    ],
-   "interaction": "reactor pressure loop vs reboiler level loop: different units, no shared loop or alarm"
+   "interaction": "reactor pressure loop vs reboiler level loop: different units, no shared loop or alarm",
+   "configs": {
+    "lucky": {
+     "profit": 1177.0,
+     "saving": 20499.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 24,
+     "proposals": 24,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 24,
+      "input_tokens": 218543,
+      "output_tokens": 23613,
+      "cost_usd": 0.020372
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 162.136,
+      "twin_s": 0,
+      "decision_s": 162.362,
+      "n_llm_calls": 24,
+      "n_twin_rollouts": 0,
+      "n_decisions": 24
+     },
+     "wall_s": 362.0
+    },
+    "judge": {
+     "profit": 1019.0,
+     "saving": 20341.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 23,
+     "proposals": 29,
+     "reprompts": 6,
+     "llm_usage": {
+      "calls": 58,
+      "input_tokens": 524672,
+      "output_tokens": 52240,
+      "cost_usd": 0.04713
+     },
+     "judge_rejections": 6,
+     "judge_calls": 29,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 381.607,
+      "twin_s": 0,
+      "decision_s": 381.834,
+      "n_llm_calls": 58,
+      "n_twin_rollouts": 0,
+      "n_decisions": 23
+     },
+     "wall_s": 547.9
+    },
+    "llmtwin": {
+     "profit": 1497.0,
+     "saving": 20819.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 6,
+     "proposals": 45,
+     "reprompts": 33,
+     "llm_usage": {
+      "calls": 45,
+      "input_tokens": 412156,
+      "output_tokens": 39811,
+      "cost_usd": 0.036532
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 292.729,
+      "twin_s": 2023.357,
+      "decision_s": 2316.605,
+      "n_llm_calls": 45,
+      "n_twin_rollouts": 43,
+      "n_decisions": 12
+     },
+     "wall_s": 2506.3
+    }
+   }
   },
   {
    "id": "D02",
@@ -1006,33 +1555,9 @@
     "DR_L_HH"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -20721.0,
-   "agents_profit": 1390.0,
-   "saving": 22112.0,
-   "agents_loss_vs_nominal": 55.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -19835.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 11.500000000000016,
-   "agent_actions": [
-    [
-     11.500000000000016,
-     "mitigation",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "DISTILLATE"
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 40,
-   "agent_fallbacks": 1,
-   "agent_alarm_acks": 5,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "R_P_H",
     "R_P_HH",
@@ -1043,7 +1568,105 @@
    "footprint_overlap": [
     []
    ],
-   "interaction": "reactor temperature (heater) vs reflux-drum level (distillate pump); simultaneous"
+   "interaction": "reactor temperature (heater) vs reflux-drum level (distillate pump); simultaneous",
+   "configs": {
+    "lucky": {
+     "profit": -19666.0,
+     "saving": 169.0,
+     "trip_min": 106.0,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL",
+      "R_L_LL",
+      "R_T_HH"
+     ],
+     "actions": 24,
+     "proposals": 25,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 25,
+      "input_tokens": 232192,
+      "output_tokens": 24808,
+      "cost_usd": 0.021533
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "R_L_L",
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 168.127,
+      "twin_s": 0,
+      "decision_s": 168.347,
+      "n_llm_calls": 25,
+      "n_twin_rollouts": 0,
+      "n_decisions": 25
+     },
+     "wall_s": 344.5
+    },
+    "judge": {
+     "profit": 1267.0,
+     "saving": 21102.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_T_HH"
+     ],
+     "actions": 19,
+     "proposals": 40,
+     "reprompts": 17,
+     "llm_usage": {
+      "calls": 71,
+      "input_tokens": 611652,
+      "output_tokens": 63858,
+      "cost_usd": 0.056126
+     },
+     "judge_rejections": 10,
+     "judge_calls": 31,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 475.374,
+      "twin_s": 0,
+      "decision_s": 475.64,
+      "n_llm_calls": 71,
+      "n_twin_rollouts": 0,
+      "n_decisions": 23
+     },
+     "wall_s": 648.7
+    },
+    "llmtwin": {
+     "profit": 1433.0,
+     "saving": 21268.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 5,
+     "proposals": 80,
+     "reprompts": 60,
+     "llm_usage": {
+      "calls": 80,
+      "input_tokens": 735999,
+      "output_tokens": 71709,
+      "cost_usd": 0.065484
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 514.129,
+      "twin_s": 4983.169,
+      "decision_s": 5498.347,
+      "n_llm_calls": 80,
+      "n_twin_rollouts": 88,
+      "n_decisions": 20
+     },
+     "wall_s": 5800.3
+    }
+   }
   },
   {
    "id": "D03",
@@ -1063,77 +1686,9 @@
     "R_P_HH"
    ],
    "passive_status": "MODEL_LIMIT",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -20068.0,
-   "agents_profit": 1498.0,
-   "saving": 21566.0,
-   "agents_loss_vs_nominal": -53.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -19783.0,
    "passive_off_spec_min": 6.5,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 17.000000000000018,
-   "agent_actions": [
-    [
-     17.000000000000018,
-     "mitigation",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "REFLUX"
-      }
-     ]
-    ],
-    [
-     19.49999999999999,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ],
-    [
-     29.49999999999989,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.0
-      }
-     ]
-    ],
-    [
-     31.499999999999915,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ],
-    [
-     41.50000000000014,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.0
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 36,
-   "agent_fallbacks": 5,
-   "agent_alarm_acks": 5,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "R_P_H",
     "R_P_HH",
@@ -1143,7 +1698,104 @@
    "footprint_overlap": [
     []
    ],
-   "interaction": "reactor H2 vent capacity vs column reflux: reactor gas side vs column top"
+   "interaction": "reactor H2 vent capacity vs column reflux: reactor gas side vs column top",
+   "configs": {
+    "lucky": {
+     "profit": 1095.0,
+     "saving": 20878.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 24,
+     "proposals": 24,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 24,
+      "input_tokens": 223259,
+      "output_tokens": 26973,
+      "cost_usd": 0.021952
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "R_L_L"
+     ],
+     "timing": {
+      "llm_s": 176.225,
+      "twin_s": 0,
+      "decision_s": 176.452,
+      "n_llm_calls": 24,
+      "n_twin_rollouts": 0,
+      "n_decisions": 24
+     },
+     "wall_s": 381.6
+    },
+    "judge": {
+     "profit": 1286.0,
+     "saving": 21069.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 25,
+     "proposals": 31,
+     "reprompts": 6,
+     "llm_usage": {
+      "calls": 62,
+      "input_tokens": 566640,
+      "output_tokens": 56012,
+      "cost_usd": 0.050737
+     },
+     "judge_rejections": 6,
+     "judge_calls": 31,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 431.5,
+      "twin_s": 0,
+      "decision_s": 431.759,
+      "n_llm_calls": 62,
+      "n_twin_rollouts": 0,
+      "n_decisions": 25
+     },
+     "wall_s": 616.0
+    },
+    "llmtwin": {
+     "profit": 1249.0,
+     "saving": 21032.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 12,
+     "proposals": 84,
+     "reprompts": 63,
+     "llm_usage": {
+      "calls": 84,
+      "input_tokens": 813045,
+      "output_tokens": 77282,
+      "cost_usd": 0.071565
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 555.519,
+      "twin_s": 5830.283,
+      "decision_s": 6387.255,
+      "n_llm_calls": 84,
+      "n_twin_rollouts": 91,
+      "n_decisions": 21
+     },
+     "wall_s": 6724.1
+    }
+   }
   },
   {
    "id": "D04",
@@ -1163,131 +1815,119 @@
     "DR_L_LL"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [
-    "R_P_HH"
-   ],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -21479.0,
-   "agents_profit": -6790.0,
-   "saving": 14690.0,
-   "agents_loss_vs_nominal": 8235.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -22661.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 61.5,
-   "agent_detection_min": 11.500000000000016,
-   "agent_actions": [
-    [
-     27.499999999999908,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 334.7
-      }
-     ]
-    ],
-    [
-     37.50000000000006,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 337.7
-      }
-     ]
-    ],
-    [
-     47.500000000000284,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 340.0
-      }
-     ]
-    ],
-    [
-     57.50000000000051,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 337.0
-      }
-     ]
-    ],
-    [
-     67.50000000000074,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 334.0
-      }
-     ]
-    ],
-    [
-     77.50000000000098,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      }
-     ]
-    ],
-    [
-     92.50000000000132,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      }
-     ]
-    ],
-    [
-     102.50000000000155,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      }
-     ]
-    ],
-    [
-     112.50000000000179,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 52,
-   "agent_fallbacks": 9,
-   "agent_alarm_acks": 3,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "DR_L_LL"
    ],
    "footprint_overlap": [
     []
    ],
-   "interaction": "reactor pressure transmitter vs reflux-drum inventory"
+   "interaction": "reactor pressure transmitter vs reflux-drum inventory",
+   "configs": {
+    "lucky": {
+     "profit": -22143.0,
+     "saving": 518.0,
+     "trip_min": 34.4,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 5,
+     "proposals": 5,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 5,
+      "input_tokens": 46520,
+      "output_tokens": 4723,
+      "cost_usd": 0.004215
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 33.874,
+      "twin_s": 0,
+      "decision_s": 33.915,
+      "n_llm_calls": 5,
+      "n_twin_rollouts": 0,
+      "n_decisions": 5
+     },
+     "wall_s": 88.9
+    },
+    "judge": {
+     "profit": -21447.0,
+     "saving": 1214.0,
+     "trip_min": 29.3,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 3,
+     "proposals": 10,
+     "reprompts": 6,
+     "llm_usage": {
+      "calls": 19,
+      "input_tokens": 175332,
+      "output_tokens": 19164,
+      "cost_usd": 0.016432
+     },
+     "judge_rejections": 6,
+     "judge_calls": 9,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 149.041,
+      "twin_s": 0,
+      "decision_s": 149.099,
+      "n_llm_calls": 19,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 184.9
+    },
+    "llmtwin": {
+     "profit": -22658.0,
+     "saving": 3.0,
+     "trip_min": 43.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 3,
+     "proposals": 20,
+     "reprompts": 15,
+     "llm_usage": {
+      "calls": 20,
+      "input_tokens": 193047,
+      "output_tokens": 20345,
+      "cost_usd": 0.01779
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "R_L_L",
+      "DR_L_LL",
+      "DIST_X_L"
+     ],
+     "timing": {
+      "llm_s": 134.882,
+      "twin_s": 548.223,
+      "decision_s": 683.356,
+      "n_llm_calls": 20,
+      "n_twin_rollouts": 24,
+      "n_decisions": 5
+     },
+     "wall_s": 756.9
+    }
+   }
   },
   {
    "id": "C01",
@@ -1303,129 +1943,9 @@
    "passive_trip_min": 28.3,
    "passive_sifs": [],
    "passive_status": "MODEL_LIMIT",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -19995.0,
-   "agents_profit": 482.0,
-   "saving": 20478.0,
-   "agents_loss_vs_nominal": 962.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -19499.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 11.500000000000016,
-   "agent_actions": [
-    [
-     11.500000000000016,
-     "mitigation",
-     [
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 50.0
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 345.0
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 335.7
-      }
-     ]
-    ],
-    [
-     13.500000000000028,
-     "mitigation",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "REFLUX"
-      }
-     ]
-    ],
-    [
-     57.50000000000051,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 332.7
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 348.0
-      },
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 60.0
-      }
-     ]
-    ],
-    [
-     72.50000000000087,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 351.0
-      }
-     ]
-    ],
-    [
-     82.5000000000011,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 354.0
-      },
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 72.0
-      }
-     ]
-    ],
-    [
-     92.50000000000132,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 354.4223
-      },
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 86.4
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 76,
-   "agent_fallbacks": 6,
-   "agent_alarm_acks": 4,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "COL_P_H",
     "COL_P_HH",
@@ -1441,7 +1961,115 @@
      "top_temperature_K"
     ]
    ],
-   "interaction": "both act on the column top: less condensation and no reflux -> column pressure and drum level"
+   "interaction": "both act on the column top: less condensation and no reflux -> column pressure and drum level",
+   "configs": {
+    "lucky": {
+     "profit": -20843.0,
+     "saving": -1344.0,
+     "trip_min": 21.8,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 4,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 32961,
+      "output_tokens": 3269,
+      "cost_usd": 0.002956
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 22.146,
+      "twin_s": 0,
+      "decision_s": 22.18,
+      "n_llm_calls": 4,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 57.8
+    },
+    "judge": {
+     "profit": -20839.0,
+     "saving": -1340.0,
+     "trip_min": 21.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 5,
+     "reprompts": 1,
+     "llm_usage": {
+      "calls": 10,
+      "input_tokens": 80535,
+      "output_tokens": 7355,
+      "cost_usd": 0.006969
+     },
+     "judge_rejections": 1,
+     "judge_calls": 5,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 61.919,
+      "twin_s": 0,
+      "decision_s": 61.954,
+      "n_llm_calls": 10,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 86.9
+    },
+    "llmtwin": {
+     "profit": -19487.0,
+     "saving": 12.0,
+     "trip_min": 28.4,
+     "status": "MODEL_LIMIT",
+     "sifs": [],
+     "actions": 2,
+     "proposals": 16,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 16,
+      "input_tokens": 142952,
+      "output_tokens": 11974,
+      "cost_usd": 0.011937
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H",
+      "P201_TRIP"
+     ],
+     "timing": {
+      "llm_s": 85.1,
+      "twin_s": 256.378,
+      "decision_s": 341.653,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 14,
+      "n_decisions": 4
+     },
+     "wall_s": 397.9
+    }
+   }
   },
   {
    "id": "C02",
@@ -1463,39 +2091,9 @@
     "R_P_HH"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [
-    "R_P_HH"
-   ],
-   "agents_status": "RUNNING",
-   "nominal_profit": 2781.0,
-   "passive_profit": -21040.0,
-   "agents_profit": 2885.0,
-   "saving": 23925.0,
-   "agents_loss_vs_nominal": -103.0,
+   "nominal_profit": 2783.0,
+   "passive_profit": -20020.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 13.500000000000028,
-   "agent_actions": [
-    [
-     95.00000000000138,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 164,
-   "agent_fallbacks": 1,
-   "agent_alarm_acks": 0,
-   "alarms_listed_at_end_agents": [
-    "R_P_H",
-    "R_P_HH"
-   ],
    "alarms_listed_at_end_passive": [
     "RB_L_HH"
    ],
@@ -1504,7 +2102,112 @@
      "cstr_pressure_bar"
     ]
    ],
-   "interaction": "both raise reactor pressure: the low-reading transmitter makes R_PIC close the degrading PCV"
+   "interaction": "both raise reactor pressure: the low-reading transmitter makes R_PIC close the degrading PCV",
+   "configs": {
+    "lucky": {
+     "profit": -17849.0,
+     "saving": 2171.0,
+     "trip_min": 203.9,
+     "status": "NUMERICAL_FAILURE",
+     "sifs": [
+      "RB_L_LL",
+      "R_P_HH"
+     ],
+     "actions": 37,
+     "proposals": 38,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 38,
+      "input_tokens": 341857,
+      "output_tokens": 43053,
+      "cost_usd": 0.034314
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "R_L_L",
+      "RB_L_LL"
+     ],
+     "timing": {
+      "llm_s": 313.957,
+      "twin_s": 0,
+      "decision_s": 314.41,
+      "n_llm_calls": 38,
+      "n_twin_rollouts": 0,
+      "n_decisions": 38
+     },
+     "wall_s": 632.6
+    },
+    "judge": {
+     "profit": -18394.0,
+     "saving": 1626.0,
+     "trip_min": 222.7,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL",
+      "R_L_LL",
+      "R_P_HH",
+      "R_T_HH"
+     ],
+     "actions": 37,
+     "proposals": 73,
+     "reprompts": 32,
+     "llm_usage": {
+      "calls": 140,
+      "input_tokens": 1292821,
+      "output_tokens": 135949,
+      "cost_usd": 0.119021
+     },
+     "judge_rejections": 29,
+     "judge_calls": 67,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "R_L_L",
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 1016.966,
+      "twin_s": 0,
+      "decision_s": 1017.508,
+      "n_llm_calls": 140,
+      "n_twin_rollouts": 0,
+      "n_decisions": 41
+     },
+     "wall_s": 1377.7
+    },
+    "llmtwin": {
+     "profit": 2202.0,
+     "saving": 22222.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 13,
+     "proposals": 124,
+     "reprompts": 93,
+     "llm_usage": {
+      "calls": 124,
+      "input_tokens": 1128612,
+      "output_tokens": 120998,
+      "cost_usd": 0.10483
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 878.176,
+      "twin_s": 5972.267,
+      "decision_s": 6852.359,
+      "n_llm_calls": 124,
+      "n_twin_rollouts": 137,
+      "n_decisions": 31
+     },
+     "wall_s": 7208.2
+    }
+   }
   },
   {
    "id": "C03",
@@ -1524,104 +2227,9 @@
     "DR_L_LL"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -22148.0,
-   "agents_profit": -5718.0,
-   "saving": 16431.0,
-   "agents_loss_vs_nominal": 7163.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -23325.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 53.0,
-   "agent_detection_min": 12.500000000000021,
-   "agent_actions": [
-    [
-     25.49999999999993,
-     "mitigation",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "DISTILLATE"
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 334.7
-      }
-     ]
-    ],
-    [
-     35.50000000000001,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 337.7
-      }
-     ]
-    ],
-    [
-     55.50000000000047,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 334.7
-      }
-     ]
-    ],
-    [
-     65.5000000000007,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      }
-     ]
-    ],
-    [
-     80.50000000000105,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      }
-     ]
-    ],
-    [
-     90.50000000000128,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      }
-     ]
-    ],
-    [
-     105.50000000000162,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 60,
-   "agent_fallbacks": 7,
-   "agent_alarm_acks": 3,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "DR_L_LL",
     "P202_TRIP"
@@ -1631,7 +2239,109 @@
      "drum_holdup_kmol"
     ]
    ],
-   "interaction": "both act on the reflux-drum level in opposite directions (leak drains, lost distillate fills)"
+   "interaction": "both act on the reflux-drum level in opposite directions (leak drains, lost distillate fills)",
+   "configs": {
+    "lucky": {
+     "profit": -23105.0,
+     "saving": 220.0,
+     "trip_min": 46.8,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 8,
+     "proposals": 8,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 8,
+      "input_tokens": 71397,
+      "output_tokens": 10503,
+      "cost_usd": 0.007771
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "DIST_X_L"
+     ],
+     "timing": {
+      "llm_s": 65.603,
+      "twin_s": 0,
+      "decision_s": 65.666,
+      "n_llm_calls": 8,
+      "n_twin_rollouts": 0,
+      "n_decisions": 8
+     },
+     "wall_s": 146.9
+    },
+    "judge": {
+     "profit": -21293.0,
+     "saving": 2032.0,
+     "trip_min": 25.5,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 3,
+     "proposals": 7,
+     "reprompts": 3,
+     "llm_usage": {
+      "calls": 14,
+      "input_tokens": 122638,
+      "output_tokens": 13254,
+      "cost_usd": 0.011434
+     },
+     "judge_rejections": 4,
+     "judge_calls": 7,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 93.822,
+      "twin_s": 0,
+      "decision_s": 93.871,
+      "n_llm_calls": 14,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 128.0
+    },
+    "llmtwin": {
+     "profit": -23728.0,
+     "saving": -403.0,
+     "trip_min": 50.3,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 5,
+     "proposals": 28,
+     "reprompts": 21,
+     "llm_usage": {
+      "calls": 28,
+      "input_tokens": 262870,
+      "output_tokens": 25361,
+      "cost_usd": 0.023288
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 184.325,
+      "twin_s": 1066.107,
+      "decision_s": 1250.756,
+      "n_llm_calls": 28,
+      "n_twin_rollouts": 24,
+      "n_decisions": 7
+     },
+     "wall_s": 1351.6
+    }
+   }
   },
   {
    "id": "T01",
@@ -1654,81 +2364,9 @@
     "R_P_HH"
    ],
    "passive_status": "SAFE_TRIP",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -21043.0,
-   "agents_profit": 1445.0,
-   "saving": 22488.0,
-   "agents_loss_vs_nominal": 0.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -19831.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 15.000000000000037,
-   "agent_actions": [
-    [
-     15.000000000000037,
-     "mitigation",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "DISTILLATE"
-      },
-      {
-       "type": "START_SPARE",
-       "target": "BOTTOMS"
-      }
-     ]
-    ],
-    [
-     19.49999999999999,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ],
-    [
-     29.49999999999989,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.0
-      }
-     ]
-    ],
-    [
-     31.499999999999915,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.3
-      }
-     ]
-    ],
-    [
-     41.50000000000014,
-     "mitigation",
-     [
-      {
-       "type": "OPERATE_AUXILIARY",
-       "target": "H2_BDV",
-       "value": 0.0
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 20,
-   "agent_fallbacks": 5,
-   "agent_alarm_acks": 6,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "R_P_H",
     "R_P_HH",
@@ -1741,7 +2379,102 @@
     [],
     []
    ],
-   "interaction": "reactor vent, drum level and reboiler level: three different loops"
+   "interaction": "reactor vent, drum level and reboiler level: three different loops",
+   "configs": {
+    "lucky": {
+     "profit": 970.0,
+     "saving": 20801.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 24,
+     "proposals": 24,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 24,
+      "input_tokens": 217344,
+      "output_tokens": 23825,
+      "cost_usd": 0.020397
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 166.964,
+      "twin_s": 0,
+      "decision_s": 167.352,
+      "n_llm_calls": 24,
+      "n_twin_rollouts": 0,
+      "n_decisions": 24
+     },
+     "wall_s": 349.2
+    },
+    "judge": {
+     "profit": 1459.0,
+     "saving": 21290.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 23,
+     "proposals": 37,
+     "reprompts": 13,
+     "llm_usage": {
+      "calls": 72,
+      "input_tokens": 642655,
+      "output_tokens": 60234,
+      "cost_usd": 0.056226
+     },
+     "judge_rejections": 12,
+     "judge_calls": 35,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 467.146,
+      "twin_s": 0,
+      "decision_s": 467.435,
+      "n_llm_calls": 72,
+      "n_twin_rollouts": 0,
+      "n_decisions": 24
+     },
+     "wall_s": 656.1
+    },
+    "llmtwin": {
+     "profit": 1235.0,
+     "saving": 21066.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 11,
+     "proposals": 76,
+     "reprompts": 57,
+     "llm_usage": {
+      "calls": 76,
+      "input_tokens": 730121,
+      "output_tokens": 66411,
+      "cost_usd": 0.06307
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 477.125,
+      "twin_s": 4721.444,
+      "decision_s": 5199.754,
+      "n_llm_calls": 76,
+      "n_twin_rollouts": 76,
+      "n_decisions": 19
+     },
+     "wall_s": 5435.9
+    }
+   }
   },
   {
    "id": "T02",
@@ -1758,129 +2491,9 @@
    "passive_trip_min": 28.3,
    "passive_sifs": [],
    "passive_status": "MODEL_LIMIT",
-   "agents_trip_min": null,
-   "agents_sifs": [],
-   "agents_status": "RUNNING",
-   "nominal_profit": 1445.0,
-   "passive_profit": -19997.0,
-   "agents_profit": 482.0,
-   "saving": 20479.0,
-   "agents_loss_vs_nominal": 962.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -19500.0,
    "passive_off_spec_min": 0.0,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 11.500000000000016,
-   "agent_actions": [
-    [
-     11.500000000000016,
-     "mitigation",
-     [
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 50.0
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 345.0
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 335.7
-      }
-     ]
-    ],
-    [
-     13.500000000000028,
-     "mitigation",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "REFLUX"
-      }
-     ]
-    ],
-    [
-     57.50000000000051,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 332.7
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 348.0
-      },
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 60.0
-      }
-     ]
-    ],
-    [
-     72.50000000000087,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 351.0
-      }
-     ]
-    ],
-    [
-     82.5000000000011,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 354.0
-      },
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 72.0
-      }
-     ]
-    ],
-    [
-     92.50000000000132,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 331.7216
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 354.4223
-      },
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 86.4
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 76,
-   "agent_fallbacks": 6,
-   "agent_alarm_acks": 4,
-   "alarms_listed_at_end_agents": [],
    "alarms_listed_at_end_passive": [
     "COL_P_H",
     "COL_P_HH",
@@ -1898,7 +2511,116 @@
     ],
     []
    ],
-   "interaction": "condenser loss + reflux trip interact at the column top; the reactor pressure sensor bias is isolated"
+   "interaction": "condenser loss + reflux trip interact at the column top; the reactor pressure sensor bias is isolated",
+   "configs": {
+    "lucky": {
+     "profit": -20843.0,
+     "saving": -1343.0,
+     "trip_min": 21.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 4,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 35177,
+      "output_tokens": 3117,
+      "cost_usd": 0.003006
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 21.243,
+      "twin_s": 0,
+      "decision_s": 21.274,
+      "n_llm_calls": 4,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 57.0
+    },
+    "judge": {
+     "profit": -20841.0,
+     "saving": -1341.0,
+     "trip_min": 21.8,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 4,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 8,
+      "input_tokens": 68397,
+      "output_tokens": 4927,
+      "cost_usd": 0.005391
+     },
+     "judge_rejections": 0,
+     "judge_calls": 4,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 39.38,
+      "twin_s": 0,
+      "decision_s": 39.411,
+      "n_llm_calls": 8,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 69.4
+    },
+    "llmtwin": {
+     "profit": -19601.0,
+     "saving": -101.0,
+     "trip_min": 28.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "COL_P_HH"
+     ],
+     "actions": 3,
+     "proposals": 16,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 16,
+      "input_tokens": 151315,
+      "output_tokens": 11731,
+      "cost_usd": 0.012258
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 88.148,
+      "twin_s": 242.483,
+      "decision_s": 330.795,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 13,
+      "n_decisions": 4
+     },
+     "wall_s": 411.5
+    }
+   }
   },
   {
    "id": "T03",
@@ -1915,70 +2637,9 @@
    "passive_trip_min": 27.2,
    "passive_sifs": [],
    "passive_status": "MODEL_LIMIT",
-   "agents_trip_min": 21.9,
-   "agents_sifs": [
-    "DR_L_LL"
-   ],
-   "agents_status": "SAFE_TRIP",
-   "nominal_profit": 1445.0,
-   "passive_profit": -20465.0,
-   "agents_profit": -19684.0,
-   "saving": 781.0,
-   "agents_loss_vs_nominal": 21129.0,
+   "nominal_profit": 1448.0,
+   "passive_profit": -20867.0,
    "passive_off_spec_min": 2.5,
-   "agents_off_spec_min": 0.0,
-   "agent_detection_min": 11.500000000000016,
-   "agent_actions": [
-    [
-     11.500000000000016,
-     "mitigation",
-     [
-      {
-       "type": "SET_THROUGHPUT",
-       "value": 50.0
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "BOT_TIC",
-       "value": 345.0
-      },
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 335.7
-      }
-     ]
-    ],
-    [
-     12.500000000000021,
-     "mitigation",
-     [
-      {
-       "type": "START_SPARE",
-       "target": "REFLUX"
-      }
-     ]
-    ],
-    [
-     18.999999999999996,
-     "mitigation",
-     [
-      {
-       "type": "SET_SETPOINT",
-       "target": "TOP_TIC",
-       "value": 340.0
-      }
-     ]
-    ]
-   ],
-   "agent_reprompts": 12,
-   "agent_fallbacks": 3,
-   "agent_alarm_acks": 3,
-   "alarms_listed_at_end_agents": [
-    "RB_L_HH",
-    "DR_L_LL",
-    "BTM_X_H"
-   ],
    "alarms_listed_at_end_passive": [
     "COL_P_H",
     "COL_P_HH",
@@ -2001,65 +2662,125 @@
      "drum_holdup_kmol"
     ]
    ],
-   "interaction": "condenser, reflux and drum leak all act on the column-top pressure / drum inventory"
+   "interaction": "condenser, reflux and drum leak all act on the column-top pressure / drum inventory",
+   "configs": {
+    "lucky": {
+     "profit": -20908.0,
+     "saving": -41.0,
+     "trip_min": 18.1,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 3,
+     "proposals": 3,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 3,
+      "input_tokens": 24931,
+      "output_tokens": 2641,
+      "cost_usd": 0.002303
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 20.173,
+      "twin_s": 0,
+      "decision_s": 20.2,
+      "n_llm_calls": 3,
+      "n_twin_rollouts": 0,
+      "n_decisions": 3
+     },
+     "wall_s": 49.2
+    },
+    "judge": {
+     "profit": -20885.0,
+     "saving": -18.0,
+     "trip_min": 17.8,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 3,
+     "proposals": 3,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 6,
+      "input_tokens": 48482,
+      "output_tokens": 4040,
+      "cost_usd": 0.00404
+     },
+     "judge_rejections": 0,
+     "judge_calls": 3,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 29.768,
+      "twin_s": 0,
+      "decision_s": 29.79,
+      "n_llm_calls": 6,
+      "n_twin_rollouts": 0,
+      "n_decisions": 3
+     },
+     "wall_s": 54.5
+    },
+    "llmtwin": {
+     "profit": -20869.0,
+     "saving": -2.0,
+     "trip_min": 27.3,
+     "status": "MODEL_LIMIT",
+     "sifs": [],
+     "actions": 2,
+     "proposals": 16,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 16,
+      "input_tokens": 143522,
+      "output_tokens": 11283,
+      "cost_usd": 0.011689
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "alarms_listed_at_end": [
+      "COL_P_H",
+      "COL_P_HH",
+      "DIST_X_L",
+      "BTM_X_H",
+      "P201_TRIP"
+     ],
+     "timing": {
+      "llm_s": 89.784,
+      "twin_s": 226.041,
+      "decision_s": 316.009,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 13,
+      "n_decisions": 4
+     },
+     "wall_s": 367.9
+    }
+   }
   }
  ],
  "totals": {
   "scenarios": 20,
   "passive_sif_trips": 13,
   "passive_dry_outs": 5,
-  "agents_sif_trips": 1,
-  "agents_dry_outs": 0,
   "probe_trips": 18,
   "passive_trips": 18,
-  "agents_trips": 1,
-  "nominal_profit": 33485.0,
-  "passive_profit": -366423.0,
-  "agents_profit": -12413.0,
-  "saving": 354010.0
- },
- "by_group": {
-  "single": {
-   "n": 10,
-   "passive_trips": 8,
-   "agents_trips": 0,
-   "passive": -159173.0,
-   "agents": 10139.0
-  },
-  "pair_indep": {
-   "n": 4,
-   "passive_trips": 4,
-   "agents_trips": 0,
-   "passive": -82562.0,
-   "agents": -2444.0
-  },
-  "pair_coupled": {
-   "n": 3,
-   "passive_trips": 3,
-   "agents_trips": 0,
-   "passive": -63183.0,
-   "agents": -2351.0
-  },
-  "triple_none": {
-   "n": 1,
-   "passive_trips": 1,
-   "agents_trips": 0,
-   "passive": -21043.0,
-   "agents": 1445.0
-  },
-  "triple_2plus1": {
-   "n": 1,
-   "passive_trips": 1,
-   "agents_trips": 0,
-   "passive": -19997.0,
-   "agents": 482.0
-  },
-  "triple_all": {
-   "n": 1,
-   "passive_trips": 1,
-   "agents_trips": 1,
-   "passive": -20465.0,
-   "agents": -19684.0
-  }
+  "nominal_profit": 33543.0,
+  "passive_profit": -364892.0
  }
 }

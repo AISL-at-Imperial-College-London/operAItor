@@ -141,8 +141,17 @@ export interface AgentEvent {
   type: "agent";
   stage: "node" | "kg" | "plan" | "proposal" | "invalid" | "twin" | "twin_skipped" | "validation" | "llm_error" | "verification"
     | "reprompt" | "fallback" | "rejected" | "applied" | "pending" | "advisory" | "approved" | "dismissed"
-    | "alarm_ack";
+    | "alarm_ack" | "llm_diagnosis" | "judge" | "sif_reset";
   alarms?: string[];
+  // llm_diagnosis
+  ok?: boolean;
+  summary?: string;
+  most_likely?: string | null;
+  hypotheses?: { fault: string; probability: number; evidence: string[]; against: string[] }[];
+  fault_class?: string;
+  t2_spe_reading?: string;
+  operator_checks?: string[];
+  on_demand?: boolean;
   safe_reached?: boolean;
   restored?: boolean;
   time_to_restore_min?: number | null;

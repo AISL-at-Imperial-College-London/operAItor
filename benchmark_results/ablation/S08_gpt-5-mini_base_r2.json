@@ -1,0 +1,1078 @@
+{
+ "id": "S08",
+ "group": "single",
+ "mode": "lucky",
+ "faults": [
+  "condenser_cooling_loss"
+ ],
+ "interaction": null,
+ "schedule": {
+  "0": {
+   "onset_min": 10.0,
+   "lift_min": 31.5
+  }
+ },
+ "window_min": 120.0,
+ "status": "SAFE_TRIP",
+ "status_reason": "plant_trip_sif_latched",
+ "end_min": 21.6,
+ "tripped": true,
+ "stop_kind": "SIF",
+ "trip_min": 21.6,
+ "sifs": [
+  "DR_L_LL"
+ ],
+ "sif_first_min": {
+  "DR_L_LL": 21.6
+ },
+ "profit_usd": {
+  "acetone": 1257.08,
+  "ipa_credit": 620.5,
+  "h2": 51.39,
+  "feed": -1975.29,
+  "steam": -11.09,
+  "heating": -15.4,
+  "margin": -72.8,
+  "trip_penalty": -20000.0,
+  "total": -20072.8
+ },
+ "on_spec_acetone_kmol": 16.649,
+ "off_spec_min": 0.0,
+ "alarm_history": [
+  {
+   "t": 12.500000000000021,
+   "id": "COL_P_H",
+   "transition": "ACTIVATED",
+   "by": "",
+   "priority": 2
+  },
+  {
+   "t": 16.50000000000002,
+   "id": "COL_P_H",
+   "transition": "ACKNOWLEDGED",
+   "by": "action-agent",
+   "priority": 2
+  },
+  {
+   "t": 17.30000000000001,
+   "id": "BTM_X_H",
+   "transition": "ACTIVATED",
+   "by": "",
+   "priority": 3
+  },
+  {
+   "t": 18.000000000000007,
+   "id": "COL_P_HH",
+   "transition": "ACTIVATED",
+   "by": "",
+   "priority": 1
+  },
+  {
+   "t": 18.5,
+   "id": "COL_P_HH",
+   "transition": "ACKNOWLEDGED",
+   "by": "action-agent",
+   "priority": 1
+  },
+  {
+   "t": 18.5,
+   "id": "BTM_X_H",
+   "transition": "ACKNOWLEDGED",
+   "by": "action-agent",
+   "priority": 3
+  },
+  {
+   "t": 19.49999999999999,
+   "id": "DR_L_LL",
+   "transition": "ACTIVATED",
+   "by": "",
+   "priority": 1
+  },
+  {
+   "t": 19.999999999999986,
+   "id": "DR_L_LL",
+   "transition": "ACKNOWLEDGED",
+   "by": "action-agent",
+   "priority": 1
+  }
+ ],
+ "alarms_listed_at_end": [
+  {
+   "id": "DR_L_LL",
+   "state": "ACTIVE_ACK"
+  },
+  {
+   "id": "COL_P_H",
+   "state": "ACTIVE_ACK"
+  },
+  {
+   "id": "COL_P_HH",
+   "state": "ACTIVE_ACK"
+  },
+  {
+   "id": "BTM_X_H",
+   "state": "ACTIVE_ACK"
+  }
+ ],
+ "agent": {
+  "preset": "llm_lucky",
+  "llm_model": "gpt-5-mini",
+  "llm_usage": {
+   "calls": 4,
+   "input_tokens": 32777,
+   "output_tokens": 3059,
+   "cost_usd": 0.014312
+  },
+  "llm_errors": [],
+  "judge": [],
+  "proposals": 4,
+  "timing": {
+   "llm_calls": [
+    {
+     "t": 11.5,
+     "cycle": 1,
+     "agent": "action",
+     "latency_s": 8.329,
+     "tokens": 7982
+    },
+    {
+     "t": 16.5,
+     "cycle": 2,
+     "agent": "action",
+     "latency_s": 7.366,
+     "tokens": 8328
+    },
+    {
+     "t": 18.5,
+     "cycle": 3,
+     "agent": "action",
+     "latency_s": 6.997,
+     "tokens": 9493
+    },
+    {
+     "t": 20.0,
+     "cycle": 4,
+     "agent": "action",
+     "latency_s": 8.114,
+     "tokens": 10033
+    }
+   ],
+   "twin_rollouts": [],
+   "decisions": [
+    {
+     "cycle": 1,
+     "t": 11.5,
+     "wall_s": 8.569
+    },
+    {
+     "cycle": 2,
+     "t": 16.5,
+     "wall_s": 7.373
+    },
+    {
+     "cycle": 3,
+     "t": 18.5,
+     "wall_s": 7.006
+    },
+    {
+     "cycle": 4,
+     "t": 20.0,
+     "wall_s": 8.121
+    }
+   ],
+   "llm_s": 30.806,
+   "twin_s": 0,
+   "decision_s": 31.069,
+   "n_llm_calls": 4,
+   "n_twin_rollouts": 0,
+   "n_decisions": 4
+  },
+  "first_detection_min": 11.500000000000016,
+  "fault_cycles": 22,
+  "decisions": 4,
+  "actions": [
+   {
+    "t": 11.500000000000016,
+    "kind": "restoring",
+    "commands": [
+     {
+      "type": "SET_SETPOINT",
+      "target": "COL_PIC",
+      "value": 0.95
+     }
+    ],
+    "diagnosis": "condenser_cooling_loss"
+   },
+   {
+    "t": 16.50000000000002,
+    "kind": "restoring",
+    "commands": [
+     {
+      "type": "SET_THROUGHPUT",
+      "value": 80.0
+     }
+    ],
+    "diagnosis": "condenser_cooling_loss"
+   },
+   {
+    "t": 18.5,
+    "kind": "restoring",
+    "commands": [
+     {
+      "type": "SET_THROUGHPUT",
+      "value": 60.0
+     }
+    ],
+    "diagnosis": "condenser_cooling_loss"
+   },
+   {
+    "t": 19.999999999999986,
+    "kind": "restoring",
+    "commands": [
+     {
+      "type": "SET_THROUGHPUT",
+      "value": 48.0
+     }
+    ],
+    "diagnosis": "condenser_cooling_loss"
+   }
+  ],
+  "validations": [
+   {
+    "t": 11.500000000000016,
+    "cycle": 1,
+    "accepted": true,
+    "commands": [
+     {
+      "type": "SET_SETPOINT",
+      "target": "COL_PIC",
+      "value": 0.95
+     }
+    ],
+    "failed": []
+   },
+   {
+    "t": 16.50000000000002,
+    "cycle": 2,
+    "accepted": true,
+    "commands": [
+     {
+      "type": "SET_THROUGHPUT",
+      "value": 80.0
+     }
+    ],
+    "failed": []
+   },
+   {
+    "t": 18.5,
+    "cycle": 3,
+    "accepted": true,
+    "commands": [
+     {
+      "type": "SET_THROUGHPUT",
+      "value": 60.0
+     }
+    ],
+    "failed": []
+   },
+   {
+    "t": 19.999999999999986,
+    "cycle": 4,
+    "accepted": true,
+    "commands": [
+     {
+      "type": "SET_THROUGHPUT",
+      "value": 48.0
+     }
+    ],
+    "failed": []
+   }
+  ],
+  "reprompts": 0,
+  "fallbacks": 0,
+  "alarm_acks": [
+   {
+    "t": 16.50000000000002,
+    "alarms": [
+     "COL_P_H"
+    ],
+    "reason": "taken over by the action agent (the alarm leaves the list once its variable is back within limits)"
+   },
+   {
+    "t": 18.5,
+    "alarms": [
+     "COL_P_HH",
+     "BTM_X_H"
+    ],
+    "reason": "taken over by the action agent (the alarm leaves the list once its variable is back within limits)"
+   },
+   {
+    "t": 19.999999999999986,
+    "alarms": [
+     "DR_L_LL"
+    ],
+    "reason": "taken over by the action agent (the alarm leaves the list once its variable is back within limits)"
+   }
+  ],
+  "verification": [],
+  "errors": []
+ },
+ "wall_s": 83.2,
+ "ticks": [
+  {
+   "t": 0.5,
+   "margin_usd_h": 724.82,
+   "on_spec": true,
+   "cstr_pressure_bar": 3.0,
+   "cstr_temperature_K": 335.74164,
+   "cstr_holdup_kmol": 50.0,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24518,
+   "reboiler_holdup_kmol": 34.50963,
+   "top_temperature_K": 331.72161,
+   "bottom_temperature_K": 354.42228,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03974,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 1.0,
+   "margin_usd_h": 724.82,
+   "on_spec": true,
+   "cstr_pressure_bar": 3.0,
+   "cstr_temperature_K": 335.74164,
+   "cstr_holdup_kmol": 50.0,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24518,
+   "reboiler_holdup_kmol": 34.50963,
+   "top_temperature_K": 331.72161,
+   "bottom_temperature_K": 354.42228,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03974,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 1.5,
+   "margin_usd_h": 725.44,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99704,
+   "cstr_temperature_K": 335.64957,
+   "cstr_holdup_kmol": 50.0,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24503,
+   "reboiler_holdup_kmol": 34.50959,
+   "top_temperature_K": 331.72151,
+   "bottom_temperature_K": 354.42204,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03974,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 2.0,
+   "margin_usd_h": 725.23,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99231,
+   "cstr_temperature_K": 335.5918,
+   "cstr_holdup_kmol": 50.0,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24461,
+   "reboiler_holdup_kmol": 34.50955,
+   "top_temperature_K": 331.72135,
+   "bottom_temperature_K": 354.42178,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03974,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 2.5,
+   "margin_usd_h": 723.84,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99287,
+   "cstr_temperature_K": 335.63519,
+   "cstr_holdup_kmol": 50.01228,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24411,
+   "reboiler_holdup_kmol": 34.50953,
+   "top_temperature_K": 331.72125,
+   "bottom_temperature_K": 354.42176,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03974,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 3.0,
+   "margin_usd_h": 723.93,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99464,
+   "cstr_temperature_K": 335.65993,
+   "cstr_holdup_kmol": 50.02456,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.2437,
+   "reboiler_holdup_kmol": 34.5093,
+   "top_temperature_K": 331.72119,
+   "bottom_temperature_K": 354.42182,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03974,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 3.5,
+   "margin_usd_h": 724.62,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99383,
+   "cstr_temperature_K": 335.67406,
+   "cstr_holdup_kmol": 50.02551,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24335,
+   "reboiler_holdup_kmol": 34.50835,
+   "top_temperature_K": 331.72116,
+   "bottom_temperature_K": 354.42203,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03974,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 4.0,
+   "margin_usd_h": 724.64,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99355,
+   "cstr_temperature_K": 335.68228,
+   "cstr_holdup_kmol": 50.02645,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24305,
+   "reboiler_holdup_kmol": 34.50632,
+   "top_temperature_K": 331.72116,
+   "bottom_temperature_K": 354.42246,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03973,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 4.5,
+   "margin_usd_h": 724.67,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99356,
+   "cstr_temperature_K": 335.68697,
+   "cstr_holdup_kmol": 50.0274,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24276,
+   "reboiler_holdup_kmol": 34.5034,
+   "top_temperature_K": 331.72119,
+   "bottom_temperature_K": 354.42307,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03971,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 5.0,
+   "margin_usd_h": 724.7,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99371,
+   "cstr_temperature_K": 335.68954,
+   "cstr_holdup_kmol": 50.02834,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24249,
+   "reboiler_holdup_kmol": 34.50009,
+   "top_temperature_K": 331.72125,
+   "bottom_temperature_K": 354.42376,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03969,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 5.5,
+   "margin_usd_h": 724.74,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99393,
+   "cstr_temperature_K": 335.69086,
+   "cstr_holdup_kmol": 50.02929,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24221,
+   "reboiler_holdup_kmol": 34.49685,
+   "top_temperature_K": 331.72134,
+   "bottom_temperature_K": 354.42444,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03968,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 6.0,
+   "margin_usd_h": 724.77,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99418,
+   "cstr_temperature_K": 335.69144,
+   "cstr_holdup_kmol": 50.03023,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24193,
+   "reboiler_holdup_kmol": 34.494,
+   "top_temperature_K": 331.72146,
+   "bottom_temperature_K": 354.42506,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03966,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 6.5,
+   "margin_usd_h": 724.8,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99443,
+   "cstr_temperature_K": 335.69157,
+   "cstr_holdup_kmol": 50.03118,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24164,
+   "reboiler_holdup_kmol": 34.49165,
+   "top_temperature_K": 331.7216,
+   "bottom_temperature_K": 354.42561,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03965,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 7.0,
+   "margin_usd_h": 724.83,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99467,
+   "cstr_temperature_K": 335.69144,
+   "cstr_holdup_kmol": 50.03212,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24134,
+   "reboiler_holdup_kmol": 34.48978,
+   "top_temperature_K": 331.72175,
+   "bottom_temperature_K": 354.42608,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03964,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 7.5,
+   "margin_usd_h": 724.85,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99489,
+   "cstr_temperature_K": 335.69115,
+   "cstr_holdup_kmol": 50.03306,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24102,
+   "reboiler_holdup_kmol": 34.48831,
+   "top_temperature_K": 331.72192,
+   "bottom_temperature_K": 354.42649,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03962,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 8.0,
+   "margin_usd_h": 724.87,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99508,
+   "cstr_temperature_K": 335.69078,
+   "cstr_holdup_kmol": 50.03401,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.2407,
+   "reboiler_holdup_kmol": 34.48714,
+   "top_temperature_K": 331.72211,
+   "bottom_temperature_K": 354.42685,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03962,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 8.5,
+   "margin_usd_h": 724.88,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99526,
+   "cstr_temperature_K": 335.69036,
+   "cstr_holdup_kmol": 50.03495,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24036,
+   "reboiler_holdup_kmol": 34.4862,
+   "top_temperature_K": 331.72231,
+   "bottom_temperature_K": 354.42716,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03961,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 9.0,
+   "margin_usd_h": 724.9,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99543,
+   "cstr_temperature_K": 335.68992,
+   "cstr_holdup_kmol": 50.0359,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.24002,
+   "reboiler_holdup_kmol": 34.48542,
+   "top_temperature_K": 331.72251,
+   "bottom_temperature_K": 354.42745,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.0396,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 9.5,
+   "margin_usd_h": 724.9,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99557,
+   "cstr_temperature_K": 335.68947,
+   "cstr_holdup_kmol": 50.03684,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.23966,
+   "reboiler_holdup_kmol": 34.48473,
+   "top_temperature_K": 331.72272,
+   "bottom_temperature_K": 354.42771,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03959,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 10.0,
+   "margin_usd_h": 724.91,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.9957,
+   "cstr_temperature_K": 335.68901,
+   "cstr_holdup_kmol": 50.03779,
+   "column_pressure_bar": 1.0,
+   "drum_holdup_kmol": 30.2393,
+   "reboiler_holdup_kmol": 34.48411,
+   "top_temperature_K": 331.72293,
+   "bottom_temperature_K": 354.42795,
+   "distillate_x_acetone": 0.94169,
+   "bottoms_x_acetone": 0.03959,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 10.5,
+   "margin_usd_h": 724.84,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99582,
+   "cstr_temperature_K": 335.68855,
+   "cstr_holdup_kmol": 50.03873,
+   "column_pressure_bar": 1.0391,
+   "drum_holdup_kmol": 29.23095,
+   "reboiler_holdup_kmol": 34.5886,
+   "top_temperature_K": 332.75642,
+   "bottom_temperature_K": 355.05856,
+   "distillate_x_acetone": 0.9417,
+   "bottoms_x_acetone": 0.03985,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 11.0,
+   "margin_usd_h": 724.48,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99592,
+   "cstr_temperature_K": 335.6881,
+   "cstr_holdup_kmol": 50.03968,
+   "column_pressure_bar": 1.07442,
+   "drum_holdup_kmol": 28.23018,
+   "reboiler_holdup_kmol": 34.74504,
+   "top_temperature_K": 333.69523,
+   "bottom_temperature_K": 355.88958,
+   "distillate_x_acetone": 0.94171,
+   "bottoms_x_acetone": 0.04041,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 11.5,
+   "margin_usd_h": 203.97,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99602,
+   "cstr_temperature_K": 335.68766,
+   "cstr_holdup_kmol": 50.04062,
+   "column_pressure_bar": 1.10353,
+   "drum_holdup_kmol": 27.23235,
+   "reboiler_holdup_kmol": 34.97449,
+   "top_temperature_K": 334.37911,
+   "bottom_temperature_K": 356.46185,
+   "distillate_x_acetone": 0.94176,
+   "bottoms_x_acetone": 0.04134,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 12.0,
+   "margin_usd_h": -66.97,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99611,
+   "cstr_temperature_K": 335.68722,
+   "cstr_holdup_kmol": 50.04157,
+   "column_pressure_bar": 1.12806,
+   "drum_holdup_kmol": 26.28484,
+   "reboiler_holdup_kmol": 35.23269,
+   "top_temperature_K": 334.93496,
+   "bottom_temperature_K": 356.9679,
+   "distillate_x_acetone": 0.94184,
+   "bottoms_x_acetone": 0.04264,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 12.5,
+   "margin_usd_h": -433.45,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99619,
+   "cstr_temperature_K": 335.68679,
+   "cstr_holdup_kmol": 50.04251,
+   "column_pressure_bar": 1.14821,
+   "drum_holdup_kmol": 25.39114,
+   "reboiler_holdup_kmol": 35.53781,
+   "top_temperature_K": 335.3648,
+   "bottom_temperature_K": 357.32062,
+   "distillate_x_acetone": 0.94199,
+   "bottoms_x_acetone": 0.04434,
+   "sif": [],
+   "alarms_listed": 0
+  },
+  {
+   "t": 13.0,
+   "margin_usd_h": -435.89,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99626,
+   "cstr_temperature_K": 335.68636,
+   "cstr_holdup_kmol": 50.04346,
+   "column_pressure_bar": 1.16747,
+   "drum_holdup_kmol": 24.50254,
+   "reboiler_holdup_kmol": 35.85873,
+   "top_temperature_K": 335.78694,
+   "bottom_temperature_K": 357.68352,
+   "distillate_x_acetone": 0.94217,
+   "bottoms_x_acetone": 0.04642,
+   "sif": [],
+   "alarms_listed": 1
+  },
+  {
+   "t": 13.5,
+   "margin_usd_h": -1055.3,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.9955,
+   "cstr_temperature_K": 335.57559,
+   "cstr_holdup_kmol": 50.0444,
+   "column_pressure_bar": 1.18348,
+   "drum_holdup_kmol": 23.64562,
+   "reboiler_holdup_kmol": 36.20454,
+   "top_temperature_K": 336.10476,
+   "bottom_temperature_K": 357.91859,
+   "distillate_x_acetone": 0.94242,
+   "bottoms_x_acetone": 0.0489,
+   "sif": [],
+   "alarms_listed": 1
+  },
+  {
+   "t": 14.0,
+   "margin_usd_h": -1059.18,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99222,
+   "cstr_temperature_K": 335.50582,
+   "cstr_holdup_kmol": 50.04535,
+   "column_pressure_bar": 1.19883,
+   "drum_holdup_kmol": 22.7928,
+   "reboiler_holdup_kmol": 36.56243,
+   "top_temperature_K": 336.42171,
+   "bottom_temperature_K": 358.15602,
+   "distillate_x_acetone": 0.94272,
+   "bottoms_x_acetone": 0.05175,
+   "sif": [],
+   "alarms_listed": 1
+  },
+  {
+   "t": 14.5,
+   "margin_usd_h": -1608.86,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99033,
+   "cstr_temperature_K": 335.55806,
+   "cstr_holdup_kmol": 50.04629,
+   "column_pressure_bar": 1.2125,
+   "drum_holdup_kmol": 21.94558,
+   "reboiler_holdup_kmol": 36.93718,
+   "top_temperature_K": 336.68333,
+   "bottom_temperature_K": 358.30315,
+   "distillate_x_acetone": 0.94307,
+   "bottoms_x_acetone": 0.05503,
+   "sif": [],
+   "alarms_listed": 1
+  },
+  {
+   "t": 15.0,
+   "margin_usd_h": -1614.32,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.99015,
+   "cstr_temperature_K": 335.58902,
+   "cstr_holdup_kmol": 50.04723,
+   "column_pressure_bar": 1.22559,
+   "drum_holdup_kmol": 21.10173,
+   "reboiler_holdup_kmol": 37.32424,
+   "top_temperature_K": 336.94494,
+   "bottom_temperature_K": 358.45586,
+   "distillate_x_acetone": 0.94347,
+   "bottoms_x_acetone": 0.0587,
+   "sif": [],
+   "alarms_listed": 1
+  },
+  {
+   "t": 15.5,
+   "margin_usd_h": -2142.99,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.98907,
+   "cstr_temperature_K": 335.60715,
+   "cstr_holdup_kmol": 50.04818,
+   "column_pressure_bar": 1.23697,
+   "drum_holdup_kmol": 20.2969,
+   "reboiler_holdup_kmol": 37.73103,
+   "top_temperature_K": 337.15862,
+   "bottom_temperature_K": 358.51604,
+   "distillate_x_acetone": 0.94392,
+   "bottoms_x_acetone": 0.06283,
+   "sif": [],
+   "alarms_listed": 1
+  },
+  {
+   "t": 16.0,
+   "margin_usd_h": -2150.76,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.98867,
+   "cstr_temperature_K": 335.61766,
+   "cstr_holdup_kmol": 50.04912,
+   "column_pressure_bar": 1.24784,
+   "drum_holdup_kmol": 19.4948,
+   "reboiler_holdup_kmol": 38.15265,
+   "top_temperature_K": 337.37052,
+   "bottom_temperature_K": 358.58515,
+   "distillate_x_acetone": 0.94441,
+   "bottoms_x_acetone": 0.06739,
+   "sif": [],
+   "alarms_listed": 1
+  },
+  {
+   "t": 16.5,
+   "margin_usd_h": -2723.12,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.98864,
+   "cstr_temperature_K": 335.6236,
+   "cstr_holdup_kmol": 50.05007,
+   "column_pressure_bar": 1.25652,
+   "drum_holdup_kmol": 18.69105,
+   "reboiler_holdup_kmol": 38.61095,
+   "top_temperature_K": 337.51819,
+   "bottom_temperature_K": 358.5407,
+   "distillate_x_acetone": 0.94496,
+   "bottoms_x_acetone": 0.07251,
+   "sif": [],
+   "alarms_listed": 1
+  },
+  {
+   "t": 17.0,
+   "margin_usd_h": -1531.67,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.98791,
+   "cstr_temperature_K": 335.76787,
+   "cstr_holdup_kmol": 49.88435,
+   "column_pressure_bar": 1.2647,
+   "drum_holdup_kmol": 17.88919,
+   "reboiler_holdup_kmol": 39.08987,
+   "top_temperature_K": 337.66629,
+   "bottom_temperature_K": 358.51348,
+   "distillate_x_acetone": 0.94556,
+   "bottoms_x_acetone": 0.07814,
+   "sif": [],
+   "alarms_listed": 1
+  },
+  {
+   "t": 17.5,
+   "margin_usd_h": -2222.03,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.98815,
+   "cstr_temperature_K": 335.90438,
+   "cstr_holdup_kmol": 49.71863,
+   "column_pressure_bar": 1.27248,
+   "drum_holdup_kmol": 17.14388,
+   "reboiler_holdup_kmol": 39.56871,
+   "top_temperature_K": 337.80677,
+   "bottom_temperature_K": 358.45584,
+   "distillate_x_acetone": 0.9462,
+   "bottoms_x_acetone": 0.08426,
+   "sif": [],
+   "alarms_listed": 2
+  },
+  {
+   "t": 18.0,
+   "margin_usd_h": -2236.06,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.98698,
+   "cstr_temperature_K": 336.03562,
+   "cstr_holdup_kmol": 49.5529,
+   "column_pressure_bar": 1.28017,
+   "drum_holdup_kmol": 16.40041,
+   "reboiler_holdup_kmol": 40.06813,
+   "top_temperature_K": 337.95144,
+   "bottom_temperature_K": 358.38806,
+   "distillate_x_acetone": 0.94689,
+   "bottoms_x_acetone": 0.09085,
+   "sif": [],
+   "alarms_listed": 2
+  },
+  {
+   "t": 18.5,
+   "margin_usd_h": -2633.78,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.98631,
+   "cstr_temperature_K": 336.16244,
+   "cstr_holdup_kmol": 49.40056,
+   "column_pressure_bar": 1.28733,
+   "drum_holdup_kmol": 15.6728,
+   "reboiler_holdup_kmol": 40.57955,
+   "top_temperature_K": 338.08312,
+   "bottom_temperature_K": 358.28346,
+   "distillate_x_acetone": 0.94762,
+   "bottoms_x_acetone": 0.09793,
+   "sif": [],
+   "alarms_listed": 3
+  },
+  {
+   "t": 19.0,
+   "margin_usd_h": -1449.27,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.98339,
+   "cstr_temperature_K": 336.43234,
+   "cstr_holdup_kmol": 49.08155,
+   "column_pressure_bar": 1.2944,
+   "drum_holdup_kmol": 14.9469,
+   "reboiler_holdup_kmol": 41.11742,
+   "top_temperature_K": 338.21766,
+   "bottom_temperature_K": 358.17351,
+   "distillate_x_acetone": 0.9484,
+   "bottoms_x_acetone": 0.10548,
+   "sif": [],
+   "alarms_listed": 3
+  },
+  {
+   "t": 19.5,
+   "margin_usd_h": -1364.78,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.97434,
+   "cstr_temperature_K": 336.59139,
+   "cstr_holdup_kmol": 48.77212,
+   "column_pressure_bar": 1.30087,
+   "drum_holdup_kmol": 14.13365,
+   "reboiler_holdup_kmol": 41.67517,
+   "top_temperature_K": 338.33492,
+   "bottom_temperature_K": 358.02564,
+   "distillate_x_acetone": 0.94923,
+   "bottoms_x_acetone": 0.11352,
+   "sif": [],
+   "alarms_listed": 3
+  },
+  {
+   "t": 20.0,
+   "margin_usd_h": -1385.91,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.96125,
+   "cstr_temperature_K": 336.78399,
+   "cstr_holdup_kmol": 48.46269,
+   "column_pressure_bar": 1.30726,
+   "drum_holdup_kmol": 13.32194,
+   "reboiler_holdup_kmol": 42.26253,
+   "top_temperature_K": 338.4553,
+   "bottom_temperature_K": 357.87479,
+   "distillate_x_acetone": 0.9501,
+   "bottoms_x_acetone": 0.12203,
+   "sif": [],
+   "alarms_listed": 4
+  },
+  {
+   "t": 20.5,
+   "margin_usd_h": -461.09,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.93974,
+   "cstr_temperature_K": 336.86785,
+   "cstr_holdup_kmol": 48.05996,
+   "column_pressure_bar": 1.31411,
+   "drum_holdup_kmol": 12.47004,
+   "reboiler_holdup_kmol": 42.83011,
+   "top_temperature_K": 338.58874,
+   "bottom_temperature_K": 357.7377,
+   "distillate_x_acetone": 0.95104,
+   "bottoms_x_acetone": 0.13089,
+   "sif": [],
+   "alarms_listed": 4
+  },
+  {
+   "t": 21.0,
+   "margin_usd_h": -486.92,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.91172,
+   "cstr_temperature_K": 337.04196,
+   "cstr_holdup_kmol": 47.65723,
+   "column_pressure_bar": 1.32109,
+   "drum_holdup_kmol": 11.6199,
+   "reboiler_holdup_kmol": 43.42515,
+   "top_temperature_K": 338.72643,
+   "bottom_temperature_K": 357.58396,
+   "distillate_x_acetone": 0.95203,
+   "bottoms_x_acetone": 0.14011,
+   "sif": [],
+   "alarms_listed": 4
+  },
+  {
+   "t": 21.5,
+   "margin_usd_h": -380.5,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.88287,
+   "cstr_temperature_K": 337.12308,
+   "cstr_holdup_kmol": 47.27286,
+   "column_pressure_bar": 1.32699,
+   "drum_holdup_kmol": 10.69377,
+   "reboiler_holdup_kmol": 44.04847,
+   "top_temperature_K": 338.83422,
+   "bottom_temperature_K": 357.3719,
+   "distillate_x_acetone": 0.95309,
+   "bottoms_x_acetone": 0.1498,
+   "sif": [],
+   "alarms_listed": 4
+  },
+  {
+   "t": 21.6,
+   "margin_usd_h": 2558.01,
+   "on_spec": true,
+   "cstr_pressure_bar": 2.87642,
+   "cstr_temperature_K": 337.15078,
+   "cstr_holdup_kmol": 47.19598,
+   "column_pressure_bar": 1.32813,
+   "drum_holdup_kmol": 10.50871,
+   "reboiler_holdup_kmol": 44.1775,
+   "top_temperature_K": 338.85542,
+   "bottom_temperature_K": 357.33186,
+   "distillate_x_acetone": 0.95331,
+   "bottoms_x_acetone": 0.15179,
+   "sif": [
+    "DR_L_LL"
+   ],
+   "alarms_listed": 4
+  }
+ ],
+ "ablation": {
+  "model": "gpt-5-mini",
+  "context": "base",
+  "repeat": 2
+ }
+}

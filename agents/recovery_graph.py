@@ -39,7 +39,7 @@ from jpc_recovery_langgraph import compile_plan, inspect_operation
 from fdd import PCAMonitor, rule_checks
 from integrated_plant.alarms import default_alarm_definitions
 
-from .action import LLMActionAgent, RuleActionAgent, explain_plan_errors, normalise_plan, slim_observation
+from .action import LLMActionAgent, explain_plan_errors, normalise_plan, slim_observation
 from .llm import DEFAULT_MODEL
 from .kg import KnowledgeGraph
 from .monitoring import MonitoringAgent
@@ -52,13 +52,15 @@ from .planning import KGPlanner, LLMPlanner
 
 @dataclass(frozen=True)
 class AgentConfig:
-    name: str = "rule"
-    proposer: Literal["none", "rule", "llm"] = "rule"
+    name: str = "llm"
+    proposer: Literal["none", "llm"] = "llm"
     planner: Literal["kg", "llm"] = "kg"
     use_pca: bool = True
     rules_trigger: bool = False      # False: only PCA triggers the framework (rules inform diagnosis)
     use_kg: bool = True
     twin: bool = False
+    judge: bool = False               # without the twin: an LLM judge validates each proposal
+    diagnoser: Literal["heuristic", "llm"] = "heuristic"  # "llm": agents/diagnosis_llm.py explains the PCA/rule evidence
     llm_model: str = DEFAULT_MODEL
     llm_timeout_s: float = 120.0
     # monitoring
@@ -92,14 +94,14 @@ class AgentConfig:
 
 PRESETS: dict[str, dict] = {
     "passive":    dict(proposer="none"),                                   # monitor only
-    "rule":       dict(proposer="rule", reprompt_max=0),                   # rules ignore feedback
-    "rule_twin":  dict(proposer="rule", twin=True, reprompt_max=4),  # rule agent escalates on reprompt
     "llm":        dict(proposer="llm", use_kg=True, twin=True),            # full framework
     "llm_plan":   dict(proposer="llm", planner="llm", use_kg=True, twin=True),
     "llm_nokg":   dict(proposer="llm", use_kg=False, twin=True),
     "llm_notwin": dict(proposer="llm", use_kg=True, twin=False),
-    "pca_only":   dict(proposer="rule", rules_trigger=False, reprompt_max=0),
-    "pca_only_twin": dict(proposer="rule", rules_trigger=False, twin=True, reprompt_max=2),
+    # "I'm feeling lucky": the first executable LLM proposal is applied, nothing validates it
+    "llm_lucky":  dict(proposer="llm", use_kg=True, twin=False),
+    # LLM as judge: no simulator; a second LLM accepts / rejects each proposal (rejections reprompt)
+    "llm_judge":  dict(proposer="llm", use_kg=True, twin=False, judge=True, reprompt_max=3),
 }
 
 
@@ -110,8 +112,6 @@ def make_config(preset: str, **overrides) -> AgentConfig:
 
 
 def make_action_agent(cfg: AgentConfig):
-    if cfg.proposer == "rule":
-        return RuleActionAgent()
     if cfg.proposer == "llm":
         return LLMActionAgent(cfg.llm_model, cfg.llm_timeout_s)
     return None
@@ -383,11 +383,18 @@ class RunContext:
     on_decision_start: Callable[[], Awaitable[None]] | None = None
     on_decision_end: Callable[[], Awaitable[None]] | None = None
     cycle: int = 0
-    fallback_agent: Any = None   # rule agent used for an attempt when the LLM call fails
 
 
 def build_recovery_graph(ctx: RunContext):
     cfg = ctx.cfg
+    diagnoser = None
+    if cfg.diagnoser == "llm":
+        from .diagnosis_llm import LLMDiagnoser
+        diagnoser = LLMDiagnoser(cfg.llm_model, cfg.llm_timeout_s, kg=ctx.kg)
+    judge = None
+    if cfg.judge and not cfg.twin:
+        from .judge import LLMJudge
+        judge = LLMJudge(cfg.llm_model, cfg.llm_timeout_s)
 
     async def emit(event: dict) -> None:
         if event["event"] != "monitor":
@@ -409,6 +416,11 @@ def build_recovery_graph(ctx: RunContext):
         det, diag = out["detection"], out["diagnosis"]
         if ctx.action_agent is None or ctx.actions_taken >= cfg.max_actions:
             det = {**det, "should_act": False}
+        if det["should_act"] and diagnoser is not None:
+            from .diagnosis_llm import as_diagnosis
+            verdict = await diagnoser.diagnose(det, diag, state["observation"])
+            diag = as_diagnosis(verdict, diag)
+            await emit({"event": "llm_diagnosis", "t": det["time_min"], **verdict})
         await emit({"event": "monitor", "t": det["time_min"], "detection": det, "diagnosis": diag})
         return {"detection": det, "diagnosis": diag, "attempts": 0, "feedback": "", "outcome": "no_action",
                 "safe_candidates": [], "tried": []}
@@ -450,15 +462,10 @@ def build_recovery_graph(ctx: RunContext):
             usage = dict(getattr(ctx.action_agent, "last_usage", {}) or {})
         except Exception as exc:  # provider error / unparsable output
             usage = {"error": f"{type(exc).__name__}: {exc}"}
-            if cfg.proposer == "llm":  # never leave the plant without a proposal: rule agent for this attempt
-                if ctx.fallback_agent is None:
-                    ctx.fallback_agent = RuleActionAgent()
-                raw_plan = await ctx.fallback_agent.propose(context)
-                raw_plan = {**raw_plan, "reasoning": f"[LLM call failed: {type(exc).__name__}: {str(exc)[:160]}] "
-                                                     f"rule fallback: {raw_plan['reasoning']}"}
-                await emit({"event": "llm_error", "t": state["detection"]["time_min"], "error": usage["error"][:400]})
-            else:
-                raw_plan = {"commands": [], "reasoning": usage["error"]}
+            # No rule fallback: a failed LLM call is an empty (non-executable) proposal, which the
+            # validator rejects; the next attempt asks the LLM again.
+            raw_plan = {"commands": [], "reasoning": f"[LLM call failed: {usage['error'][:200]}]"}
+            await emit({"event": "llm_error", "t": state["detection"]["time_min"], "error": usage["error"][:400]})
         usage.setdefault("latency_s", time.perf_counter() - t0)
         ctx.llm_usage.append(usage)
         plan, cites = normalise_plan(raw_plan)
@@ -484,6 +491,12 @@ def build_recovery_graph(ctx: RunContext):
             reason = "plan not executable: " + "; ".join(state["errors"])
             await emit({"event": "twin_skipped", "t": state["detection"]["time_min"], "reason": reason})
             return {"twin": {"rollout": "invalid_plan", "reason": reason}}
+        if judge is not None:
+            await node("judge", state)
+            context = {k: state.get(k) for k in ("observation", "detection", "diagnosis", "brief", "knowledge")}
+            verdict = await judge.judge(context, state["plan"])
+            await emit({"event": "judge", "t": state["detection"]["time_min"], "plan": state["plan"], **verdict})
+            return {"twin": {"rollout": "judged", **verdict}}
         if not cfg.twin:
             reason = "twin disabled in this preset"
             await emit({"event": "twin_skipped", "t": state["detection"]["time_min"], "reason": reason})
@@ -494,7 +507,9 @@ def build_recovery_graph(ctx: RunContext):
         twin = await ctx.snapshot_env()
         targets = faulty_targets(state["detection"], state["diagnosis"], ctx.monitor.pca, cfg.pca_band_sigma,
                                  state["observation"])
+        w0 = time.perf_counter()
         m = await asyncio.to_thread(twin_rollout, twin, state["action"], cfg, ctx.monitor.pca, targets)
+        m["wall_s"] = round(time.perf_counter() - w0, 3)
         await emit({"event": "twin", "t": state["detection"]["time_min"], "plan": state["plan"], **m})
         return {"twin": m}
 
@@ -509,6 +524,11 @@ def build_recovery_graph(ctx: RunContext):
         elif m.get("rollout") == "invalid_plan":
             v = {"accepted": False, "fail_reason": "plan executable", "criterion": cfg.acceptance, "safe_ok": False,
                  "checks": [{"check": "plan executable", "ok": False, "detail": "; ".join(state["errors"])}]}
+        elif m.get("rollout") == "judged":
+            detail = m.get("reason", "") + (f" Suggestion: {m['suggestion']}" if m.get("suggestion") and not m.get("accept") else "")
+            v = {"accepted": bool(m.get("accept")), "fail_reason": "" if m.get("accept") else "LLM judge rejected",
+                 "criterion": "llm_judge", "safe_ok": bool(m.get("accept")),
+                 "checks": [{"check": "LLM judge", "ok": bool(m.get("accept")), "detail": detail[:900]}]}
         elif m.get("rollout") == "skipped":
             v = {"accepted": True, "fail_reason": "", "criterion": "none", "safe_ok": True,
                  "checks": [{"check": "digital twin", "ok": True, "detail": m["reason"]}]}
@@ -584,8 +604,10 @@ def build_recovery_graph(ctx: RunContext):
                 twin = await ctx.snapshot_env()
                 targets = faulty_targets(state["detection"], state["diagnosis"], ctx.monitor.pca,
                                          cfg.pca_band_sigma, state["observation"])
+                w0 = time.perf_counter()
                 m = await asyncio.to_thread(twin_rollout, twin, SupervisoryAction.no_action(), cfg,
                                             ctx.monitor.pca, targets)
+                m["wall_s"] = round(time.perf_counter() - w0, 3)
                 await emit({"event": "twin", "t": state["detection"]["time_min"], "counterfactual": True,
                             "plan": {"commands": [{"type": "NO_ACTION"}], "reasoning": "counterfactual: do nothing"},
                             **m})

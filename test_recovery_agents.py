@@ -55,8 +55,13 @@ class RecoveryAgentTests(unittest.TestCase):
         self.assertEqual((metrics["detected"], metrics["n_actions"]), (1, 0))
 
     def test_delay_clock_applies_action_later_in_sim_time(self):
-        cfg = make_config("rule", clock="delay", delay_min=1.0)
-        metrics, trace, _ = asyncio.run(run_episode("reflux_pump_trip", cfg, kg=self.kg, **EPISODE))
+        import json
+        from langchain_core.language_models import FakeListChatModel
+        from agents.action import LLMActionAgent
+        spare = json.dumps({"commands": [{"type": "START_SPARE", "target": "REFLUX"}], "reasoning": "x", "kg_evidence": []})
+        agent = LLMActionAgent("fake", llm=FakeListChatModel(responses=[spare]))
+        cfg = make_config("llm", twin=False, clock="delay", delay_min=1.0)
+        metrics, trace, _ = asyncio.run(run_episode("reflux_pump_trip", cfg, kg=self.kg, action_agent=agent, **EPISODE))
         applied = [e for e in trace if e["event"] == "applied"]
         self.assertEqual(len(applied), 1)
         self.assertAlmostEqual(applied[0]["sim_delay_min"], 1.0, places=6)

@@ -70,13 +70,15 @@ def _start_agents() -> str:
         chat = OfflineChat(service, kg)
         return f"{exc}. Install with: py -3 -m pip install \"langgraph>=1.0,<2\""
     use_llm, reason = _llm_enabled()
-    preset = AGENT_PRESET or ("llm" if use_llm else "rule_twin")  # both run the twin + reprompter
-    warning = "" if use_llm else f"no LLM ({reason}); using the rule agent (with twin + reprompter) and offline chat"
+    # Every action comes from the LLM. Without one the agents only monitor (PCA detection, no actions).
+    preset = AGENT_PRESET or ("llm" if use_llm else "passive")
+    warning = "" if use_llm else f"no LLM ({reason}); agents monitor only (no actions) and the chat is offline"
     try:
-        supervisor = AsyncSupervisor(service, make_config(preset, llm_model=LLM_MODEL), kg=kg)
+        diag = os.environ.get("PLANT_DIAGNOSER") or ("llm" if use_llm else "heuristic")
+        supervisor = AsyncSupervisor(service, make_config(preset, llm_model=LLM_MODEL, diagnoser=diag), kg=kg)
     except Exception as exc:  # e.g. LLM preset without its provider package / API key
-        warning = f"agent preset {preset!r} failed ({exc}); falling back to 'rule'"
-        supervisor = AsyncSupervisor(service, make_config("rule"), kg=kg)
+        warning = f"agent preset {preset!r} failed ({exc}); agents monitor only (no actions)"
+        supervisor = AsyncSupervisor(service, make_config("passive"), kg=kg)
     supervisor.start()
     chat = ChatAgent(service, kg, llm_model=CHAT_MODEL if use_llm else None, agent_info=supervisor.info)
     if chat.llm_error:

@@ -70,13 +70,10 @@ In the console:
     until the twin's predicted recovery time (+2 min) has passed. After a
     mitigation, no new decision is taken for the twin's whole 30-min look-ahead.
     In both cases a newly failed pump still triggers immediately.
-  - If an LLM call fails, that attempt falls back to the rule agent (shown as
-    "LLM call failed, rule fallback used").
-- **Twin and reprompter are on in both defaults.** With OpenAI the preset is
-  `llm`. Without it, the preset is `rule_twin`: the rule agent proposes
-  candidates in order and escalates on each retry, e.g. a throughput cut of
-  20% → 35% → 50% as the twin rejects them. The plain `rule` preset has the
-  twin off and no retries.
+  - If an LLM call fails, that attempt is an empty proposal (logged as "LLM call failed");
+    nothing is applied and the next attempt asks the LLM again. There is no rule-based fallback.
+- **Every action comes from the LLM.** There is no rule-based action agent. With OpenAI the
+  preset is `llm`; without an LLM the agents only monitor (preset `passive`).
 
 ### Pacing and holding the plant (top bar)
 
@@ -113,7 +110,7 @@ It does this whenever `langchain-openai` is installed and `OPENAI_API_KEY` is
 set, either in the environment or in `.env` in the repo root. This repo already
 has a `.env` containing a key, so `py -3 run_server.py` makes real
 (cheap) API calls; use `--llm off` for none. If the package or key is missing,
-the server falls back to `rule_twin` and offline chat and prints why.
+the agents only monitor (no actions), the chat is offline, and the server prints why.
 
 Startup prints, e.g.: `Agents: preset llm, planning/action model gpt-5-nano, chat llm gpt-5-nano`.
 The FDD & Agents tab shows the model and the running token count and cost.
@@ -134,11 +131,13 @@ py -3 run_server.py --llm off                         # no API calls at all
 py -3 run_server.py --llm on                          # fail at startup if OpenAI is not usable
 py -3 run_server.py --agent llm_plan                  # LLM planning agent as well (2 calls per decision)
 py -3 run_server.py --llm-model gpt-5-mini            # stronger, ~5x the price
-py -3 run_server.py --agent rule_twin --llm off       # twin-validated rule agent
+py -3 run_server.py --agent llm_judge                 # LLM proposes, a second LLM validates (no twin)
+py -3 run_server.py --diagnoser heuristic             # rule-based diagnosis instead of the LLM diagnosis agent
 py -3 run_server.py --port 9000
 ```
 
-- **Agent presets:** `passive`, `rule`, `rule_twin`, `pca_only`, `llm`, `llm_plan` (LLM planning agent too), `llm_nokg`, `llm_notwin`.
+- **Agent presets:** `passive` (monitor only), `llm` (LLM + digital twin), `llm_judge` (LLM + LLM judge),
+  `llm_lucky` (LLM, no validation), `llm_plan` (LLM planning agent too), `llm_nokg`, `llm_notwin`.
 - **Models:** `gpt*` / `o*` names use langchain-openai; any other name uses a local Ollama.
 
 ## Fault campaigns (automated injection)
@@ -169,14 +168,6 @@ detection delay, top-1/top-3 diagnosis, the planning agent's target, and the
 first action. A fault injected while the plant was still abnormal is marked
 **carry-over** and left out of the scores.
 
-Example with the rule agent on `demo`:
-
-| Fault | Detected | Delay (min) | Diagnosis | Action |
-|---|---|---|---|---|
-| Pump trip | yes | 0.5 | correct (top 1) | start spare |
-| Pressure-sensor bias | yes | 1.5 | correct in top 3 | open blowdown, later closed again |
-| Outlet capacity loss | yes | 2.0 | correct (top 1) | — |
-| Condenser loss | carry-over | — | — | — |
 
 The plant needs more than 45 min to settle after the outlet fault, so the
 condenser fault started while it was still abnormal.
@@ -189,10 +180,32 @@ condenser fault started while it was still abnormal.
 | `agents/monitoring.py` | Monitoring agent: PCA is the only trigger (3-sample persistence, 5-min cooldown); alarm / pump / loop rules only feed the diagnosis. `AgentConfig(rules_trigger=True)` restores rule triggering; rules also trigger if no PCA model is loaded |
 | `agents/kg.py` | KG retrieval seeded by the hypotheses (fault → symptoms → loops/actuators → allowed operator actions) and free-text search |
 | `agents/planning.py` | Planning agent: target fault, objective, KG-grounded candidate levers, constraints (`KGPlanner`, or `LLMPlanner`) |
-| `agents/action.py` | Action agent: `RuleActionAgent` (incl. unwinding of earlier emergency moves) or `LLMActionAgent` |
+| `agents/action.py` | Action agent: `LLMActionAgent` (context levels `PLANT_ACTION_CONTEXT`: base / loops / manual / dynamics) |
+| `agents/diagnosis_llm.py` | LLM diagnosis agent: reads T² / SPE, contributions, rule evidence, trends and the fault catalogue; ranked hypotheses with evidence for / against |
+| `agents/judge.py` | LLM judge (validator without a simulator) |
 | `agents/recovery_graph.py` | The LangGraph, presets, oracle-twin rollout. Shared by the server and `recovery_agents_langgraph.py` |
 | `agents/supervisor.py` | Runs the graph next to the live plant. Modes: off / advisory (approve in UI) / autonomous |
 | `agents/chat.py` | Chat agent: tools `plant_status`, `current_values`, `trend`, `fault_diagnosis`, `agent_activity`, `knowledge_graph`, `list_variables`; per-session memory |
+
+### LLM diagnosis agent
+
+When a fault is confirmed (and on demand: **Ask the LLM now** in the Fault-detection tab, or the
+`diagnose_now` command), `agents/diagnosis_llm.py` gets:
+- Hotelling T² and SPE (Q) against their limits, and the top contributors, split into T² and SPE parts;
+- the rule checks (alarms, failed pumps, saturated loops, SIFs) and the rule-based hypotheses;
+- the trends (rate, minutes to the next alarm / SIF);
+- the fault catalogue (knowledge-graph fault modes + fault library, with symptoms).
+
+It returns ranked hypotheses (catalogue names only) with evidence for and against, the fault class
+(sensor / actuator / equipment / process), what the T² vs SPE pattern says, and checks for the
+operator. With `diagnoser="llm"` (the server's default when the LLM is on) its hypotheses replace
+the heuristic ones in the pipeline (the heuristic result is kept). Evaluation on the 20 scenarios,
+at PCA confirmation (`py -3 -m benchmark.diagnosis_eval`, `benchmark_results/DIAGNOSIS_EVAL.md`):
+
+| | heuristic | gpt-5-nano | gpt-5-mini |
+|---|---:|---:|---:|
+| most likely fault correct | 14/20 | 15/20 | 18/20 |
+| a true fault in the top 3 | 20/20 | 20/20 | 20/20 |
 
 ### Validation, fallback, SIF reset and alarms (2026-10-06)
 
@@ -306,22 +319,35 @@ tripped. Results are in `benchmark_results/PROFIT_CAMPAIGN.md`.
 py -3 -m benchmark.profit_campaign probe --jobs 21     # when would each scenario trip?
 py -3 -m benchmark.profit_campaign compare --jobs 20   # agents + passive with the lift schedule
 py -3 -m benchmark.profit_campaign report
-py -3 -m benchmark.loop_tests                          # BPCS loop step / disturbance tests
+py -3 -m benchmark.loop_tests                          # PI loop setpoint tests + plots (benchmark_results/loop_plots/)
+py -3 -m benchmark.build_dashboard                     # benchmark_results/fault_campaign_dashboard.html
 ```
+
+**Agent configurations in the campaign** (`compare <modes>`; all use the same faults and lift times):
+
+| mode | preset | proposer | validation |
+|---|---|---|---|
+| `lucky` | `llm_lucky` | LLM | none: the first executable proposal is applied ("feeling lucky") |
+| `judge` | `llm_judge` | LLM | a second LLM call (`agents/judge.py`) accepts or rejects; rejections reprompt (3 retries); nothing is applied if every proposal is rejected |
+| `llmtwin` | `llm` | LLM | digital twin, counterfactual fallback |
+
+```powershell
+py -3 -m benchmark.profit_campaign compare lucky judge llmtwin --jobs 12                      # gpt-5-nano (OpenAI key in .env)
+py -3 -m benchmark.profit_campaign compare lucky --model llama3.1:8b                           # native Ollama
+py -3 -m benchmark.profit_campaign compare judge --model qwen2.5-7b --base-url http://localhost:1234/v1   # LM Studio / vLLM / llama.cpp
+```
+
+Local-model environment variables (also used by `run_server.py`): `PLANT_LLM_BASE_URL` (any
+OpenAI-compatible server, any model name), `PLANT_LLM_API_KEY`, `PLANT_LLM_JSON_MODE=0` (if the
+server rejects JSON mode), `PLANT_OLLAMA_URL`, `PLANT_LLM_MAX_RETRIES`.
 
 ## Known limitations
 
 - **Diagnosis can confuse faults.** Contribution-based diagnosis can mix up
   faults with similar signatures; for example, condenser loss can show up as
   pump or level hypotheses. Alarm evidence helps before PCA confirms.
-- **The rule action agent is limited** (it is what runs with `--llm off`). Its responses are:
-  - start spare pumps (all at once if several failed);
-  - open the blowdown;
-  - for a condenser-limited column, cut boilup, reflux and throughput together;
-  - cut throughput;
-  - raise the TOP_TIC setpoint when the reflux drum drains;
-  - unwind once the plant is quiet: close the blowdown, and return setpoints and throughput to nominal.
-
-  It returns NO_ACTION otherwise. That gap is what the LLM presets are meant to fill.
+- **LLM reasoning errors on the column.** gpt-5-nano and gpt-5-mini raise reflux when the reflux
+  drum drains (wrong direction), even with the loop directions and the drum balance in the
+  prompt and with the knowledge graph switched off (see `benchmark_results/LLM_CAMPAIGN_LOG.md`).
 - **The twin is an oracle.** It is a clone of the true simulator state.
 - **The simulator is CPU bound.** It needs about 1 s of CPU per simulated minute.

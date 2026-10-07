@@ -4,13 +4,14 @@ Both return the plan format used by ``jpc_recovery_langgraph.compile_plan``:
 
     {"commands": [{"type": "START_SPARE", "target": "REFLUX"}, ...], "reasoning": "..."}
 
-``RuleActionAgent`` is the offline baseline. ``LLMActionAgent`` calls a chat
-model with ``ainvoke`` (so it never blocks the plant loop) and records latency
-and token usage in ``last_usage``.
+``LLMActionAgent`` calls a chat model with ``ainvoke`` (so it never blocks the
+plant loop) and records latency and token usage in ``last_usage``. There is no
+rule-based action agent: every action comes from the LLM.
 """
 from __future__ import annotations
 
 import json
+import os
 import time
 from typing import Any, Protocol
 
@@ -19,157 +20,6 @@ from .llm import DEFAULT_MODEL, USAGE, make_llm, message_text, parse_json_object
 
 class ActionAgent(Protocol):
     async def propose(self, context: dict) -> dict: ...
-
-
-class RuleActionAgent:
-    """Conservative heuristics; NO_ACTION (operator advisory) when unsure.
-
-    The rules give an ordered list of candidate plans. The first is proposed; when
-    validation or the digital twin rejects it and the reprompter asks again, the
-    next untried candidate is proposed (e.g. a deeper throughput cut), so the
-    reprompt loop also works offline.
-    """
-
-    def __init__(self, min_throughput: float = 60.0, nominal_throughput: float = 100.0):
-        self.min_throughput = min_throughput
-        self.nominal_throughput = nominal_throughput
-        self.last_usage: dict = {}
-        self._tried: list = []
-        self.nominal_sp: dict[str, float] | None = None  # setpoints at the first decision (the design point)
-
-    async def propose(self, context: dict) -> dict:
-        if context.get("previous_plan") is None:  # first attempt of a new decision cycle
-            self._tried = []
-        for plan in self.candidates(context):
-            if plan["commands"] not in self._tried:
-                if self._tried:
-                    reason = json.loads(context.get("feedback") or "{}").get("fail_reason")
-                    plan = {**plan, "reasoning": f"{plan['reasoning']} (previous proposal rejected: {reason})"}
-                self._tried.append(plan["commands"])
-                return plan
-        return {"commands": [{"type": "NO_ACTION"}],
-                "reasoning": "Every rule candidate was rejected by the digital twin; operator advised."}
-
-    def candidates(self, context: dict) -> list[dict]:
-        obs, diag = context["observation"], context["diagnosis"]
-        rules = context["detection"]["rules"]
-        hyps = [h["fault"] for h in diag["hypotheses"]]
-        alarms = set(rules["active_alarms"])
-        saturated = set(rules["saturated_loops"])
-        feed = obs["throughput_target_kmol_h"]
-        out: list[dict] = []
-        if self.nominal_sp is None:  # only the agents change setpoints, so these are the design values
-            self.nominal_sp = {k: v["setpoint"] for k, v in obs["controllers"].items()}
-
-        def cuts(why: str, factors: tuple[float, ...]) -> None:
-            for f in factors:
-                target = round(max(0.5 * self.min_throughput, f * feed), 1)
-                out.append({"commands": [{"type": "SET_THROUGHPUT", "value": target}],
-                            "reasoning": f"{why}: cut throughput to {target:g} kmol/h ({100 * (1 - f):.0f}% lower)."})
-
-        spares = []
-        for train in rules["failed_trains"]:
-            info = obs["pump_trains"][train]
-            if info["active_pump"] != info["spare"] and not info["spare_failed"]:
-                spares.append({"type": "START_SPARE", "target": train})
-        if len(spares) > 1:  # several pumps down: start every standby at once
-            out.append({"commands": spares, "reasoning": f"Duty pumps failed on {[c['target'] for c in spares]}; "
-                                                         "start every healthy standby."})
-        for c in spares:
-            out.append({"commands": [c], "reasoning": f"Duty pump on {c['target']} failed; standby is healthy."})
-
-        # Reflux drum draining (condensation shortfall or a drum leak) and the distillate draw is
-        # already shut by DR_LIC: only less reflux keeps liquid in the drum. Raise the top-temperature
-        # setpoint (TOP_TIC is reverse acting on reflux). Purity suffers, but a DR_L_LL trip is avoided.
-        drum, top = obs["controllers"].get("DR_LIC"), obs["controllers"].get("TOP_TIC")
-        draining = drum and ((drum.get("pv") or 99.0) < drum["setpoint"] - 6.0
-                             and (drum.get("last_output") if drum.get("last_output") is not None else 99.0) <= 1.0)
-        if drum and top and ({"DR_L_LL"} & alarms or draining) and top["setpoint"] < 339.5:
-            for dT in (3.0, 6.0):
-                sp = round(min(340.0, top["setpoint"] + dT), 1)
-                plan = [{"type": "SET_SETPOINT", "target": "TOP_TIC", "value": sp}]
-                out.append({"commands": spares + plan if spares else plan,
-                            "reasoning": f"Reflux drum draining: raise TOP_TIC to {sp:g} K to cut reflux"
-                                         + (" and start the standby pumps" if spares else "") + "."})
-
-        if ({"R_P_H", "R_P_HH"} & alarms or "R_PIC" in saturated) and obs["auxiliaries"]["H2_BDV"] < 0.3:
-            for v in (0.3, 0.6):
-                out.append({"commands": [{"type": "OPERATE_AUXILIARY", "target": "H2_BDV", "value": v}],
-                            "reasoning": f"Reactor pressure high with vent PCV out of range: open H2 blowdown to {v:g}."})
-
-        # Condenser cuts need physical evidence (a column-pressure alarm, or the condenser hypothesis
-        # with column pressure clearly above setpoint): after the fault is gone the PCA hypothesis can
-        # still say "condenser" and would otherwise keep the plant cut back.
-        col_now = obs["controllers"].get("COL_PIC", {})
-        col_high = (col_now.get("pv") or 0.0) > col_now.get("setpoint", 1.0) + 0.03
-        if (({"COL_P_H", "COL_P_HH"} & alarms or ("condenser_cooling_loss" in hyps[:2] and (col_high or "COL_PIC" in saturated)))
-                and feed > self.min_throughput):
-            # Condenser limited: boilup must come down to what the condenser can still condense,
-            # otherwise column pressure rises (COL_P_HH) or the drum drains (DR_L_LL). Less steam
-            # (lower BOT_TIC setpoint), less reflux (higher TOP_TIC setpoint) and less feed together.
-            top_sp = obs["controllers"].get("TOP_TIC", {}).get("setpoint")
-            for f in (0.5, 0.65):
-                cmds = [{"type": "SET_THROUGHPUT", "value": round(f * feed, 1)},
-                        {"type": "SET_SETPOINT", "target": "BOT_TIC", "value": 345.0}]
-                if top_sp is not None and top_sp < 339.5:
-                    cmds.append({"type": "SET_SETPOINT", "target": "TOP_TIC", "value": round(min(340.0, top_sp + 4.0), 1)})
-                out.append({"commands": spares + cmds, "reasoning": f"Condenser limited: cut boilup (BOT_TIC 345 K), reflux "
-                                                           f"and throughput to {f * feed:g} kmol/h to match the remaining "
-                                                           "condenser duty."})
-            cuts("Column pressure rising / condenser limited", (0.8, 0.65, 0.5))
-
-        # Load cuts need hard evidence (alarms / saturated loops): a PCA-only hypothesis can be
-        # caused by the reduced-load operating point itself and would keep the plant cut back.
-        if ({"R_L_H", "R_L_HH"} & alarms or ("cstr_outlet_capacity_loss" in hyps[:1] and "R_LIC" in saturated)) \
-                and feed > self.min_throughput:
-            cuts("Reactor inventory rising (outlet limited)", (0.7, 0.5, 0.35))
-
-        # Unwinding earlier emergency moves is offered whenever the plant is quiet, first, so the twin
-        # can choose it; otherwise the plant stays at an abnormal operating point after the fault clears.
-        unwind = self._unwind(obs, alarms, saturated, rules, feed)
-        if unwind:
-            return unwind + out
-        if out:
-            return out
-        return [{"commands": [{"type": "NO_ACTION"}],
-                 "reasoning": f"Fault '{diag['summary']}' detected but no safe automatic response; operator advised."}]
-
-    def _unwind(self, obs: dict, alarms: set, saturated: set, rules: dict, feed: float) -> list[dict]:
-        plans: list[dict] = []
-        r_pic = obs["controllers"]["R_PIC"]
-        if (obs["auxiliaries"]["H2_BDV"] > 0 and not {"R_P_H", "R_P_HH"} & alarms
-                and (r_pic["pv"] or 0.0) < r_pic["setpoint"]):
-            plans.append({"commands": [{"type": "OPERATE_AUXILIARY", "target": "H2_BDV", "value": 0.0}],
-                          "reasoning": "Reactor pressure back below setpoint: close the H2 blowdown again."})
-        col = obs["controllers"]["COL_PIC"]
-        # Hysteresis: restore load only when the alarms and loops that justified the cut are
-        # quiet and column pressure is near setpoint (otherwise cut/restore oscillates).
-        quiet = (not {"COL_P_H", "COL_P_HH", "R_L_H", "R_L_HH", "DR_L_LL"} & alarms
-                 and not rules["failed_trains"]
-                 and "R_LIC" not in saturated  # COL_PIC sits at 100 % while its integral unwinds: judge its PV
-                 and (col["pv"] or 0.0) <= col["setpoint"] + 0.03)  # COL_PIC integrates back slowly
-        moved = {k: v for k, v in (self.nominal_sp or {}).items()
-                 if k in obs["controllers"] and abs(obs["controllers"][k]["setpoint"] - v) > 1e-6}
-        if not (quiet and (moved or feed < self.nominal_throughput - 1e-6)):
-            return plans
-        # Gradual: temperature setpoints move back at most 3 K per decision (a +9 K BOT_TIC jump is a
-        # steam surge the column model does not ride through), throughput up in 20 % steps.
-        back = []
-        for k, v in moved.items():
-            cur = obs["controllers"][k]["setpoint"]
-            if k.endswith("TIC") and abs(v - cur) > 3.0:
-                v = cur + (3.0 if v > cur else -3.0)
-            back.append({"type": "SET_SETPOINT", "target": k, "value": round(v, 4)})
-        target = round(min(self.nominal_throughput, 1.2 * feed), 1)
-        step = [{"type": "SET_THROUGHPUT", "value": target}] if feed < self.nominal_throughput - 1e-6 else []
-        if back:
-            if step:
-                plans.append({"commands": back + step, "reasoning": "Plant back under control: move setpoints "
-                              f"back towards nominal and step throughput to {target:g} kmol/h."})
-            plans.append({"commands": back, "reasoning": "Plant back under control: move setpoints back towards nominal."})
-        if step:
-            plans.append({"commands": step, "reasoning": "Plant back under control: step throughput back towards nominal."})
-        return plans
 
 
 ACTION_SYSTEM_PROMPT = """
@@ -252,6 +102,67 @@ def slim_observation(obs: dict) -> dict:
             "sif_latched": list(obs["sif_latched"])}
 
 
+# --------------------------------------------------------------------------- context levels
+# PLANT_ACTION_CONTEXT selects what the action LLM is told (ablation of "is it the model or the
+# context?"). All levels are generic plant / control-room knowledge, not fault-specific recipes.
+#   base    the original prompt: brief levers are mandatory, "change only what the fault requires"
+#   loops   + what each loop's setpoint physically does; brief levers are suggestions; no
+#           "single change" rule
+#   manual  + a short generic operating manual (column / drum balances, biased transmitters)
+LOOP_GUIDE = {
+    "R_LIC": "reactor level -> CSTR outflow pump. Raising the SP holds more liquid (outflow drops for a while).",
+    "R_TIC": "reactor temperature -> jacket heater. Raising the SP adds heat: faster reaction, more H2, higher pressure.",
+    "R_PIC": "reactor pressure -> H2 vent valve (PCV). Raising the SP closes the PCV (less H2 vented, pressure rises). "
+             "If the pressure transmitter is wrong this loop controls a wrong value.",
+    "RB_LIC": "reboiler level -> bottoms draw. Raising the SP holds more liquid in the reboiler (less bottoms draw).",
+    "DR_LIC": "reflux-drum level -> distillate draw. Raising the SP holds more liquid (less distillate). "
+              "At 0 output the draw is already closed.",
+    "COL_PIC": "column pressure -> condenser cooling-water valve. Raising the SP lets pressure float higher (valve "
+               "closes). It cannot add cooling beyond a fully open valve.",
+    "TOP_TIC": "top temperature -> reflux flow, REVERSE acting: raising the SP REDUCES reflux (top runs hotter, "
+               "distillate purity falls); lowering the SP increases reflux.",
+    "BOT_TIC": "bottom temperature -> reboiler steam: raising the SP adds steam (more boil-up, more vapour to "
+               "condense); lowering the SP reduces boil-up.",
+}
+OPERATING_MANUAL = [
+    "All vapour boiled up in the reboiler must be condensed. If condensing capacity falls, column pressure rises "
+    "and less liquid reaches the reflux drum, unless boil-up (steam) is reduced to match.",
+    "Reflux-drum balance: condensate in = reflux + distillate + any leak out. With the distillate draw already "
+    "shut, only less reflux (or more condensate) stops the drum from draining.",
+    "Throughput changes act slowly (through the reactor holdup) and change the column load only gradually.",
+    "A biased or frozen transmitter makes its loop control to a wrong value. Act on the true variable with an "
+    "independent lever (e.g. the H2 blowdown for reactor pressure) rather than moving that loop's setpoint.",
+    "Several commands may be needed at once; the plan is judged as a whole.",
+    "The reactor is endothermic: lowering feed does not cool it.",
+]
+
+
+def _context_level() -> str:
+    level = os.environ.get("PLANT_ACTION_CONTEXT", "base")
+    return level if level in ("base", "loops", "manual", "dynamics") else "base"
+
+
+def action_system_prompt(level: str) -> str:
+    if level == "base":
+        return ACTION_SYSTEM_PROMPT
+    p = ACTION_SYSTEM_PROMPT.replace(
+        """- Work towards the brief's objective using its candidate levers; deviate only if the
+  snapshot contradicts the brief, and say why.""",
+        """- The brief's candidate levers come from a knowledge-graph lookup and can be incomplete:
+  use any catalog command the plant needs, and say why. `operating_guide` says what each
+  loop's setpoint physically does.""")
+    i = p.index("10. Change ONLY what the diagnosed fault requires.")
+    p = p[:i].rstrip() + "\n"
+    if level == "dynamics":
+        p = p.replace("""5. Prefer small, reversible changes. After a rejected proposal, use the feedback and
+   propose something DIFFERENT.""", """5. Size the action to the time available. `dynamics` gives each key variable's rate of change
+   and the minutes left before its next alarm / SIF limit at that rate. When a plant-trip SIF is
+   only minutes away, act decisively NOW (several levers at once, large enough to reverse the
+   trend) instead of small steps over several decisions; you may not get another chance. After a
+   rejected proposal, use the feedback and propose something DIFFERENT.""")
+    return p
+
+
 class LLMActionAgent:
     def __init__(self, model: str = DEFAULT_MODEL, timeout: float = 120.0, llm: Any = None):
         self.model = model
@@ -276,8 +187,14 @@ class LLMActionAgent:
             "previous_proposal": context.get("previous_plan"),
             "evaluation_feedback": context.get("feedback") or None,
         }
+        level = _context_level()
+        if level != "base":
+            user["operating_guide"] = {"loops": LOOP_GUIDE,
+                                       **({"principles": OPERATING_MANUAL} if level in ("manual", "dynamics") else {})}
+        if level == "dynamics":
+            user["dynamics"] = context["detection"].get("trends") or {}
         t0 = time.perf_counter()
-        msg = await self.llm.ainvoke([("system", ACTION_SYSTEM_PROMPT), ("human", json.dumps(user, default=str))])
+        msg = await self.llm.ainvoke([("system", action_system_prompt(level)), ("human", json.dumps(user, default=str))])
         text = message_text(msg)
         self.last_usage = {**USAGE.record("action", self.model, msg),
                            "latency_s": time.perf_counter() - t0, "raw": text[:4000]}

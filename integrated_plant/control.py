@@ -114,19 +114,33 @@ class RegulatoryControlSystem:
         "BOT_TIC": LoopAccessSpec("BOT_TIC", "bottom_temp", "bottom_temperature_K", "bottom_temperature_K", "steam_factor", 345.0, 365.0, "K", "fraction"),
     }
 
+    # PI tuning per loop: (gain kp, integral time ti_h [h], deadband [PV units]).
+    TUNING: dict[str, tuple[float, float, float]] = {
+        "cstr_level": (-6.0, 2.0, 0.50),        # retuned 2026-10-08 (was -2.0, 0.20 h)
+        "cstr_temp": (+0.030, 0.12, 0.30),
+        "cstr_pressure": (-0.10, 0.30, 0.015),
+        "reboiler_level": (-6.0, 2.0, 0.35),    # retuned 2026-10-08 (was -2.0, 0.25 h)
+        "drum_level": (-12.0, 2.0, 0.30),       # retuned 2026-10-08 (was -4.0, 0.20 h)
+        "column_pressure": (-4.5, 0.20, 0.002), # retuned 2026-10-08 (was -1.5, 0.10 h)
+        "top_temp": (-7.0, 0.15, 0.30),
+        "bottom_temp": (+0.055, 0.15, 0.30),
+    }
+
     def __init__(self, setpoints: ControlSetpoints, nominal: PlantInputs):
         self.sp = setpoints
         self._initial_sp = setpoints
         self.nominal = nominal
 
-        self.cstr_level = PIController(-2.0, 0.20, nominal.cstr_outflow, 0.0, 160.0, deadband=0.50)
-        self.cstr_temp = PIController(+0.030, 0.12, nominal.cstr_heater_factor, 0.0, 1.0, deadband=0.30)
-        self.cstr_pressure = PIController(-0.10, 0.30, nominal.cstr_vent_valve, 0.0, 1.0, deadband=0.015)
-        self.reboiler_level = PIController(-2.0, 0.25, nominal.bottoms_flow, 0.0, 90.0, deadband=0.35)
-        self.drum_level = PIController(-4.0, 0.20, nominal.distillate_flow, 0.0, 130.0, deadband=0.30)
-        self.column_pressure = PIController(-1.5, 0.10, nominal.condenser_cooling_valve, 0.0, 1.0, deadband=0.002)
-        self.top_temp = PIController(-7.0, 0.15, nominal.reflux_flow, 0.0, 180.0, deadband=0.30)
-        self.bottom_temp = PIController(+0.055, 0.15, nominal.steam_factor, 0.0, 1.8, deadband=0.30)
+        t = self.TUNING
+        self.cstr_level = PIController(*t["cstr_level"][:2], nominal.cstr_outflow, 0.0, 160.0, deadband=t["cstr_level"][2])
+        self.cstr_temp = PIController(*t["cstr_temp"][:2], nominal.cstr_heater_factor, 0.0, 1.0, deadband=t["cstr_temp"][2])
+        self.cstr_pressure = PIController(*t["cstr_pressure"][:2], nominal.cstr_vent_valve, 0.0, 1.0, deadband=t["cstr_pressure"][2])
+        self.reboiler_level = PIController(*t["reboiler_level"][:2], nominal.bottoms_flow, 0.0, 90.0, deadband=t["reboiler_level"][2])
+        self.drum_level = PIController(*t["drum_level"][:2], nominal.distillate_flow, 0.0, 130.0, deadband=t["drum_level"][2])
+        self.column_pressure = PIController(*t["column_pressure"][:2], nominal.condenser_cooling_valve, 0.0, 1.0,
+                                            deadband=t["column_pressure"][2])
+        self.top_temp = PIController(*t["top_temp"][:2], nominal.reflux_flow, 0.0, 180.0, deadband=t["top_temp"][2])
+        self.bottom_temp = PIController(*t["bottom_temp"][:2], nominal.steam_factor, 0.0, 1.8, deadband=t["bottom_temp"][2])
         self.reset()
 
     @classmethod

@@ -36,6 +36,60 @@ async def rule_detector(observation: dict) -> dict:
     return {"name": "rules", "alarm": rules["abnormal"], "rules": rules}
 
 
+# --------------------------------------------------------------------------- dynamics
+TREND_MIN = 6.0  # history used for rates of change
+# key variable -> limits it can run into: (name, value, "high"/"low", "alarm"/"SIF")
+_LIMITS = None
+
+
+def _limits() -> dict:
+    global _LIMITS
+    if _LIMITS is None:
+        from integrated_plant.safety import SafetyConfig
+        c = SafetyConfig()
+        lim = {"cstr_pressure_bar": [("R_P_HH SIF", c.cstr_pressure_hh_bar, "high")],
+               "cstr_temperature_K": [("R_T_HH SIF", c.cstr_temperature_hh_K, "high")],
+               "cstr_holdup_kmol": [("R_L_HH SIF", c.cstr_level_hh_kmol, "high"), ("R_L_LL SIF", c.cstr_level_ll_kmol, "low")],
+               "reboiler_holdup_kmol": [("RB_L_HH SIF (plant trip)", c.reboiler_level_hh_kmol, "high"),
+                                        ("RB_L_LL SIF", c.reboiler_level_ll_kmol, "low")],
+               "drum_holdup_kmol": [("DR_L_HH SIF (plant trip)", c.drum_level_hh_kmol, "high"),
+                                    ("DR_L_LL SIF (plant trip)", c.drum_level_ll_kmol, "low")],
+               "column_pressure_bar": [("COL_P_HH SIF (plant trip)", c.column_pressure_hh_bar, "high")],
+               "distillate_x_acetone": [], "top_temperature_K": [], "bottom_temperature_K": []}
+        for d in default_alarm_definitions():
+            if d.tag in lim:
+                lim[d.tag].append((f"{d.alarm_id} alarm", d.limit, d.direction.lower()))
+        _LIMITS = lim
+    return _LIMITS
+
+
+def process_trends(history: list) -> dict:
+    """Rate of change of the key variables over the recent history and, at that rate, the minutes
+    left before the next alarm / SIF limit in the direction of travel."""
+    if len(history) < 3:
+        return {}
+    t0, m0 = history[0]
+    t1, m1 = history[-1]
+    dt = t1 - t0
+    out = {}
+    for tag, limits in _limits().items():
+        if tag not in m1 or tag not in m0 or dt <= 0:
+            continue
+        rate = (m1[tag] - m0[tag]) / dt
+        row = {"value": round(m1[tag], 4), "rate_per_min": round(rate, 5)}
+        ahead = [(n, v) for n, v, d in limits
+                 if (d == "high" and rate > 0 and v > m1[tag]) or (d == "low" and rate < 0 and v < m1[tag])]
+        if ahead and abs(rate) > 1e-9:
+            name, v = min(ahead, key=lambda nv: abs(nv[1] - m1[tag]))
+            row.update(next_limit=name, limit_value=v, minutes_to_limit=round(abs(v - m1[tag]) / abs(rate), 1))
+            sif = [(n, v) for n, v in ahead if "SIF" in n]
+            if sif:
+                n, v = min(sif, key=lambda nv: abs(nv[1] - m1[tag]))
+                row.update(sif_limit=n, minutes_to_sif=round(abs(v - m1[tag]) / abs(rate), 1))
+        out[tag] = row
+    return out
+
+
 @dataclass
 class MonitorMemory:
     """Cross-cycle state the stateless graph needs (debounce and cooldown)."""
@@ -47,6 +101,7 @@ class MonitorMemory:
     pending_trains: set[str] = field(default_factory=set)
     handled_p1: set[str] = field(default_factory=set)     # priority-1 alarms already seen at a decision
     pending_p1: set[str] = field(default_factory=set)
+    history: list = field(default_factory=list)           # (t, key measurements) over the last TREND_MIN
 
     def reset(self) -> None:
         self.consecutive_pca = 0
@@ -57,6 +112,7 @@ class MonitorMemory:
         self.pending_trains.clear()
         self.handled_p1.clear()
         self.pending_p1.clear()
+        self.history.clear()
 
 
 class MonitoringAgent:
@@ -126,8 +182,10 @@ class MonitoringAgent:
         mem.pending_trains = set(rules["failed_trains"])
         mem.pending_p1 = p1
 
+        mem.history = [h for h in mem.history if h[0] > now - TREND_MIN] + [(now, dict(obs["measurements"]))]
         detection = {
             "time_min": now, "fault": fault, "should_act": should_act,
+            "trends": process_trends(mem.history),
             "pca": score.to_dict() if score is not None else None,
             "pca_persistent": pca_fault, "consecutive_pca": mem.consecutive_pca,
             "verifying_until": mem.wait_until_min if waiting else None,

@@ -12,6 +12,15 @@ from agents.supervisor import AsyncSupervisor
 from server.plant_service import PlantService
 
 KG = KnowledgeGraph()
+SPARE_PLAN = {"commands": [{"type": "START_SPARE", "target": "REFLUX"}], "reasoning": "reflux duty pump failed",
+              "kg_evidence": []}
+
+
+def fake_llm_agent(*plans):
+    """LLM action agent with scripted replies (no API calls); there is no rule-based agent."""
+    from langchain_core.language_models import FakeListChatModel
+    from agents.action import LLMActionAgent
+    return LLMActionAgent("fake", llm=FakeListChatModel(responses=[json.dumps(p) for p in plans]))
 
 
 async def _service_with_pump_trip(minutes: float = 1.5) -> PlantService:
@@ -54,7 +63,8 @@ class SupervisorTests(unittest.TestCase):
     def test_advisory_mode_waits_for_operator_approval(self):
         async def scenario():
             s = await _service_with_pump_trip()
-            sup = AsyncSupervisor(s, make_config("rule"), mode="advisory", kg=KG)
+            sup = AsyncSupervisor(s, make_config("llm", twin=False), mode="advisory", kg=KG,
+                                  action_agent=fake_llm_agent(SPARE_PLAN))
             sup.start()
             pending = await _wait_for(s, lambda e: e.get("stage") == "pending")
             self.assertIsNotNone(pending, "no pending proposal")
@@ -67,23 +77,6 @@ class SupervisorTests(unittest.TestCase):
 
 
 class PipelineTests(unittest.TestCase):
-    def test_rule_agent_escalates_when_reprompted(self):
-        from agents.action import RuleActionAgent
-        obs = {"throughput_target_kmol_h": 100.0, "auxiliaries": {"H2_BDV": 0.0}, "pump_trains": {},
-               "controllers": {"R_PIC": {"pv": 3.0, "setpoint": 3.0}, "COL_PIC": {"pv": 1.2, "setpoint": 1.0}}}
-        ctx = {"observation": obs, "previous_plan": None, "feedback": "",
-               "detection": {"rules": {"failed_trains": [], "active_alarms": ["COL_P_H"], "saturated_loops": ["COL_PIC"]}},
-               "diagnosis": {"hypotheses": [{"fault": "condenser_cooling_loss"}], "summary": "condenser_cooling_loss"}}
-        agent = RuleActionAgent()
-        first = asyncio.run(agent.propose(ctx))
-        second = asyncio.run(agent.propose({**ctx, "previous_plan": first,
-                                            "feedback": '{"fail_reason": "no_persistent_safe_state"}'}))
-        # condenser limited: first cut boilup + reflux + throughput together, then a milder version
-        self.assertEqual(first["commands"][0], {"type": "SET_THROUGHPUT", "value": 50.0})
-        self.assertIn({"type": "SET_SETPOINT", "target": "BOT_TIC", "value": 345.0}, first["commands"])
-        self.assertEqual(second["commands"][0]["value"], 65.0)       # next candidate on retry
-        self.assertIn("no_persistent_safe_state", second["reasoning"])
-
     def test_live_decision_runs_twin_and_holds_plant(self):
         async def scenario():
             s = await _service_with_pump_trip()
@@ -95,7 +88,7 @@ class PipelineTests(unittest.TestCase):
                 await original(on)
             s.set_agent_hold = spy
             # default 30-min look-ahead: PCA needs ~20 min after the pump swap to return to normal
-            sup = AsyncSupervisor(s, make_config("rule_twin"), mode="autonomous", kg=KG)
+            sup = AsyncSupervisor(s, make_config("llm"), mode="autonomous", kg=KG, action_agent=fake_llm_agent(SPARE_PLAN))
             sup.start()
             await s.step(4.0)  # PCA (the only trigger) needs 3 persistent samples
             applied = None
@@ -201,7 +194,8 @@ class AlarmValidationTests(unittest.TestCase):
         self.assertEqual([(x["name"], x["kind"]) for x in t], [("R_L_H", "alarm"), ("REFLUX pump", "pump")])
         self.assertEqual((t[0]["tag"], t[0]["direction"], t[0]["limit"]), ("cstr_holdup_kmol", "HIGH", 62.0))
 
-    def test_llm_failure_falls_back_to_rule_agent(self):
+    def test_llm_failure_means_no_action(self):
+        """There is no rule fallback: a failed LLM call is logged and nothing is applied."""
         class Broken:
             last_usage = {}
 
@@ -213,9 +207,9 @@ class AlarmValidationTests(unittest.TestCase):
         metrics, trace, _ = asyncio.run(run_episode("reflux_pump_trip", cfg, kg=KG, action_agent=Broken(),
                                                     horizon_min=6.0, onset_min=2.0, seed=0))
         self.assertIn("llm_error", [e["event"] for e in trace])
-        self.assertEqual(metrics["n_actions"], 1)                     # the rule fallback started the spare
+        self.assertEqual(metrics["n_actions"], 0)
         prop = next(e for e in trace if e["event"] == "proposal")
-        self.assertIn("rule fallback", prop["plan"]["reasoning"])
+        self.assertIn("LLM call failed", prop["plan"]["reasoning"])
 
 
 class AlarmRegressionTests(unittest.TestCase):
@@ -329,3 +323,79 @@ class QualityGateTests(unittest.TestCase):
         from agents.monitoring import MonitoringAgent
         out = asyncio.run(MonitoringAgent(None)({"observation": self._obs(["R_L_H"])}))
         self.assertTrue(out["detection"]["fault"])
+
+
+class JudgeTests(unittest.TestCase):
+    """LLM-as-judge validator and the three LLM presets (fake LLM, no API calls)."""
+
+    def _ctx(self):
+        obs = {"time_min": 12.0, "throughput_target_kmol_h": 100.0, "measurements": {}, "controllers": {},
+               "auxiliaries": {}, "pump_trains": {}, "sif_latched": [], "alarm_states": {}}
+        return {"observation": obs, "detection": {"pca": None, "rules": {}}, "diagnosis": {"summary": "x"},
+                "brief": None, "knowledge": []}
+
+    def test_judge_verdict_is_parsed(self):
+        from langchain_core.language_models import FakeListChatModel
+        from agents.judge import LLMJudge
+        fake = FakeListChatModel(responses=[json.dumps({"accept": False, "confidence": 0.7, "reason": "wrong loop",
+                                                        "risks": ["DR_L_LL"], "suggestion": "start the spare"})])
+        v = asyncio.run(LLMJudge("fake", llm=fake).judge(self._ctx(), {"commands": [{"type": "NO_ACTION"}], "reasoning": "r"}))
+        self.assertFalse(v["accept"])
+        self.assertEqual(v["suggestion"], "start the spare")
+
+    def test_failed_judge_call_rejects(self):
+        from agents.judge import LLMJudge
+
+        class Broken:
+            async def ainvoke(self, _):
+                raise TimeoutError("no answer")
+        v = asyncio.run(LLMJudge("fake", llm=Broken()).judge(self._ctx(), {"commands": [], "reasoning": ""}))
+        self.assertFalse(v["accept"])
+        self.assertIn("judge unavailable", v["reason"])
+
+    def test_llm_presets(self):
+        lucky, judge, twin = make_config("llm_lucky"), make_config("llm_judge"), make_config("llm")
+        self.assertEqual((lucky.proposer, lucky.twin, lucky.judge), ("llm", False, False))
+        self.assertEqual((judge.proposer, judge.twin, judge.judge), ("llm", False, True))
+        self.assertEqual((twin.proposer, twin.twin, twin.judge), ("llm", True, False))
+
+
+class LLMDiagnosisTests(unittest.TestCase):
+    """LLM diagnosis agent (fake LLM, no API calls)."""
+
+    def test_catalogue_covers_kg_and_library_faults(self):
+        from agents.diagnosis_llm import fault_catalogue
+        names = {c["fault"] for c in fault_catalogue(KG)}
+        for f in ("condenser_cooling_loss", "reflux_drum_leak", "bottoms_pump_trip", "feed_pump_trip",
+                  "reactor_pressure_sensor_low_bias"):
+            self.assertIn(f, names)
+
+    def test_verdict_is_restricted_to_the_catalogue(self):
+        from langchain_core.language_models import FakeListChatModel
+        from agents.diagnosis_llm import LLMDiagnoser, as_diagnosis
+        reply = {"summary": "drum draining", "most_likely": "fault_reflux_drum_leak", "fault_class": "process",
+                 "hypotheses": [{"fault": "reflux_drum_leak", "probability": 0.7, "evidence": ["SPE on drum level"],
+                                 "against": []},
+                                {"fault": "made_up_fault", "probability": 0.2, "evidence": [], "against": []}],
+                 "t2_spe_reading": "SPE high", "operator_checks": ["inspect V-201"]}
+        d = LLMDiagnoser("fake", llm=FakeListChatModel(responses=[json.dumps(reply)]), kg=KG)
+        det = {"time_min": 20.0, "pca": {"t2": 90, "t2_limit": 68, "spe": 9, "spe_limit": 5, "top_contributors": []},
+               "rules": {"active_alarms": ["DR_L_LL"], "failed_trains": [], "saturated_loops": [], "sif_latched": []}}
+        heur = {"hypotheses": [{"fault": "DR_LIC_out_of_range", "score": 2.0, "evidence": ["x"]}], "summary": "DR_LIC_out_of_range"}
+        v = asyncio.run(d.diagnose(det, heur))
+        self.assertTrue(v["ok"])
+        self.assertEqual([h["fault"] for h in v["hypotheses"]], ["reflux_drum_leak"])   # unknown name dropped
+        diag = as_diagnosis(v, heur)
+        self.assertEqual(diag["summary"], "reflux_drum_leak")
+        self.assertEqual(diag["heuristic"]["summary"], "DR_LIC_out_of_range")
+
+    def test_failed_llm_keeps_the_heuristic(self):
+        from agents.diagnosis_llm import LLMDiagnoser, as_diagnosis
+
+        class Broken:
+            async def ainvoke(self, _):
+                raise TimeoutError("no answer")
+        heur = {"hypotheses": [{"fault": "reflux_pump_trip", "score": 10, "evidence": []}], "summary": "reflux_pump_trip"}
+        v = asyncio.run(LLMDiagnoser("fake", llm=Broken(), kg=KG).diagnose({"pca": None, "rules": {}}, heur))
+        self.assertFalse(v["ok"])
+        self.assertEqual(as_diagnosis(v, heur)["summary"], "reflux_pump_trip")

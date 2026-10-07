@@ -5,6 +5,15 @@ use langchain-openai (key from OPENAI_API_KEY, or a ``.env`` file in the repo
 root); any other name is served by a local Ollama instance (langchain-ollama),
 the same convention as ctrl-alt-recover's cstr_case.py.
 
+Local models (environment variables, read at call time):
+  PLANT_LLM_BASE_URL   any OpenAI-compatible server for ANY model name, e.g.
+                       http://localhost:1234/v1 (LM Studio), http://localhost:8000/v1 (vLLM),
+                       http://localhost:8080/v1 (llama.cpp), http://localhost:11434/v1 (Ollama)
+  PLANT_LLM_API_KEY    key for that server (default "local")
+  PLANT_LLM_JSON_MODE  0 to skip response_format=json_object (some local servers reject it)
+  PLANT_OLLAMA_URL     native Ollama endpoint (default http://localhost:11434)
+  PLANT_LLM_MAX_RETRIES  retries on rate limits / timeouts (default 2)
+
 DEFAULT_MODEL is the cheapest OpenAI text model on the pricing page when this
 was written (gpt-5-nano, $0.05 / $0.40 per 1M input / output tokens,
 https://developers.openai.com/api/docs/pricing, checked 2026-10-05). GPT-5 /
@@ -66,6 +75,12 @@ def is_reasoning_model(model: str) -> bool:
 def llm_status(model: str = DEFAULT_MODEL) -> tuple[bool, str]:
     """Can ``model`` be used right now? Returns (ok, human-readable reason)."""
     load_env()
+    if os.environ.get("PLANT_LLM_BASE_URL"):
+        try:
+            import langchain_openai  # noqa: F401
+        except ImportError:
+            return False, "langchain-openai is not installed (py -3 -m pip install langchain-openai)"
+        return True, f"{model} at {os.environ['PLANT_LLM_BASE_URL']}"
     if is_openai_model(model):
         try:
             import langchain_openai  # noqa: F401
@@ -85,10 +100,18 @@ def make_llm(model: str = DEFAULT_MODEL, timeout: float = 120.0, temperature: fl
              json_mode: bool = False, **extra: Any):
     """Build a LangChain chat model. ``json_mode`` asks OpenAI for a JSON object reply."""
     load_env()
+    retries = int(os.environ.get("PLANT_LLM_MAX_RETRIES", "2"))
     try:
+        base_url = os.environ.get("PLANT_LLM_BASE_URL")
+        if base_url:  # local OpenAI-compatible server (LM Studio, vLLM, llama.cpp, Ollama /v1)
+            from langchain_openai import ChatOpenAI
+            llm = ChatOpenAI(model=model, base_url=base_url, api_key=os.environ.get("PLANT_LLM_API_KEY", "local"),
+                             timeout=timeout, max_retries=retries, temperature=temperature, **extra)
+            use_json = json_mode and os.environ.get("PLANT_LLM_JSON_MODE", "1") != "0"
+            return llm.bind(response_format={"type": "json_object"}) if use_json else llm
         if is_openai_model(model):
             from langchain_openai import ChatOpenAI
-            kw: dict[str, Any] = dict(model=model, timeout=timeout, max_retries=2, **extra)
+            kw: dict[str, Any] = dict(model=model, timeout=timeout, max_retries=retries, **extra)
             if is_reasoning_model(model):
                 # GPT-5 / o-series accept only the default temperature (1). Older langchain-openai
                 # releases (e.g. 0.2.x) send 0.7 unless told otherwise, which the API rejects.
@@ -100,7 +123,8 @@ def make_llm(model: str = DEFAULT_MODEL, timeout: float = 120.0, temperature: fl
             return llm.bind(response_format={"type": "json_object"}) if json_mode else llm
         from langchain_ollama import ChatOllama
         return ChatOllama(model=model, temperature=temperature, timeout=timeout,
-                          base_url="http://localhost:11434", **({"format": "json"} if json_mode else {}), **extra)
+                          base_url=os.environ.get("PLANT_OLLAMA_URL", "http://localhost:11434"),
+                          **({"format": "json"} if json_mode else {}), **extra)
     except ImportError as exc:
         pkg = "langchain-openai" if is_openai_model(model) else "langchain-ollama"
         raise RuntimeError(f"model {model!r} needs `{pkg}`: py -3 -m pip install {pkg}") from exc

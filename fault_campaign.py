@@ -9,7 +9,7 @@ planning target, first action) is printed and saved under campaign_results/.
     py -3 fault_campaign.py run --campaign demo                 # against a running run_server.py (watch the console)
     py -3 fault_campaign.py run --campaign random --seed 3 --n 5
     py -3 fault_campaign.py run --campaign demo --headless      # no server: plant + agents in this process
-    py -3 fault_campaign.py run --campaign demo --headless --agent rule_twin
+    py -3 fault_campaign.py run --campaign demo --headless --agent llm_judge
 
 Custom campaigns: pass a JSON file, e.g. my_campaign.json containing
     {"name": "mine", "items": [{"at_min": 5, "fault": "reflux_pump_trip", "duration_min": 10},
@@ -143,9 +143,9 @@ async def run_headless(args) -> None:
     preset = args.agent
     if preset == "auto":
         ok, reason = llm_status(args.llm_model)
-        preset = "llm" if ok else "rule_twin"
+        preset = "llm" if ok else "passive"
         if not ok:
-            print(f"no LLM ({reason}); using the rule agent with twin + reprompter")
+            print(f"no LLM ({reason}); agents monitor only (no actions)")
     sup = AsyncSupervisor(service, make_config(preset, llm_model=args.llm_model), mode="autonomous")
     sup.start()
     events = service.subscribe(maxsize=10000)
@@ -187,7 +187,7 @@ def main() -> None:
     p.add_argument("--delay-ms", type=float, default=0.0, help="plant pacing (0 = as fast as possible)")
     p.add_argument("--server", default="ws://127.0.0.1:8001/ws")
     p.add_argument("--headless", action="store_true", help="run plant + agents in this process instead")
-    p.add_argument("--agent", default="auto", help="headless only: agent preset (auto = llm if OpenAI is available, else rule)")
+    p.add_argument("--agent", default="auto", help="headless only: agent preset (auto = llm if OpenAI is available, else passive)")
     p.add_argument("--llm-model", default=DEFAULT_MODEL, help="headless only: model for LLM presets")
     p.add_argument("--verbose", action="store_true", help="print every monitoring cycle")
     args = ap.parse_args()

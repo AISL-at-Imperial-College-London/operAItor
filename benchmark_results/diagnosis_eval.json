@@ -1,0 +1,2794 @@
+{
+ "models": [
+  "gpt-5-nano",
+  "gpt-5-mini"
+ ],
+ "summary": {
+  "detection": {
+   "n": 20,
+   "heuristic": {
+    "top1": 14,
+    "top3": 20
+   },
+   "gpt-5-nano": {
+    "top1": 15,
+    "top3": 20
+   },
+   "gpt-5-mini": {
+    "top1": 18,
+    "top3": 20
+   }
+  },
+  "+5 min": {
+   "n": 20,
+   "heuristic": {
+    "top1": 15,
+    "top3": 19
+   },
+   "gpt-5-nano": {
+    "top1": 16,
+    "top3": 19
+   },
+   "gpt-5-mini": {
+    "top1": 17,
+    "top3": 19
+   }
+  }
+ },
+ "rows": [
+  {
+   "id": "S01",
+   "group": "single",
+   "t": 12.00000000000002,
+   "at": "detection",
+   "truth": [
+    "reflux_pump_trip"
+   ],
+   "pca": {
+    "t2": 195.40759244208863,
+    "t2_limit": 67.91057093402111,
+    "spe": 44.18013650836386,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reflux_pump_trip",
+     "condenser_cooling_loss",
+     "reflux_drum_leak",
+     "reflux_valve_stiction"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "reflux_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reflux_pump_trip",
+      "reflux_drum_leak",
+      "condenser_cooling_loss",
+      "reflux_valve_stiction"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_pump_trip"
+     ],
+     "summary": "The PCA indicates a large, coherent upset with simultaneous SPE and T2 violations, and the rule-based hypothesis with highest score points to a failure in the REFLUX train, specifically REFLUX pump trip, causing loss of reflux flow and fed conditions downstream.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "t2=195.41, spe=44.18 (both violations)",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.81,
+     "tokens": 4882
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reflux_pump_trip",
+      "reflux_drum_leak",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_pump_trip"
+     ],
+     "summary": "The data and rules point to a failed reflux pump (P-201A) causing loss of reflux: rapid rise in reflux drum holdup, rising top temperature despite TOP_TIC commanding heavy cooling/reflux, PCA shows large coherent column temperature shifts (high T\u00b2) plus a broken correlation driven by drum holdup (high SPE). The plant rules already report REFLUX pump as failed and an associated P201_TRIP alarm.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2 = 195.41 (limit 67.91) HIGH; SPE = 44.18 (limit 5.07) HIGH \u2014 both coherent column upset and broken correlations present",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.21,
+     "tokens": 5213
+    }
+   }
+  },
+  {
+   "id": "S01",
+   "group": "single",
+   "t": 17.000000000000018,
+   "at": "+5 min",
+   "truth": [
+    "reflux_pump_trip"
+   ],
+   "pca": {
+    "t2": 1876.8434535334081,
+    "t2_limit": 67.91057093402111,
+    "spe": 513.0239115565614,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reflux_pump_trip",
+     "DR_LIC_out_of_range",
+     "reflux_valve_stiction",
+     "condenser_cooling_loss"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "reflux_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reflux_pump_trip",
+      "reflux_valve_stiction"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_pump_trip"
+     ],
+     "summary": "Abnormal PCA indicates a large, coherent upset with high T^2 and high SPE, dominated by reflux system disturbance. The fixed-rule evidence points to a reflux pump fault as the primary cause, with secondary issues related to upstream loop saturation and reflux flow anomalies.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 = 1876.84, SPE = 513.02 (both violated)",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.01,
+     "tokens": 5012
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reflux_pump_trip",
+      "reflux_valve_stiction"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_pump_trip"
+     ],
+     "summary": "Reflux pump (P-201A) has tripped or otherwise stopped delivering reflux, causing drum level to rise (DR_LIC saturated trying to bring level down), top tray temperatures to increase and column composition to shift. This is driving large PCA T2 and SPE deviations.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 = 1876.84 (limit 67.91) HIGH, SPE = 513.02 (limit 5.07) HIGH",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.8,
+     "tokens": 5358
+    }
+   }
+  },
+  {
+   "id": "S02",
+   "group": "single",
+   "t": 14.000000000000032,
+   "at": "detection",
+   "truth": [
+    "bottoms_pump_trip"
+   ],
+   "pca": {
+    "t2": 21.805068615530082,
+    "t2_limit": 67.91057093402111,
+    "spe": 16.225021406935223,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "bottoms_pump_trip",
+     "reboiler_liquid_leak",
+     "condenser_cooling_loss",
+     "reflux_drum_leak"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "bottoms_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "bottoms_pump_trip",
+      "reboiler_liquid_leak",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "bottoms_pump_trip"
+     ],
+     "summary": "The PCA abnormal state is most consistent with a bottoms pump trip affecting the Bottoms train, with secondary contribution from reboiler-related issues and condenser cooling effects.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2=21.805, SPE=16.225",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.14,
+     "tokens": 4963
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "bottoms_pump_trip",
+      "reboiler_liquid_leak",
+      "reflux_drum_leak"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "bottoms_pump_trip"
+     ],
+     "summary": "The most likely issue is a bottoms pump trip (P-203A). Reboiler holdup is rising rapidly and the RB_LIC controller is active; the BOTTOMS pump train is flagged failed. Secondary possibilities (less likely) are a reboiler liquid leak or reflux drum leak, but hard rule evidence supports the pump trip.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2 = 21.81 (below limit 67.91); SPE = 16.23 (above limit 5.07) \u2192 anomaly driven by broken correlations (localized measurement/actuator/equipment issue), dominated by reboiler holdup",
+     "ok": true,
+     "error": null,
+     "latency_s": 8.69,
+     "tokens": 5161
+    }
+   }
+  },
+  {
+   "id": "S02",
+   "group": "single",
+   "t": 18.999999999999996,
+   "at": "+5 min",
+   "truth": [
+    "bottoms_pump_trip"
+   ],
+   "pca": {
+    "t2": 90.02368015858622,
+    "t2_limit": 67.91057093402111,
+    "spe": 80.94043757728876,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "bottoms_pump_trip",
+     "reboiler_liquid_leak",
+     "reflux_valve_stiction",
+     "h2_pcv_stuck_closed"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "bottoms_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "bottoms_pump_trip",
+      "reboiler_liquid_leak",
+      "reflux_valve_stiction",
+      "h2_pcv_capacity_degradation"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "bottoms_pump_trip"
+     ],
+     "summary": "PCA indicates a large, coherent plant upset with both T2 and SPE violated. The strongest evidence points to a failure in the Bottoms pump train (P-203A) causing loss of_BOTTOMS flow and related cascade.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 = 90.02, SPE = 80.94 (both violations)",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.06,
+     "tokens": 4870
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "bottoms_pump_trip",
+      "reboiler_liquid_leak",
+      "bottoms_flow_freeze"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "bottoms_pump_trip"
+     ],
+     "summary": "Most likely cause is a bottoms pump trip (P-203A) causing the reboiler holdup to rise while the RB_LIC drives high attempting to open bottoms flow. PCA shows a strong SPE (broken correlations) dominated by reboiler holdup and RB_LIC action; rules show BOTTOMS train selected_failed and alarm P203_TRIP.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2 = 90.02 (limit 67.91) \u2014 SPE = 80.94 (limit 5.07); both T\u00b2 and SPE violated, SPE strongly high indicating broken correlations dominated by reboiler holdup and RB_LIC.",
+     "ok": true,
+     "error": null,
+     "latency_s": 9.09,
+     "tokens": 5140
+    }
+   }
+  },
+  {
+   "id": "S03",
+   "group": "single",
+   "t": 12.500000000000021,
+   "at": "detection",
+   "truth": [
+    "distillate_pump_trip"
+   ],
+   "pca": {
+    "t2": 107.76894466051573,
+    "t2_limit": 67.91057093402111,
+    "spe": 26.552751041380002,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "distillate_pump_trip",
+     "reflux_drum_leak",
+     "condenser_cooling_loss",
+     "reflux_valve_stiction"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "distillate_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "distillate_pump_trip",
+      "reflux_drum_leak",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "distillate_pump_trip"
+     ],
+     "summary": "PCA flags a coherent upset with a clear disturbance in the distillate train, consistent with the DISTILLATE pump not delivering flow and driving upstream drum/reflux anomalies. Two additional plausible faults (reflux drum leakage and condenser cooling effectiveness loss) could be contributing but the primary trigger is the distillate pump trip.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2=107.77 (violation), SPE=26.55 (violation)",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.84,
+     "tokens": 4811
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "distillate_pump_trip",
+      "reflux_drum_leak",
+      "reflux_valve_stiction"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "distillate_pump_trip"
+     ],
+     "summary": "PCA and rule evidence point to loss of distillate removal from the reflux drum: drum holdup is rising quickly while the drum level controller is saturated at high output and the DISTILLATE pump (P-202A) is reported failed/tripped. The most likely fault is a distillate pump trip (P-202A).",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T2=107.77 (limit 67.91) \u2014 SPE=26.55 (limit 5.07): both T2 and SPE violated; drum_holdup and DR_LIC dominate.",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.43,
+     "tokens": 5331
+    }
+   }
+  },
+  {
+   "id": "S03",
+   "group": "single",
+   "t": 17.50000000000001,
+   "at": "+5 min",
+   "truth": [
+    "distillate_pump_trip"
+   ],
+   "pca": {
+    "t2": 784.0992153658364,
+    "t2_limit": 67.91057093402111,
+    "spe": 224.83538453101545,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "distillate_pump_trip",
+     "reflux_drum_leak",
+     "DR_LIC_out_of_range",
+     "condenser_cooling_loss"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "distillate_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "distillate_pump_trip",
+      "reflux_drum_leak",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "distillate_pump_trip"
+     ],
+     "summary": "PCA flags a large, coherent upset with simultaneous T\u00b2 and SPE violations, dominated by a large drum holdup signal and a distillate-side disturbance. The fixed-rule evidence strongly points to a distillate pump trip causing loss of distillate flow and downstream pressure/level responses, with DR_LIC saturation indicating cascading control issues.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T\u00b2 = 784.10 (violation), SPE = 224.84 (violation); both high",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.91,
+     "tokens": 4866
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "distillate_pump_trip",
+      "reflux_drum_leak",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "distillate_pump_trip"
+     ],
+     "summary": "PCA shows a large coherent plus novel upset dominated by a rapidly rising reflux drum holdup with the DR_LIC saturated full-open and the DISTILLATE pump (P-202A) reported failed/tripped. Controller DR_LIC is at 130% attempting to remove level but drum level is rising toward alarm/SIF in minutes. Distillate composition and some column temperatures are also shifting. Most likely root cause: distillate pump trip causing accumulation in the reflux drum and upset to column balances.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T^2 = 784.10 (limit 67.91) => large coherent upset; SPE = 224.84 (limit 5.07) => broken correlations / new anomaly",
+     "ok": true,
+     "error": null,
+     "latency_s": 12.98,
+     "tokens": 5608
+    }
+   }
+  },
+  {
+   "id": "S04",
+   "group": "single",
+   "t": 12.500000000000021,
+   "at": "detection",
+   "truth": [
+    "feed_pump_trip"
+   ],
+   "pca": {
+    "t2": 119.72447593795165,
+    "t2_limit": 67.91057093402111,
+    "spe": 18.210307004612368,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "feed_pump_trip",
+     "catalyst_activity_loss",
+     "reactor_heater_stuck_high",
+     "cstr_outlet_capacity_loss"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "feed_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "feed_pump_trip",
+      "catalyst_activity_loss",
+      "reactor_heater_stuck_high",
+      "cstr_outlet_capacity_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "feed_pump_trip"
+     ],
+     "summary": "PCA indicates a large, coherent upset dominated by the CSTR inlet feed path, with the strongest evidence pointing to a FEED pump failure trip affecting reactor conditions.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T2=119.72 (limit 67.91), SPE=18.21 (limit 5.07)",
+     "ok": true,
+     "error": null,
+     "latency_s": 8.44,
+     "tokens": 5031
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "feed_pump_trip",
+      "cstr_liquid_leak",
+      "catalyst_activity_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "feed_pump_trip"
+     ],
+     "summary": "Primary fault is a trip of the FEED pump (P101), causing feed loss to the CSTR: reactor holdup is falling while CSTR temperature is rising and the level controller is saturated high trying to restore level. Pump trip is confirmed by equipment rule evidence (P101_TRIP, FEED train primary_failed).",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T2=119.72 (limit 67.91) \u2014 high; SPE=18.21 (limit 5.07) \u2014 high. Both T2 and SPE violated (persistent samples=3).",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.62,
+     "tokens": 5128
+    }
+   }
+  },
+  {
+   "id": "S04",
+   "group": "single",
+   "t": 17.50000000000001,
+   "at": "+5 min",
+   "truth": [
+    "feed_pump_trip"
+   ],
+   "pca": {
+    "t2": 645.1769366350496,
+    "t2_limit": 67.91057093402111,
+    "spe": 107.63675490615053,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "feed_pump_trip",
+     "catalyst_activity_loss",
+     "reactor_heater_stuck_high",
+     "h2_pcv_capacity_degradation"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "feed_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "feed_pump_trip",
+      "catalyst_activity_loss",
+      "h2_pcv_capacity_degradation",
+      "reactor_heater_stuck_high"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "feed_pump_trip"
+     ],
+     "summary": "PCA indicates a large, coherent upset with failures concentrated on the FEED train and a high Hotelling T2 with SPE violations. The most likely root cause is a feed pump trip causing loss of fresh IPA feed to the reactor.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 = 645.18, SPE = 107.64 (both violations)",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.64,
+     "tokens": 5002
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "feed_pump_trip",
+      "catalyst_activity_loss",
+      "cstr_liquid_leak"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "feed_pump_trip"
+     ],
+     "summary": "PCA + rule evidence point to a loss of fresh feed: the FEED pump P-101A has tripped. Process response (rising CSTR temperature, falling reactor holdup, composition change, falling reboiler holdup) is consistent with feed loss. The trip is also reported in plant rules (P101_TRIP, selected FEED pump reports failed).",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T2 = 645.18 (limit 67.91) | SPE = 107.64 (limit 5.07) \u2014 both strongly violated (persistent over 13 samples)",
+     "ok": true,
+     "error": null,
+     "latency_s": 20.21,
+     "tokens": 5285
+    }
+   }
+  },
+  {
+   "id": "S05",
+   "group": "single",
+   "t": 12.00000000000002,
+   "at": "detection",
+   "truth": [
+    "cstr_outlet_capacity_loss"
+   ],
+   "pca": {
+    "t2": 45.8892516566196,
+    "t2_limit": 67.91057093402111,
+    "spe": 52.82207189752019,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "condenser_cooling_loss",
+     "cstr_outlet_capacity_loss",
+     "cstr_liquid_leak"
+    ],
+    "top1": false,
+    "top3": true,
+    "found": [
+     "cstr_outlet_capacity_loss"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "cstr_outlet_capacity_loss",
+      "cstr_liquid_leak",
+      "reboiler_liquid_leak"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "cstr_outlet_capacity_loss"
+     ],
+     "summary": "Abnormal PCA: high SPE with coherent deviation (T2 high, SPE high) pointing to a process upset propagated through the system. Most consistent with a condenser cooling issue causing widespread temperature correlations to shift.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T2=45.89 (limit 67.91, SPE=52.82, limit=5.07, SPE_violation=true)",
+     "ok": true,
+     "error": null,
+     "latency_s": 8.13,
+     "tokens": 5008
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "cstr_outlet_capacity_loss"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "cstr_outlet_capacity_loss"
+     ],
+     "summary": "PCA shows a clear SPE violation driven mainly by multiple column tray temperature measurements (trays 3\u20138, largest at tray 6) with coherent deviation across the top section, consistent with loss of condenser cooling effectiveness. A secondary signal is rising CSTR holdup (level) contributing to SPE \u2014 possible restricted CSTR outlet (reduced feed to column) or a leak, but evidence for a column cooling/utility fault is stronger.",
+     "fault_class": "utility",
+     "t2_spe_reading": "T\u00b2 = 45.9 (below limit 67.9), SPE = 52.82 (above limit 5.07) \u2014 SPE-only violation indicating broken correlations (likely sensor or utility/actuator introduced change)",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.0,
+     "tokens": 5087
+    }
+   }
+  },
+  {
+   "id": "S05",
+   "group": "single",
+   "t": 17.000000000000018,
+   "at": "+5 min",
+   "truth": [
+    "cstr_outlet_capacity_loss"
+   ],
+   "pca": {
+    "t2": 1651.9993152157517,
+    "t2_limit": 67.91057093402111,
+    "spe": 609.0764880455018,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "condenser_cooling_loss",
+     "cstr_outlet_capacity_loss",
+     "cstr_liquid_leak",
+     "reflux_drum_leak"
+    ],
+    "top1": false,
+    "top3": true,
+    "found": [
+     "cstr_outlet_capacity_loss"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "cstr_liquid_leak",
+      "cstr_outlet_capacity_loss"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "cstr_outlet_capacity_loss"
+     ],
+     "summary": " PCA indicates a large, coherent plant upset with strong evidence pointing to condenser cooling effectiveness loss as the primary fault driver.",
+     "fault_class": "utility",
+     "t2_spe_reading": "t2=1651.999, spe=609.076",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.59,
+     "tokens": 4957
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "cstr_outlet_capacity_loss",
+      "reflux_drum_leak"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "cstr_outlet_capacity_loss"
+     ],
+     "summary": "The PCA shows a very large coherent upset (very high T\u00b2) together with strong correlation-breaking residuals (very high SPE). The dominant contributors are elevated tray temperatures (trays 6,5,3) and simultaneous disturbances in CSTR holdup and drum/reboiler holdups. The pattern (multiple tray temperatures moving together, top temperature up, column pressure slightly high, and controllers moving) points primarily to loss of condenser cooling (column not condensing), with a secondary concurrent flow restriction at the CSTR outlet (reactor level rising). A small possibility remains for a reflux",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2 = 1652 (limit 67.91) HIGH; SPE = 609.08 (limit 5.07) HIGH \u2014 both large and persistent (13 samples).",
+     "ok": true,
+     "error": null,
+     "latency_s": 12.54,
+     "tokens": 5617
+    }
+   }
+  },
+  {
+   "id": "S06",
+   "group": "single",
+   "t": 18.5,
+   "at": "detection",
+   "truth": [
+    "h2_pcv_capacity_degradation"
+   ],
+   "pca": {
+    "t2": 46.07681812710497,
+    "t2_limit": 67.91057093402111,
+    "spe": 48.397363298264494,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "h2_pcv_stuck_closed",
+     "catalyst_activity_loss",
+     "h2_pcv_capacity_degradation",
+     "reactor_pressure_sensor_low_bias"
+    ],
+    "top1": false,
+    "top3": true,
+    "found": [
+     "h2_pcv_capacity_degradation"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "h2_pcv_stuck_closed",
+      "h2_pcv_capacity_degradation",
+      "reactor_pressure_sensor_low_bias",
+      "catalyst_activity_loss"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "h2_pcv_capacity_degradation"
+     ],
+     "summary": "The PCA indicates a high SPE while T\u00b2 is elevated but not violated, with the strongest evidence pointing to an H2 PCV (vent valve) fault causing a reactor pressure and vent flow disturbance.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2=46.08, SPE=48.40 (SPE violation present, T2 within normal range for upsampled coherent upset)",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.47,
+     "tokens": 4748
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "h2_pcv_stuck_closed",
+      "h2_pcv_capacity_degradation",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "h2_pcv_capacity_degradation"
+     ],
+     "summary": "High SPE driven by disagreement between CSTR H2 vent flow measurement and reactor pressure: reactor pressure is rising toward its high alarm while the H2 vent measurement and PCV-related signals show a broken correlation. The pattern fits an H2 vent (PCV) actuation failure (stuck/blocked) causing pressure to rise with low actual venting; sensor bias remains possible but is less consistent with the pressure trend and controller behavior.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 = 46.08 (limit 67.91) \u2014 no T2 violation; SPE = 48.40 (limit 5.07) \u2014 SPE violation (correlation broken)",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.92,
+     "tokens": 5369
+    }
+   }
+  },
+  {
+   "id": "S06",
+   "group": "single",
+   "t": 23.49999999999995,
+   "at": "+5 min",
+   "truth": [
+    "h2_pcv_capacity_degradation"
+   ],
+   "pca": {
+    "t2": 10565.845169884664,
+    "t2_limit": 67.91057093402111,
+    "spe": 184.66970694756048,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reactor_heater_stuck_high",
+     "catalyst_activity_loss",
+     "R_TIC_out_of_range",
+     "h2_pcv_stuck_closed"
+    ],
+    "top1": false,
+    "top3": false,
+    "found": []
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reactor_heater_stuck_high",
+      "catalyst_activity_loss",
+      "h2_pcv_stuck_closed"
+     ],
+     "top1": false,
+     "top3": false,
+     "found": [],
+     "summary": "PCA flags a large, coherent upset with strong pull from the CSTR temperature and a saturated R_TIC loop, with a SIF latch on R_P_HH. The most consistent fault set points to heater-related issues and catalyst performance degradation driving the reactor temperature/pressure behavior, with the TIC loop hitting its authority limit due to the upset. Sensor/valve faults on PCV or H2 vent are less supported by the dominant temperature contribution but remain possible as secondary faults.",
+     "fault_class": "sensor",
+     "t2_spe_reading": "T2=10565.8, SPE=184.67 (both violations)",
+     "ok": true,
+     "error": null,
+     "latency_s": 8.29,
+     "tokens": 5089
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "catalyst_activity_loss",
+      "cstr_heater_output_freeze",
+      "h2_pcv_stuck_closed"
+     ],
+     "top1": false,
+     "top3": false,
+     "found": [],
+     "summary": "CSTR temperature is far below setpoint and falling rapidly while the reactor temperature controller (R_TIC) is saturated at maximum output. PCA shows both a very large T\u00b2 (coherent upset dominated by CSTR temperature) and high SPE (some broken correlations, notably reactor pressure). The most consistent single cause is loss of reaction heat (catalyst activity loss) causing the controller to drive full heat without restoring temperature. A secondary possibility is the CSTR heater not responding (heater output frozen/failed).",
+     "fault_class": "process",
+     "t2_spe_reading": "T\u00b2=10565.85 (limit 67.91) \u2014 large coherent deviation dominated by CSTR temperature; SPE=184.67 (limit 5.07) \u2014 broken correlations (pressure and some holdup terms contributing)",
+     "ok": true,
+     "error": null,
+     "latency_s": 11.64,
+     "tokens": 5552
+    }
+   }
+  },
+  {
+   "id": "S07",
+   "group": "single",
+   "t": 11.500000000000016,
+   "at": "detection",
+   "truth": [
+    "reactor_heater_stuck_high"
+   ],
+   "pca": {
+    "t2": 633.9561656906412,
+    "t2_limit": 67.91057093402111,
+    "spe": 11.650907390935616,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reactor_heater_stuck_high",
+     "catalyst_activity_loss",
+     "h2_pcv_stuck_closed",
+     "h2_pcv_capacity_degradation"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "reactor_heater_stuck_high"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reactor_heater_stuck_high",
+      "catalyst_activity_loss",
+      "h2_pcv_stuck_closed"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reactor_heater_stuck_high"
+     ],
+     "summary": "PCA shows large coherent upset with both T\u00b2 and SPE violations, dominated by a large rise in CSTR temperature with a strong contribution from CSTR temperature measurement and reactor heater influence. Rule-based hints point to heater-related fault as the primary cause, with catalyst activity loss as a secondary plausible contributor.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2=633.96 (violation), SPE=11.65 (violation)",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.96,
+     "tokens": 4981
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reactor_heater_stuck_high",
+      "catalyst_activity_loss",
+      "h2_pcv_stuck_closed"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reactor_heater_stuck_high"
+     ],
+     "summary": "PCA shows a large coherent upset dominated by a rapidly rising CSTR temperature (very large T\u00b2 contribution) with the reactor temperature controller moving in opposition but unable to stop the rise. This pattern (PV high and rising while controller output is reduced/compensating) is most consistent with the reactor heater delivering excessive heat (actuator stuck high). A loss of catalyst activity could also produce a temperature rise but is less consistent with the strong temperature/controller mismatch. Minor pressure rise suggests a secondary valve/vent issue is possible but unlikely to be ",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T\u00b2 = 633.96 (limit 67.91) high; SPE = 11.65 (limit 5.07) high \u2014 large coherent deviation with some broken correlations",
+     "ok": true,
+     "error": null,
+     "latency_s": 11.08,
+     "tokens": 5550
+    }
+   }
+  },
+  {
+   "id": "S07",
+   "group": "single",
+   "t": 16.50000000000002,
+   "at": "+5 min",
+   "truth": [
+    "reactor_heater_stuck_high"
+   ],
+   "pca": {
+    "t2": 1497.326057593482,
+    "t2_limit": 67.91057093402111,
+    "spe": 93.81466250893645,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reactor_heater_stuck_high",
+     "h2_pcv_stuck_closed",
+     "catalyst_activity_loss",
+     "h2_pcv_capacity_degradation"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "reactor_heater_stuck_high"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reactor_heater_stuck_high",
+      "catalyst_activity_loss",
+      "h2_pcv_capacity_degradation",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reactor_heater_stuck_high"
+     ],
+     "summary": "The PCA indicates a large, coherent upset with both T2 and SPE violated and alarms on reactor temperature and pressure. The strongest evidence points to an abnormal heating source driving up temperature, with concurrent pressure rise likely from the same upset. The most likely fault is a heater issue in the CSTR, with secondary contributors related to catalyst/pcv issues.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2=1497.33 (violation), SPE=93.81 (violation)",
+     "ok": true,
+     "error": null,
+     "latency_s": 8.41,
+     "tokens": 5355
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reactor_heater_stuck_high",
+      "h2_pcv_stuck_closed",
+      "catalyst_activity_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reactor_heater_stuck_high"
+     ],
+     "summary": "PCA shows a very large, coherent upset plus strong broken correlations. The CSTR temperature is high and rising while the reactor temperature controller output is driven low \u2014 yet temperature continues to climb. Reactor pressure is also high and approaching HH with low H2 vent flow indicated. The pattern is most consistent with the reactor heater providing uncommanded heat (heater stuck high). A secondary concurrent fault \u2014 H2 vent PCV failing to open (stuck/ capacity loss) \u2014 explains the rising pressure. Multiple faults may be active.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 = 1497.33 (limit 67.91) HIGH; SPE = 93.81 (limit 5.07) HIGH",
+     "ok": true,
+     "error": null,
+     "latency_s": 11.18,
+     "tokens": 5610
+    }
+   }
+  },
+  {
+   "id": "S08",
+   "group": "single",
+   "t": 11.500000000000016,
+   "at": "detection",
+   "truth": [
+    "condenser_cooling_loss"
+   ],
+   "pca": {
+    "t2": 4646.080769743066,
+    "t2_limit": 67.91057093402111,
+    "spe": 41.07448128263876,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "condenser_cooling_loss",
+     "COL_PIC_out_of_range"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "condenser_cooling_loss"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "h2_pcv_capacity_degradation"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss"
+     ],
+     "summary": "High coherence upset with large T\u00b2 and large SPE, with COL_PIC loop saturated and condenser/column pressures contributing most to the SPE; likely condenser cooling issue causing elevated column pressure and related pressure readings.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "t2 = 4646.08, spe = 41.07 (both violation)",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.09,
+     "tokens": 4778
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "reflux_pump_trip"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss"
+     ],
+     "summary": "Coherent, plant-wide rise in column and tray pressures with COL_PIC saturated and top temperature rising \u2014 most consistent with loss of condenser cooling (reduced condenser duty) causing vapor load/pressure rise. Controller is saturated trying to reduce pressure.",
+     "fault_class": "utility",
+     "t2_spe_reading": "T\u00b2=4646 (limit 67.91) \u2014 large T\u00b2 violation; SPE=41.07 (limit 5.07) \u2014 SPE also high",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.89,
+     "tokens": 5048
+    }
+   }
+  },
+  {
+   "id": "S08",
+   "group": "single",
+   "t": 16.50000000000002,
+   "at": "+5 min",
+   "truth": [
+    "condenser_cooling_loss"
+   ],
+   "pca": {
+    "t2": 32698.32905244746,
+    "t2_limit": 67.91057093402111,
+    "spe": 673.8339559264332,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "condenser_cooling_loss",
+     "DR_LIC_out_of_range",
+     "COL_PIC_out_of_range"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "condenser_cooling_loss"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "reflux_flow_freeze"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss"
+     ],
+     "summary": "PCA indicates a large, coherent process upset with concurrent SPE breach and an active column pressure alarm, with saturated control loops on the reflux and column pressure paths. The rule-based evidence points strongest to condenser cooling effectiveness loss as the root cause, with secondary indications of control output saturation (COL_PIC and DR_LIC).",
+     "fault_class": "actuator",
+     "t2_spe_reading": "{'t2': '32698.32905244746', 'spe': '673.8339559264332'}",
+     "ok": true,
+     "error": null,
+     "latency_s": 8.14,
+     "tokens": 5077
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "reflux_pump_trip",
+      "reflux_flow_freeze"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss"
+     ],
+     "summary": "PCA shows a large coherent shift plus strong novel correlations dominated by column pressure signals with the COL_P_H alarm active and pressure controllers saturated. The pattern (column-wide pressure rise, top temp rising, controllers saturated, condenser-related alarm) is most consistent with loss of condenser cooling (insufficient condenser duty) causing pressure to rise and column controls to saturate.",
+     "fault_class": "utility",
+     "t2_spe_reading": "T2=32698.33 (limit 67.91) SPE=673.83 (limit 5.07) \u2014 both grossly exceeded",
+     "ok": true,
+     "error": null,
+     "latency_s": 12.66,
+     "tokens": 5515
+    }
+   }
+  },
+  {
+   "id": "S09",
+   "group": "single",
+   "t": 12.00000000000002,
+   "at": "detection",
+   "truth": [
+    "reflux_drum_leak"
+   ],
+   "pca": {
+    "t2": 102.65764464845753,
+    "t2_limit": 67.91057093402111,
+    "spe": 26.591149544902184,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reflux_drum_leak",
+     "condenser_cooling_loss",
+     "reflux_valve_stiction",
+     "cstr_outlet_capacity_loss"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "reflux_drum_leak"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reflux_drum_leak",
+      "condenser_cooling_loss",
+      "reflux_valve_stiction",
+      "cstr_outlet_capacity_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_drum_leak"
+     ],
+     "summary": " PCA indicates a large, coherent upset driven by an elevated reflux drum holdup and associated pressure/temperature changes. Most likely a reflux drum liquid leak causing mass/energy imbalance and elevated drum holdup.",
+     "fault_class": "process",
+     "t2_spe_reading": "High T\u00b2 with High SPE (T2=102.66, SPE=26.59)",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.33,
+     "tokens": 5000
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reflux_drum_leak",
+      "condenser_cooling_loss",
+      "reflux_valve_stiction"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_drum_leak"
+     ],
+     "summary": "PCA shows a large SPE (model correlation broken) dominated by low and falling reflux drum level (meas.drum_holdup_kmol) while the drum level controller (DR_LIC) is driving open (op.DR_LIC high). This pattern (process variable falling despite controller opening) and the fast negative drum holdup trend strongly indicate an actual liquid loss from the reflux drum \u2014 reflux_drum_leak. Smaller contributions from tray temperatures and top temperature controller action could indicate a secondary condenser cooling degradation, but evidence is weaker.",
+     "fault_class": "process",
+     "t2_spe_reading": "T2=102.66 (limit 67.91) high; SPE=26.59 (limit 5.07) high \u2014 both coherent shift and broken correlations, SPE dominated by drum holdup",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.63,
+     "tokens": 5215
+    }
+   }
+  },
+  {
+   "id": "S09",
+   "group": "single",
+   "t": 17.000000000000018,
+   "at": "+5 min",
+   "truth": [
+    "reflux_drum_leak"
+   ],
+   "pca": {
+    "t2": 594.2580725286439,
+    "t2_limit": 67.91057093402111,
+    "spe": 148.86844524502894,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "DR_LIC_out_of_range",
+     "reflux_drum_leak",
+     "reboiler_liquid_leak",
+     "condenser_cooling_loss"
+    ],
+    "top1": false,
+    "top3": true,
+    "found": [
+     "reflux_drum_leak"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reflux_drum_leak",
+      "reboiler_liquid_leak"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_drum_leak"
+     ],
+     "summary": "High Hotelling T\u00b2 and high SPE with DR_LIC loop saturated; evidence points to a DR_LIC related fault causing a coherent upset propagating through the reflux drum/feed network.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2=594.26, SPE=148.87",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.66,
+     "tokens": 4897
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reflux_drum_leak",
+      "reflux_pump_trip"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_drum_leak"
+     ],
+     "summary": "Reflux drum liquid loss: the reflux drum level (meas.drum_holdup_kmol) is falling quickly while the drum level controller (DR_LIC) is saturated trying to raise it. PCA shows both large T\u00b2 and very large SPE dominated by the drum level and DR_LIC, consistent with a process leak or unaccounted withdrawal from the reflux drum rather than a simple coherent load shift.",
+     "fault_class": "process",
+     "t2_spe_reading": "T\u00b2 = 594.26 (limit 67.91) high; SPE = 148.87 (limit 5.07) very high \u2014 large coherent upset plus broken correlations dominated by drum level and DR_LIC",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.14,
+     "tokens": 5271
+    }
+   }
+  },
+  {
+   "id": "S10",
+   "group": "single",
+   "t": 11.500000000000016,
+   "at": "detection",
+   "truth": [
+    "reactor_pressure_sensor_low_bias"
+   ],
+   "pca": {
+    "t2": 144.51655679596644,
+    "t2_limit": 67.91057093402111,
+    "spe": 121.17493961797949,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "h2_pcv_capacity_degradation",
+     "h2_pcv_stuck_closed",
+     "reactor_pressure_sensor_low_bias",
+     "reflux_valve_stiction"
+    ],
+    "top1": false,
+    "top3": true,
+    "found": [
+     "reactor_pressure_sensor_low_bias"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "h2_pcv_capacity_degradation",
+      "h2_pcv_stuck_closed",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "PCA indicates a large, coherent upset with both T\u00b2 and SPE violations, dominated by the reactor pressure signal. The most plausible root is an H2 PCV abnormality affecting reactor pressure control, with PCV-related faults appearing in rule-based hypotheses and contributing measurements.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T\u00b2 = 144.5 (violation), SPE = 121.2 (violation); both high",
+     "ok": true,
+     "error": null,
+     "latency_s": 8.02,
+     "tokens": 4934
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reactor_pressure_sensor_low_bias",
+      "h2_pcv_capacity_degradation",
+      "cstr_outlet_capacity_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "PCA shows a large coherent process shift (high T\u00b2) plus a very large SPE dominated by the reactor pressure measurement. The single-measurement SPE signature strongly points to a fault with the CSTR pressure measurement (sensor bias). Secondary possibilities are an H2 vent (PCV) capacity/actuation problem that is causing abnormal pressure dynamics. A third, less likely possibility is an upstream flow/capacity change affecting reactor level/pressure.",
+     "fault_class": "sensor",
+     "t2_spe_reading": "T\u00b2=144.52 (limit 67.91) \u2014 high; SPE=121.17 (limit 5.07) \u2014 very high; SPE dominated by meas.cstr_pressure_bar",
+     "ok": true,
+     "error": null,
+     "latency_s": 13.49,
+     "tokens": 5652
+    }
+   }
+  },
+  {
+   "id": "S10",
+   "group": "single",
+   "t": 16.50000000000002,
+   "at": "+5 min",
+   "truth": [
+    "reactor_pressure_sensor_low_bias"
+   ],
+   "pca": {
+    "t2": 72.13938912822091,
+    "t2_limit": 67.91057093402111,
+    "spe": 46.117452378633615,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "h2_pcv_capacity_degradation",
+     "h2_pcv_stuck_closed",
+     "reactor_pressure_sensor_low_bias",
+     "reflux_valve_stiction"
+    ],
+    "top1": false,
+    "top3": true,
+    "found": [
+     "reactor_pressure_sensor_low_bias"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "h2_pcv_capacity_degradation",
+      "h2_pcv_stuck_closed",
+      "reactor_pressure_sensor_low_bias",
+      "cstr_outlet_capacity_loss"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "Abnormal PCA with coherent upset dominated by CSTR pressure signal and PCV/HPV related faults; likely H2 PCV issues causing reactor pressure rise and compensatory loop behavior.",
+     "fault_class": "sensor",
+     "t2_spe_reading": "T2=72.14 (violation), SPE=46.12 (violation)",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.43,
+     "tokens": 5015
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reactor_pressure_sensor_low_bias",
+      "h2_pcv_capacity_degradation",
+      "h2_pcv_stuck_closed"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "PCA shows both T\u00b2 and very large SPE violations. The single biggest contributor is meas.cstr_pressure_bar (\u224858% share) and SPE-dominant behavior points to a broken correlation (sensor or actuator disagreement). Controller R_PIC is not driven to saturation while measured reactor pressure is rising \u2014 this pattern is most consistent with a low bias on the reactor pressure transmitter (measured pressure lower than true). Lesser possibilities are reduced H2 PCV capacity or PCV stuck closed causing true pressure rise and a controller fight.",
+     "fault_class": "sensor",
+     "t2_spe_reading": "T\u00b2 = 72.14 (limit 67.91) \u2014 small T\u00b2 violation; SPE = 46.12 (limit 5.07) \u2014 large SPE violation",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.33,
+     "tokens": 5467
+    }
+   }
+  },
+  {
+   "id": "D01",
+   "group": "pair_indep",
+   "t": 11.500000000000016,
+   "at": "detection",
+   "truth": [
+    "reactor_pressure_sensor_low_bias"
+   ],
+   "pca": {
+    "t2": 144.51655679596644,
+    "t2_limit": 67.91057093402111,
+    "spe": 121.17493961797949,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "h2_pcv_capacity_degradation",
+     "h2_pcv_stuck_closed",
+     "reactor_pressure_sensor_low_bias",
+     "reflux_valve_stiction"
+    ],
+    "top1": false,
+    "top3": true,
+    "found": [
+     "reactor_pressure_sensor_low_bias"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "h2_pcv_capacity_degradation",
+      "h2_pcv_stuck_closed",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "PCA flags a large, coherent upset with concurrent SPE violation, dominated by CSTR pressure measurement influence and PCV-related indicators. Likely issue is with the hydrogen purge valve (PCV) or its sensing/actuation rather than a simple sensor drift.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 = 144.52 (limit 67.91), SPE = 121.17 (limit 5.07); both violations",
+     "ok": true,
+     "error": null,
+     "latency_s": 8.63,
+     "tokens": 5093
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reactor_pressure_sensor_low_bias",
+      "h2_pcv_capacity_degradation",
+      "h2_pcv_stuck_closed"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "PCA shows a large SPE breach dominated by the CSTR pressure measurement (meas.cstr_pressure_bar) with controller R_PIC contributing \u2014 pattern consistent with a CSTR pressure transmitter problem. Most likely a biased/failed reactor pressure sensor; actuator faults on the H2 PCV are secondary possibilities.",
+     "fault_class": "sensor",
+     "t2_spe_reading": "T\u00b2 = 144.52 (limit 67.91) \u2014 SPE (Q) = 121.17 (limit 5.07); both T\u00b2 and SPE violated, SPE dominated by meas.cstr_pressure_bar",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.69,
+     "tokens": 5256
+    }
+   }
+  },
+  {
+   "id": "D01",
+   "group": "pair_indep",
+   "t": 16.50000000000002,
+   "at": "+5 min",
+   "truth": [
+    "reactor_pressure_sensor_low_bias",
+    "bottoms_pump_trip"
+   ],
+   "pca": {
+    "t2": 65.76416246248371,
+    "t2_limit": 67.91057093402111,
+    "spe": 68.68319779766229,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "bottoms_pump_trip",
+     "h2_pcv_capacity_degradation",
+     "h2_pcv_stuck_closed",
+     "reactor_pressure_sensor_low_bias"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "bottoms_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "bottoms_pump_trip",
+      "h2_pcv_capacity_degradation",
+      "h2_pcv_stuck_closed",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "bottoms_pump_trip"
+     ],
+     "summary": "PCA flags a coherent plant upset with a specific forced event: Bottoms pump has tripped (BOTTOMS). This is supported by the active BOTTOMS train failure and the top contributor showing the Bottoms pump flow disruption as a major driver of SPE.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 = 65.76 (within limit, SPE = 68.68, SPE_violation = true)",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.15,
+     "tokens": 4862
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "bottoms_pump_trip",
+      "reactor_pressure_sensor_low_bias",
+      "h2_pcv_capacity_degradation"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "bottoms_pump_trip",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "Two concurrent issues: a confirmed bottoms pump trip (P-203A) explaining the rising reboiler holdup, plus an abnormal CSTR pressure signal dominating the SPE (most likely a biased pressure transmitter; actuator PCV degradation/stuck is a secondary possibility).",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2=65.76 (limit 67.91) -> no T\u00b2 violation; SPE=68.68 (limit 5.07) -> strong SPE violation (broken correlations)",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.35,
+     "tokens": 5350
+    }
+   }
+  },
+  {
+   "id": "D02",
+   "group": "pair_indep",
+   "t": 11.500000000000016,
+   "at": "detection",
+   "truth": [
+    "reactor_heater_stuck_high",
+    "distillate_pump_trip"
+   ],
+   "pca": {
+    "t2": 705.6867835567248,
+    "t2_limit": 67.91057093402111,
+    "spe": 13.141756419101078,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "distillate_pump_trip",
+     "reactor_heater_stuck_high",
+     "catalyst_activity_loss",
+     "reflux_drum_leak"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "distillate_pump_trip",
+     "reactor_heater_stuck_high"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "distillate_pump_trip",
+      "reactor_heater_stuck_high",
+      "h2_pcv_capacity_degradation",
+      "cstr_liquid_leak"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "distillate_pump_trip",
+      "reactor_heater_stuck_high"
+     ],
+     "summary": "PCA indicates a large, coherent upset with both T2 and SPE violated; most consistent with a disturbance originating from the DISTILLATE train, specifically a distillate pump trip, driving the abnormal state. Sensor/pump faults also plausible but less likely given alarms and rule evidence.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "t2 = 705.69 (violation: true), spe = 13.14 (violation: true)",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.21,
+     "tokens": 4962
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reactor_heater_stuck_high",
+      "distillate_pump_trip"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "distillate_pump_trip",
+      "reactor_heater_stuck_high"
+     ],
+     "summary": "Two faults are indicated. Primary abnormality is the reactor heating being excessive despite the temperature controller reducing its output (large T2 drive from CSTR temperature with SPE contribution from R_TIC) \u2014 consistent with Reactor Heater Stuck High. Independently, the DISTILLATE pump train has a confirmed failure (P-202A selected_failed) and explains rising reflux drum holdup. Both faults likely active: heater stuck-high is driving reactor temperature and pressure upward; distillate pump trip is causing drum holdup increase.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 = 705.69 (limit 67.91) \u2014 large coherent deviation; SPE = 13.14 (limit 5.07) \u2014 significant broken correlations indicating some sensor/actuator mismatch",
+     "ok": true,
+     "error": null,
+     "latency_s": 9.65,
+     "tokens": 5225
+    }
+   }
+  },
+  {
+   "id": "D02",
+   "group": "pair_indep",
+   "t": 16.50000000000002,
+   "at": "+5 min",
+   "truth": [
+    "reactor_heater_stuck_high",
+    "distillate_pump_trip"
+   ],
+   "pca": {
+    "t2": 2321.120127318491,
+    "t2_limit": 67.91057093402111,
+    "spe": 236.02155921834898,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "distillate_pump_trip",
+     "reactor_heater_stuck_high",
+     "h2_pcv_capacity_degradation",
+     "h2_pcv_stuck_closed"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "distillate_pump_trip",
+     "reactor_heater_stuck_high"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "distillate_pump_trip",
+      "h2_pcv_capacity_degradation",
+      "reactor_heater_stuck_high",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "distillate_pump_trip",
+      "reactor_heater_stuck_high"
+     ],
+     "summary": "PCA shows large coherent upset with significant SPE, dominated by disturbances around the distillate train and CSTR conditions. The rule-based hypotheses point to a distillate pump trip as the primary cause, propagating through the column/feed network and causing downstream pressures/temperatures to drift toward alarm boundaries.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2=2321.12, SPE=236.02",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.81,
+     "tokens": 5645
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "distillate_pump_trip",
+      "reactor_heater_stuck_high",
+      "h2_pcv_stuck_closed"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "distillate_pump_trip",
+      "reactor_heater_stuck_high"
+     ],
+     "summary": "Two simultaneous faults: a confirmed distillate pump trip (P-202A) is causing rapid reflux drum holdup rise and a saturated drum level controller; separately, reactor temperature is high while R_TIC output is driven low, consistent with the reactor heater being stuck high (actuator fault). CSTR pressure is also rising (alarms), which may be secondary or due to a degraded/stuck H2 PCV but current evidence is weak compared with the pump and heater issues.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T2 = 2321.12 (limit 67.91) [violation], SPE = 236.02 (limit 5.07) [violation]",
+     "ok": true,
+     "error": null,
+     "latency_s": 14.06,
+     "tokens": 5789
+    }
+   }
+  },
+  {
+   "id": "D03",
+   "group": "pair_indep",
+   "t": 16.50000000000002,
+   "at": "detection",
+   "truth": [
+    "h2_pcv_capacity_degradation",
+    "reflux_pump_trip"
+   ],
+   "pca": {
+    "t2": 156.46297058097844,
+    "t2_limit": 67.91057093402111,
+    "spe": 29.498456432037088,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reflux_pump_trip",
+     "reflux_drum_leak",
+     "condenser_cooling_loss",
+     "reflux_valve_stiction"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "reflux_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reflux_pump_trip",
+      "reflux_drum_leak",
+      "condenser_cooling_loss",
+      "reflux_valve_stiction"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_pump_trip"
+     ],
+     "summary": "Abnormal PCA with large, coherent upset affecting reflux subsystem; evidence points to REFLUX pump fault causing reflux flow disruption.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2=156.46, SPE=29.50",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.92,
+     "tokens": 4935
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reflux_pump_trip",
+      "reflux_flow_freeze",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_pump_trip"
+     ],
+     "summary": "Hard evidence (P-201A marked failed and P201_TRIP alarm) plus trends and PCA drivers point to the reflux pump having tripped. Reflux drum level is rising quickly while the drum level controller (DR_LIC) and TOP_TIC are at high outputs trying to compensate; multiple column tray/top temperatures are moving away from setpoints. This pattern is consistent with loss of reflux flow (reflux_pump_trip).",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2 = 156.46 (limit 67.91) -> large coherent upset; SPE = 29.50 (limit 5.07) -> significant broken correlations (sensor/actuator effects). Both T\u00b2 and SPE violated persistently (3 samples).",
+     "ok": true,
+     "error": null,
+     "latency_s": 11.12,
+     "tokens": 5443
+    }
+   }
+  },
+  {
+   "id": "D03",
+   "group": "pair_indep",
+   "t": 21.49999999999997,
+   "at": "+5 min",
+   "truth": [
+    "h2_pcv_capacity_degradation",
+    "reflux_pump_trip"
+   ],
+   "pca": {
+    "t2": 6505.530866879935,
+    "t2_limit": 67.91057093402111,
+    "spe": 903.6871274124251,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reflux_pump_trip",
+     "R_TIC_out_of_range",
+     "DR_LIC_out_of_range",
+     "reactor_heater_stuck_high"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "reflux_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reflux_pump_trip"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_pump_trip"
+     ],
+     "summary": "PCA flags a large, coherent process upset with simultaneous T2 and SPE violations. Fixed-rule evidence points to a reflux-side issue, corroborated by a failed reflux pump and associated upstream/downstream indicators.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 high (6505) and SPE high (903); both violations active",
+     "ok": true,
+     "error": null,
+     "latency_s": 5.86,
+     "tokens": 4766
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reflux_pump_trip",
+      "cstr_heater_output_freeze"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_pump_trip"
+     ],
+     "summary": "The pattern (large T\u00b2 + large SPE) plus rule evidence (P201_TRIP, REFLUX train flagged failed), rising reflux drum holdup, saturated drum level controller and changes in top/tray temperatures point to a reflux pump trip as the primary fault. A secondary fault possibility is the CSTR heater not following the controller (heater output frozen / failed) explaining rapid reactor temperature fall despite the TIC commanding heat.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2 = 6505.53 (limit 67.91) >> violation; SPE = 903.69 (limit 5.07) >> violation",
+     "ok": true,
+     "error": null,
+     "latency_s": 13.77,
+     "tokens": 5588
+    }
+   }
+  },
+  {
+   "id": "D04",
+   "group": "pair_indep",
+   "t": 11.500000000000016,
+   "at": "detection",
+   "truth": [
+    "reactor_pressure_sensor_low_bias"
+   ],
+   "pca": {
+    "t2": 144.51655679596644,
+    "t2_limit": 67.91057093402111,
+    "spe": 121.17493961797949,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "h2_pcv_capacity_degradation",
+     "h2_pcv_stuck_closed",
+     "reactor_pressure_sensor_low_bias",
+     "reflux_valve_stiction"
+    ],
+    "top1": false,
+    "top3": true,
+    "found": [
+     "reactor_pressure_sensor_low_bias"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "h2_pcv_capacity_degradation",
+      "h2_pcv_stuck_closed",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "The PCA indicates a large, coherent process upset with simultaneous SPE violation, most strongly driven by the CSTR pressure signal. The evidence points to a problem in the H2 PCV (cstr_vent_valve) affecting reactor pressure control.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 = 144.52, SPE = 121.17 (both Violation)",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.57,
+     "tokens": 4841
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reactor_pressure_sensor_low_bias",
+      "h2_pcv_capacity_degradation",
+      "h2_pcv_stuck_closed"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "PCA shows both large coherent shift (T\u00b2 high) and broken correlations (SPE very high). The single dominant contributor is the CSTR pressure measurement (meas.cstr_pressure_bar) \u2014 it explains the majority of the SPE and much of the T\u00b2. Controller R_PIC also contributes to SPE. The pattern (one measurement strongly out-of-correlation, no pump trips or saturated loops) most closely matches a biased/failed reactor pressure sensor, with actuator faults on the H2 vent valve (PCV) as secondary possibilities.",
+     "fault_class": "sensor",
+     "t2_spe_reading": "T\u00b2=144.52 (limit 67.91) -> violation; SPE=121.17 (limit 5.07) -> strong violation",
+     "ok": true,
+     "error": null,
+     "latency_s": 11.3,
+     "tokens": 5419
+    }
+   }
+  },
+  {
+   "id": "D04",
+   "group": "pair_indep",
+   "t": 16.50000000000002,
+   "at": "+5 min",
+   "truth": [
+    "reactor_pressure_sensor_low_bias",
+    "reflux_drum_leak"
+   ],
+   "pca": {
+    "t2": 386.4592570211699,
+    "t2_limit": 67.91057093402111,
+    "spe": 95.28769349134403,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reflux_drum_leak",
+     "reflux_valve_stiction",
+     "cstr_outlet_capacity_loss",
+     "cstr_liquid_leak"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "reflux_drum_leak"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reflux_drum_leak",
+      "reflux_valve_stiction",
+      "cstr_outlet_capacity_loss",
+      "h2_pcv_capacity_degradation"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_drum_leak"
+     ],
+     "summary": "PCA flags a large, coherent process upset with simultaneous T\u00b2 and SPE violations. Strong evidence points to disturbances around the reflux drum/feed path, consistent with a reflux drum leak and related reflux control issues.",
+     "fault_class": "process",
+     "t2_spe_reading": "T\u00b2=386.46 (limit 67.91) | SPE=95.29 (limit 5.07); both violated; abnormal: true",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.96,
+     "tokens": 5078
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reflux_drum_leak",
+      "reflux_valve_stiction",
+      "cstr_liquid_leak"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_drum_leak"
+     ],
+     "summary": "PCA shows a strong SPE violation (new correlation / single-variable disagreement) with drum holdup (meas.drum_holdup_kmol) and the drum level controller (op.DR_LIC) as major contributors. Drum level is dropping rapidly and is minutes away from a low-level alarm/SIF while DR_LIC has been active. Controller evidence and rule hints point to a loss of liquid from the reflux drum \u2014 most consistent with a reflux drum liquid leak. Actuator faults on the reflux path (pump trip or valve stiction) are a secondary possibility if liquid is not reaching/returning to the drum.",
+     "fault_class": "process",
+     "t2_spe_reading": "T\u00b2 = 386.46 (limit 67.91) high along normal correlations; SPE = 95.29 (limit 5.07) very high indicating broken correlations / a local fault (sensor or localized process loss) \u2014 drum variables dominate SPE.",
+     "ok": true,
+     "error": null,
+     "latency_s": 11.08,
+     "tokens": 5475
+    }
+   }
+  },
+  {
+   "id": "C01",
+   "group": "pair_coupled",
+   "t": 11.500000000000016,
+   "at": "detection",
+   "truth": [
+    "condenser_cooling_loss"
+   ],
+   "pca": {
+    "t2": 4646.080769743066,
+    "t2_limit": 67.91057093402111,
+    "spe": 41.07448128263876,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "condenser_cooling_loss",
+     "COL_PIC_out_of_range"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "condenser_cooling_loss"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "h2_pcv_capacity_degradation"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss"
+     ],
+     "summary": "A coherent plant upset with high T2 and high SPE, dominated by column pressure disturbances and a saturated condenser/COOLING related loop. Most likely condenser cooling loss affecting the column pressure dynamics.",
+     "fault_class": "process",
+     "t2_spe_reading": "T2 very high (4646) with SPE very high (41.07) indicating a coherent process upset rather than a sensor fault",
+     "ok": true,
+     "error": null,
+     "latency_s": 8.5,
+     "tokens": 4934
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "reflux_pump_trip",
+      "reflux_valve_stiction"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss"
+     ],
+     "summary": "Coherent rise in column/tray/top pressures with COL_PIC saturated and top temperature climbing \u2014 consistent with loss of condenser cooling causing reduced condensation, higher column vapour load and rising column pressure and top temperature. PCA shows large T\u00b2 (coherent shift) with modest SPE contributions from pressure measurements, supporting a process/utility upset rather than a single bad transmitter.",
+     "fault_class": "utility",
+     "t2_spe_reading": "T\u00b2=4646.08 (limit 67.91) \u2014 large coherent shift; SPE=41.07 (limit 5.07) \u2014 notable residual, but top contributors' SPE parts are small, indicating coherence across pressure sensors.",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.25,
+     "tokens": 5346
+    }
+   }
+  },
+  {
+   "id": "C01",
+   "group": "pair_coupled",
+   "t": 16.50000000000002,
+   "at": "+5 min",
+   "truth": [
+    "condenser_cooling_loss",
+    "reflux_pump_trip"
+   ],
+   "pca": {
+    "t2": 32597.453833511536,
+    "t2_limit": 67.91057093402111,
+    "spe": 784.9244820631336,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reflux_pump_trip",
+     "condenser_cooling_loss",
+     "COL_PIC_out_of_range"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "condenser_cooling_loss",
+     "reflux_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reflux_pump_trip",
+      "condenser_cooling_loss",
+      "h2_pcv_capacity_degradation"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss",
+      "reflux_pump_trip"
+     ],
+     "summary": "PCA shows a large, coherent plant upset with strong contributions from column pressures and REFLUX train issues. The active alarm and failed train point to a reflux flow disruption causing loss of reflux control and elevated column pressure.",
+     "fault_class": null,
+     "t2_spe_reading": "T2=32597.45, SPE=784.92",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.89,
+     "tokens": 5078
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reflux_pump_trip",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss",
+      "reflux_pump_trip"
+     ],
+     "summary": "P201A (reflux pump) has tripped causing loss of reflux. Column pressure is rising rapidly with many tray/column pressure measurements coherently high and the column pressure controller (COL_PIC) saturated at maximum. This is consistent with a reflux_pump_trip; condenser cooling loss is a secondary candidate but less supported.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2 = 32597.45 (limit 67.91) HIGH, SPE = 784.92 (limit 5.07) HIGH \u2014 large coherent move plus broken correlations (strong column pressure sensor contributions)",
+     "ok": true,
+     "error": null,
+     "latency_s": 11.27,
+     "tokens": 5283
+    }
+   }
+  },
+  {
+   "id": "C02",
+   "group": "pair_coupled",
+   "t": 13.500000000000028,
+   "at": "detection",
+   "truth": [
+    "h2_pcv_capacity_degradation",
+    "reactor_pressure_sensor_low_bias"
+   ],
+   "pca": {
+    "t2": 142.34982863926385,
+    "t2_limit": 67.91057093402111,
+    "spe": 120.00349086211122,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "h2_pcv_capacity_degradation",
+     "h2_pcv_stuck_closed",
+     "reactor_pressure_sensor_low_bias",
+     "reflux_valve_stiction"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "h2_pcv_capacity_degradation",
+     "reactor_pressure_sensor_low_bias"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "h2_pcv_capacity_degradation",
+      "h2_pcv_stuck_closed",
+      "reactor_pressure_sensor_low_bias",
+      "reflux_valve_stiction"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "h2_pcv_capacity_degradation",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "PCA flags a large, coherent process upset with simultaneous large T\u00b2 and SPE violations, dominated by the CSTR pressure measurement signal. Faults pointing to the hydrogen purge (PCV) system and related pressure sensing best explain the pattern.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T\u00b2 high (142.3) and SPE high (120.0); both violations present, suggesting a large but coherent upset with added correlation break (consistent with PCV-related actuator issue affecting pressure)",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.89,
+     "tokens": 4849
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reactor_pressure_sensor_low_bias",
+      "h2_pcv_capacity_degradation",
+      "cstr_outlet_capacity_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "h2_pcv_capacity_degradation",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "Most likely a biased reactor pressure transmitter (meas.cstr_pressure_bar) reporting low (sensor fault). Secondary possibilities are H2 vent PCV (capacity loss or stuck) or a CSTR outlet capacity restriction, but evidence favors a sensor bias.",
+     "fault_class": "sensor",
+     "t2_spe_reading": "T\u00b2 = 142.35 (limit 67.91) => T\u00b2 violation; SPE = 120.00 (limit 5.07) => large SPE violation, dominated by meas.cstr_pressure_bar.",
+     "ok": true,
+     "error": null,
+     "latency_s": 10.54,
+     "tokens": 5359
+    }
+   }
+  },
+  {
+   "id": "C02",
+   "group": "pair_coupled",
+   "t": 18.5,
+   "at": "+5 min",
+   "truth": [
+    "h2_pcv_capacity_degradation",
+    "reactor_pressure_sensor_low_bias"
+   ],
+   "pca": {
+    "t2": 45.00567461974247,
+    "t2_limit": 67.91057093402111,
+    "spe": 32.716134751082635,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "h2_pcv_stuck_closed",
+     "h2_pcv_capacity_degradation",
+     "reactor_pressure_sensor_low_bias",
+     "reflux_valve_stiction"
+    ],
+    "top1": false,
+    "top3": true,
+    "found": [
+     "h2_pcv_capacity_degradation",
+     "reactor_pressure_sensor_low_bias"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "h2_pcv_stuck_closed",
+      "h2_pcv_capacity_degradation",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "h2_pcv_capacity_degradation",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "PCA shows a high SPE with a coherent T2 movement, dominated by a large contributor from CSTR pressure and H2 vent control signals. The most plausible cause is an actuator fault on the H2 PCV causing a stuck-closed condition, propagating a pressure anomaly through the CSTR system.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "32.716134751082635",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.39,
+     "tokens": 4940
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "h2_pcv_stuck_closed",
+      "h2_pcv_capacity_degradation",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "top1": false,
+     "top3": true,
+     "found": [
+      "h2_pcv_capacity_degradation",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "SPE (Q) is high while T\u00b2 is normal \u2192 a broken correlation consistent with a localized sensor/actuator fault. The largest SPE contributor is the CSTR pressure measurement, with the H2 vent flow and R_PIC controller output also contributing. Pressure is rising toward alarm while the PIC is active, and the vent flow measurement is implicated. The pattern most strongly matches the H2 pressure-control valve failing to open (H2 PCV stuck closed), with valve capacity degradation or a pressure transmitter bias as alternative possibilities.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T\u00b2=45.01 (limit 67.91, no T\u00b2 violation); SPE=32.72 (limit 5.07, SPE violation)",
+     "ok": true,
+     "error": null,
+     "latency_s": 9.95,
+     "tokens": 5274
+    }
+   }
+  },
+  {
+   "id": "C03",
+   "group": "pair_coupled",
+   "t": 12.00000000000002,
+   "at": "detection",
+   "truth": [
+    "reflux_drum_leak"
+   ],
+   "pca": {
+    "t2": 102.65764464845753,
+    "t2_limit": 67.91057093402111,
+    "spe": 26.591149544902184,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reflux_drum_leak",
+     "condenser_cooling_loss",
+     "reflux_valve_stiction",
+     "cstr_outlet_capacity_loss"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "reflux_drum_leak"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reflux_drum_leak",
+      "condenser_cooling_loss",
+      "reflux_valve_stiction",
+      "cstr_outlet_capacity_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_drum_leak"
+     ],
+     "summary": "PCA shows a large, coherent upset with coincident SPE violation. The leading fault hypothesis is a leak in the reflux drum, driving a major loss of drum holdup and triggering abnormal plant dynamics.",
+     "fault_class": "process",
+     "t2_spe_reading": "T2=102.66, SPE=26.59 (violation of limits)",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.52,
+     "tokens": 5004
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reflux_drum_leak",
+      "condenser_cooling_loss",
+      "reflux_valve_stiction"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "reflux_drum_leak"
+     ],
+     "summary": "PCA shows both large T\u00b2 and very large SPE driven overwhelmingly by a falling reflux drum level (meas.drum_holdup_kmol). The drum level controller (DR_LIC) has opened (op.DR_LIC high) attempting to restore level while the drum holdup is decreasing toward its low alarm. This pattern is classic for a liquid leak from the reflux drum (unaccounted outflow) rather than a coherent plant-wide load change.",
+     "fault_class": "process",
+     "t2_spe_reading": "T\u00b2 = 102.66 (limit 67.91) -> violated; SPE = 26.59 (limit 5.07) -> violated",
+     "ok": true,
+     "error": null,
+     "latency_s": 9.39,
+     "tokens": 5512
+    }
+   }
+  },
+  {
+   "id": "C03",
+   "group": "pair_coupled",
+   "t": 17.000000000000018,
+   "at": "+5 min",
+   "truth": [
+    "reflux_drum_leak",
+    "distillate_pump_trip"
+   ],
+   "pca": {
+    "t2": 543.781001894462,
+    "t2_limit": 67.91057093402111,
+    "spe": 135.66854890764444,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "distillate_pump_trip",
+     "reflux_drum_leak",
+     "reboiler_liquid_leak",
+     "condenser_cooling_loss"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "distillate_pump_trip",
+     "reflux_drum_leak"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "distillate_pump_trip",
+      "reflux_drum_leak",
+      "condenser_cooling_loss",
+      "reboiler_liquid_leak"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "distillate_pump_trip",
+      "reflux_drum_leak"
+     ],
+     "summary": "PCA abnormal with large coherent upset and large SPE, strongly indicating a distillate train issue causing a distillate pump trip and cascading upset (evidence points to DISTILLATE pump trip with DR_LIC reacting).",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2=543.78, SPE=135.67 (both violations)",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.16,
+     "tokens": 4854
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "distillate_pump_trip",
+      "reflux_drum_leak"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "distillate_pump_trip",
+      "reflux_drum_leak"
+     ],
+     "summary": "Primary fault is a confirmed distillate pump trip (P-202A). Drum holdup is falling rapidly while the drum level controller is active and deviating, consistent with either an actual liquid loss (drum leak) or abnormal downstream flow; pump status and a P202_TRIP alarm strongly point to the distillate pump having tripped. A reflux-drum leak is a plausible secondary cause of the falling drum level and the SPE contributions, but the pump trip is certain per plant rules.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2 = 543.78 (limit 67.91) \u2014 large coherent upset; SPE = 135.67 (limit 5.07) \u2014 strong broken correlations (local measurement/actuator disagreement)",
+     "ok": true,
+     "error": null,
+     "latency_s": 11.64,
+     "tokens": 5290
+    }
+   }
+  },
+  {
+   "id": "T01",
+   "group": "triple_none",
+   "t": 14.500000000000036,
+   "at": "detection",
+   "truth": [
+    "h2_pcv_capacity_degradation",
+    "distillate_pump_trip",
+    "bottoms_pump_trip"
+   ],
+   "pca": {
+    "t2": 120.45043511893745,
+    "t2_limit": 67.91057093402111,
+    "spe": 24.687984801314936,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "distillate_pump_trip",
+     "bottoms_pump_trip",
+     "reflux_drum_leak",
+     "condenser_cooling_loss"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "bottoms_pump_trip",
+     "distillate_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "distillate_pump_trip",
+      "bottoms_pump_trip",
+      "reflux_drum_leak",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "bottoms_pump_trip",
+      "distillate_pump_trip"
+     ],
+     "summary": "PCA indicates a large, coherent upset with significant SPE indicating sensor correlations largely intact but with a strong disturbance through multiple trains. Active alarms and fixed rules point to pump/trip events in the DISTILLATE and BOTTOMS trains causing the abnormal state. Likely the distillate and bottoms pump trains have tripped, with possible secondary issues in the reflux drum or downstream flow.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T\u00b2 = 120.45 (violation), SPE = 24.69 (violation); both high",
+     "ok": true,
+     "error": null,
+     "latency_s": 9.36,
+     "tokens": 5125
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "distillate_pump_trip",
+      "bottoms_pump_trip",
+      "reflux_drum_leak"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "bottoms_pump_trip",
+      "distillate_pump_trip"
+     ],
+     "summary": "PCA + rule evidence indicates product pumps P-202A (distillate) and P-203A (bottoms) have tripped. The reflux drum holdup is rising rapidly and the drum level controller DR_LIC is saturated high while reboiler holdup is falling \u2014 behaviour consistent with loss of both product removal flows. Hard rule signals report DISTILLATE and BOTTOMS trains failed and alarms P202_TRIP / P203_TRIP are active. Most likely faults are the distillate_pump_trip and bottoms_pump_trip (pump equipment failures).",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2 = 120.45 (limit 67.91) -> strong coherent upset; SPE = 24.69 (limit 5.07) -> strong broken correlations indicating actuator/sensor/equipment failures",
+     "ok": true,
+     "error": null,
+     "latency_s": 12.55,
+     "tokens": 5391
+    }
+   }
+  },
+  {
+   "id": "T01",
+   "group": "triple_none",
+   "t": 19.49999999999999,
+   "at": "+5 min",
+   "truth": [
+    "h2_pcv_capacity_degradation",
+    "distillate_pump_trip",
+    "bottoms_pump_trip"
+   ],
+   "pca": {
+    "t2": 696.2134148060311,
+    "t2_limit": 67.91057093402111,
+    "spe": 371.87310722808803,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "distillate_pump_trip",
+     "bottoms_pump_trip",
+     "h2_pcv_stuck_closed",
+     "h2_pcv_capacity_degradation"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "bottoms_pump_trip",
+     "distillate_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "distillate_pump_trip",
+      "bottoms_pump_trip"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "bottoms_pump_trip",
+      "distillate_pump_trip"
+     ],
+     "summary": "The PCA indicates a large, coherent process upset with significant correlation breakage, dominated by downstream pump trains failing and alarms indicating high pressure.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "t2=696.21, spe=371.87",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.35,
+     "tokens": 4909
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "bottoms_pump_trip",
+      "distillate_pump_trip",
+      "h2_pcv_stuck_closed",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "bottoms_pump_trip",
+      "distillate_pump_trip"
+     ],
+     "summary": "Two pump trips are almost certain (DISTILLATE and BOTTOMS) causing reflux drum and reboiler holdups to rise and a saturated drum level controller; a secondary pressure/vent issue is likely (actuator limited H2 vent) but less certain.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T2=696.21 (limit 67.91) HIGH; SPE=371.87 (limit 5.07) HIGH \u2014 both large: strong coherent system upset plus broken correlations (sensor/actuator disagreement)",
+     "ok": true,
+     "error": null,
+     "latency_s": 16.11,
+     "tokens": 5754
+    }
+   }
+  },
+  {
+   "id": "T02",
+   "group": "triple_2plus1",
+   "t": 11.500000000000016,
+   "at": "detection",
+   "truth": [
+    "condenser_cooling_loss",
+    "reactor_pressure_sensor_low_bias"
+   ],
+   "pca": {
+    "t2": 4773.111980784166,
+    "t2_limit": 67.91057093402111,
+    "spe": 209.4956090874523,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "COL_PIC_out_of_range",
+     "condenser_cooling_loss",
+     "h2_pcv_capacity_degradation",
+     "h2_pcv_stuck_closed"
+    ],
+    "top1": false,
+    "top3": true,
+    "found": [
+     "condenser_cooling_loss"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "h2_pcv_capacity_degradation",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "PCA flags a large, coherent process upset with both T2 and SPE violations. The COL_PIC loop is saturated while its PV is near setpoint, pointing to a control actuator constraint rather than a simple sensor fault. The evidence also points to elevated column/process pressures, consistent with a pressure-control upshot or condenser-related upset.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2 = 4773.11 (limit 67.91), SPE = 209.50 (limit 5.07); both violations true",
+     "ok": true,
+     "error": null,
+     "latency_s": 9.36,
+     "tokens": 5232
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "reactor_pressure_sensor_low_bias",
+      "h2_pcv_capacity_degradation"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss",
+      "reactor_pressure_sensor_low_bias"
+     ],
+     "summary": "PCA shows a large coherent upset across column pressure measurements (high T\u00b2) with broken correlation dominated by the CSTR pressure measurement (high SPE). COL_PIC is saturated while column pressures (top, trays, column) are rising toward a COL_P_H alarm. The pattern is most consistent with loss of condenser cooling causing column pressure rise (controller saturated trying to reduce pressure). A secondary possibility is a biased CSTR pressure transmitter producing a large SPE contribution.",
+     "fault_class": "utility",
+     "t2_spe_reading": "T\u00b2 = 4773.11 (limit 67.91) HIGH; SPE = 209.50 (limit 5.07) HIGH",
+     "ok": true,
+     "error": null,
+     "latency_s": 11.97,
+     "tokens": 5487
+    }
+   }
+  },
+  {
+   "id": "T02",
+   "group": "triple_2plus1",
+   "t": 16.50000000000002,
+   "at": "+5 min",
+   "truth": [
+    "condenser_cooling_loss",
+    "reactor_pressure_sensor_low_bias",
+    "reflux_pump_trip"
+   ],
+   "pca": {
+    "t2": 32673.614002521095,
+    "t2_limit": 67.91057093402111,
+    "spe": 787.1187082977362,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reflux_pump_trip",
+     "condenser_cooling_loss",
+     "COL_PIC_out_of_range"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "condenser_cooling_loss",
+     "reflux_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reflux_pump_trip",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss",
+      "reflux_pump_trip"
+     ],
+     "summary": "PCA indicates a large, coherent upset with simultaneous SPE and T\u00b2 violations. Evidence points to a failure in the reflux train, most likely a reflux pump trip, with condenser cooling issues as a secondary contributor.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T\u00b2 = 32673.61 (limit 67.91), SPE = 787.12 (limit 5.07); both violations true",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.91,
+     "tokens": 4961
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reflux_pump_trip",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss",
+      "reflux_pump_trip"
+     ],
+     "summary": "PCA and rule evidence point to a loss of reflux pump (P-201A) causing column pressure to rise with pressure-controller saturation and high tray/top pressures. Reflux pump trip best explains the sudden breakdown of column-level correlations (high SPE) together with the reported failed REFLUX train and COL_P_H alarm.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T2 = 32673.6 (limit 67.91) HIGH, SPE = 787.12 (limit 5.07) HIGH \u2014 both large and persistent (13 samples)",
+     "ok": true,
+     "error": null,
+     "latency_s": 12.6,
+     "tokens": 5343
+    }
+   }
+  },
+  {
+   "id": "T03",
+   "group": "triple_all",
+   "t": 11.500000000000016,
+   "at": "detection",
+   "truth": [
+    "condenser_cooling_loss"
+   ],
+   "pca": {
+    "t2": 4646.080769743066,
+    "t2_limit": 67.91057093402111,
+    "spe": 41.07448128263876,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "condenser_cooling_loss",
+     "COL_PIC_out_of_range"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "condenser_cooling_loss"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "h2_pcv_capacity_degradation"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss"
+     ],
+     "summary": "PCA shows a large coherent upset with both T2 and SPE violated and the COL_PIC loop saturated. The strongest indicators point to a loss of condenser cooling efficiency causing elevated column pressure and associated disturbances, with COL_PIC being pushed to its limits.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T2=4646.08, SPE=41.07 (both well above limits; T2_violation=true, SPE_violation=true)",
+     "ok": true,
+     "error": null,
+     "latency_s": 7.79,
+     "tokens": 4999
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "condenser_cooling_loss",
+      "reflux_pump_trip",
+      "h2_pcv_capacity_degradation"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss"
+     ],
+     "summary": "PCA shows a very large coherent deviation (very high T\u00b2) with SPE also high. The dominant contributors are column and tray pressure measurements across the column (top and multiple trays). COL_PIC is saturated and PV (column pressure) is above setpoint and rising toward the COL_P_H alarm in ~3 minutes. Trends show rising column pressure and rising top/bottom temperatures, drum holdup falling. This pattern is most consistent with loss of condenser cooling (reduced condensing capacity) causing column pressure to rise while the pressure controller saturates trying to bring pressure down.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2=4646.08 (limit 67.91) SPE=41.07 (limit 5.07) \u2014 both grossly exceeded",
+     "ok": true,
+     "error": null,
+     "latency_s": 12.5,
+     "tokens": 5473
+    }
+   }
+  },
+  {
+   "id": "T03",
+   "group": "triple_all",
+   "t": 16.50000000000002,
+   "at": "+5 min",
+   "truth": [
+    "condenser_cooling_loss",
+    "reflux_pump_trip",
+    "reflux_drum_leak"
+   ],
+   "pca": {
+    "t2": 33468.31047016209,
+    "t2_limit": 67.91057093402111,
+    "spe": 781.9160978573948,
+    "spe_limit": 5.068602531822588
+   },
+   "heuristic": {
+    "ranked": [
+     "reflux_pump_trip",
+     "condenser_cooling_loss",
+     "COL_PIC_out_of_range"
+    ],
+    "top1": true,
+    "top3": true,
+    "found": [
+     "condenser_cooling_loss",
+     "reflux_pump_trip"
+    ]
+   },
+   "llm": {
+    "gpt-5-nano": {
+     "ranked": [
+      "reflux_pump_trip",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss",
+      "reflux_pump_trip"
+     ],
+     "summary": "PCA flags a large, coherent upset with multiple pressure measurements driving the abnormality; the fixed-rule and evidence point to a failure in the reflux train causing abnormal reflux control and column pressure rise.",
+     "fault_class": "actuator",
+     "t2_spe_reading": "T2=33468.31, SPE=781.92",
+     "ok": true,
+     "error": null,
+     "latency_s": 6.67,
+     "tokens": 4856
+    },
+    "gpt-5-mini": {
+     "ranked": [
+      "reflux_pump_trip",
+      "condenser_cooling_loss"
+     ],
+     "top1": true,
+     "top3": true,
+     "found": [
+      "condenser_cooling_loss",
+      "reflux_pump_trip"
+     ],
+     "summary": "Primary evidence points to a failure of the reflux pump (P-201A) causing a rapid, coherent upset in column pressures and tray pressures with the column pressure control saturated and COL_P_H alarm. A condenser cooling fault is a plausible secondary cause but the plant data show the REFLUX pump reported failed (P201_TRIP) and the reflux train marked failed.",
+     "fault_class": "equipment",
+     "t2_spe_reading": "T\u00b2 = 33468.31 (limit 67.91) \u2014 large coherent shift; SPE = 781.92 (limit 5.07) \u2014 strong broken correlations",
+     "ok": true,
+     "error": null,
+     "latency_s": 13.8,
+     "tokens": 5332
+    }
+   }
+  }
+ ],
+ "undetected": []
+}

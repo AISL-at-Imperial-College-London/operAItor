@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { send, usePlant } from "../store";
 import type { AgentEvent } from "../types";
 import { Chart } from "./Chart";
@@ -15,6 +16,7 @@ function describePlan(e: AgentEvent) {
   if (e.stage === "twin_skipped") return <span className="dim">twin skipped: {e.reason}</span>;
   if (e.stage === "twin") return <span className={e.restored ? "" : "alm-ack"}>twin: {e.restored ? `faulty variables back within limits after ${e.time_to_restore_min?.toFixed(1)} min` : e.safe_reached ? "keeps it safe, still faulty" : "does not keep it safe"}</span>;
   if (e.stage === "verification") return <span className="dim">{e.reason}</span>;
+  if (e.stage === "llm_diagnosis") return <span>LLM diagnosis: <b>{e.most_likely ?? "unclear"}</b> <span className="dim">— {e.summary ?? e.error}</span></span>;
   if (e.stage === "alarm_ack") return <span className="dim">acknowledged {(e.alarms ?? []).join(", ")} — {e.reason}</span>;
   if (e.stage === "llm_error") return <span className="alm-unack">LLM call failed (rule fallback): {e.error}</span>;
   if (e.stage === "validation") { const bad = e.checks?.filter((c) => !c.ok) ?? []; return <span className={e.accepted ? "" : "alm-ack"}>{e.accepted ? "ACCEPT" : `REJECT: ${bad[0]?.check} — ${bad[0]?.detail}`}</span>; }
@@ -72,6 +74,42 @@ function PlanningCard() {
       </div>
       {brief.constraints.length > 0 && <ul className="constraints">{brief.constraints.map((c, i) => <li key={i}>{c}</li>)}</ul>}
       {brief.planner_error && <div className="note warn">LLM planner failed, KG planner used: {brief.planner_error}</div>}
+    </div>
+  );
+}
+
+function LlmDiagnosisCard() {
+  const log = usePlant((s) => s.agentLog);
+  const [busy, setBusy] = useState(false);
+  const d = [...log].reverse().find((e) => e.stage === "llm_diagnosis");
+  useEffect(() => setBusy(false), [d]);
+  return (
+    <div className="card">
+      <div className="card-title row">
+        <span>LLM diagnosis <span className="dim">— reads T², SPE, the contributions and the rule evidence</span></span>
+        <span className="spacer" />
+        <button className="btn sm" disabled={busy} onClick={() => { setBusy(true); send({ type: "diagnose_now" }); }}>
+          {busy ? "Asking…" : "Ask the LLM now"}</button>
+      </div>
+      {!d ? <div className="empty">No LLM diagnosis yet. It runs when a fault is confirmed, or ask now.</div> : !d.ok ? (
+        <div className="note warn">LLM diagnosis failed: {d.error}</div>
+      ) : (
+        <>
+          <div className="kv-line"><span className="num t">{d.time_min.toFixed(1)} min</span>{" "}
+            <b>{d.most_likely ?? "unclear"}</b>{d.fault_class ? <span className="pill">{d.fault_class}</span> : null}
+            {d.on_demand ? <span className="dim"> · on demand</span> : null}</div>
+          <div className="kv-line">{d.summary}</div>
+          {d.t2_spe_reading && <div className="kv-line dim">T² / SPE: {d.t2_spe_reading}</div>}
+          <ol className="hyps">
+            {(d.hypotheses ?? []).map((h) => (
+              <li key={h.fault}><b>{h.fault}</b> <span className="dim">({Math.round(100 * h.probability)} %)</span>
+                {h.evidence.length ? <div className="small">for: {h.evidence.join(" · ")}</div> : null}
+                {h.against.length ? <div className="small dim">against: {h.against.join(" · ")}</div> : null}</li>
+            ))}
+          </ol>
+          {d.operator_checks?.length ? <div className="small"><b>Check:</b> {d.operator_checks.join(" · ")}</div> : null}
+        </>
+      )}
     </div>
   );
 }
@@ -141,6 +179,7 @@ export function FddPanel() {
         </div>
       </div>
 
+      <LlmDiagnosisCard />
       <PlanningCard />
       <AgentCards />
 

@@ -23,8 +23,8 @@ Commands (``py -3 recovery_agents_langgraph.py <command> -h`` for options):
   bench      faults × seeds × agents sweep → runs.csv, summary.csv, summary.md
   summarize  rebuild summary.csv / summary.md from an existing runs.csv
 
-Agent presets (``--agents``): passive, rule, rule_twin, llm, llm_plan
-(LLM planning agent too), llm_nokg, llm_notwin, pca_only. LLM presets use ``--llm-model`` (names starting with
+Agent presets (``--agents``): passive, llm, llm_plan (LLM planning agent too),
+llm_nokg, llm_notwin, llm_lucky, llm_judge. LLM presets use ``--llm-model`` (names starting with
 ``gpt`` → langchain-openai, otherwise → langchain-ollama, as in cstr_case.py; the
 default is gpt-5-nano, the cheapest OpenAI model, see agents/llm.py).
 
@@ -413,12 +413,12 @@ def main() -> None:
     p = sub.add_parser("run", help="one verbose episode")
     common(p)
     p.add_argument("--scenario", default="reflux_pump_trip", help=f"one of {list(CURATED_EPISODES)} or 'surprise'")
-    p.add_argument("--agent", default="rule", choices=sorted(PRESETS))
+    p.add_argument("--agent", default="llm", choices=sorted(PRESETS))
     p.add_argument("--seed", type=int, default=0)
     p = sub.add_parser("bench", help="faults × seeds × agents sweep")
     common(p)
     p.add_argument("--faults", nargs="+", default=["all"])
-    p.add_argument("--agents", nargs="+", default=["passive", "rule", "rule_twin"], choices=sorted(PRESETS))
+    p.add_argument("--agents", nargs="+", default=["passive", "llm"], choices=sorted(PRESETS))
     p.add_argument("--seeds", type=int, default=3)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--output", default="benchmark_results")
@@ -435,7 +435,7 @@ def main() -> None:
     pca, kg = _resources()
     if pca is None:
         print("NOTE: no PCA model at fdd_results/pca_model.json — run `py -3 train_pca.py`; rules only.")
-    scenario, agent, seed = ("reflux_pump_trip", "rule", 0) if args.cmd == "smoke" else (args.scenario, args.agent, args.seed)
+    scenario, agent, seed = ("reflux_pump_trip", "llm", 0) if args.cmd == "smoke" else (args.scenario, args.agent, args.seed)
     cfg = make_config(agent, clock=args.clock, delay_min=args.delay_min, speedup=args.speedup,
                       llm_model=args.llm_model)
     print(f"{scenario} | agent={agent} | clock={cfg.clock} | horizon={args.horizon} min | onset={args.onset} min")

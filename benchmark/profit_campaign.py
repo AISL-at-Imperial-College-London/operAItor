@@ -15,7 +15,8 @@ Protocol per scenario (same plant, same seeds, same economics for every run)
                 its own onset). If the probe does not trip within 240 min, each fault is lifted
                 30 min after its onset.
   3. passive  : faults with that lift schedule, nobody acts             -> baseline profit
-     agents   : faults with that lift schedule, agents in autonomous mode -> agent profit
+     lucky / judge / llmtwin : the same faults with the LLM agents (gpt-5-nano by default) in
+                autonomous mode, validated by nothing / an LLM judge / the digital twin
   A nominal run (no fault) gives the reference profit for the same window.
   After the faults are lifted a "shift operator" requests a SIF reset every 5 min (it only resets
   latches whose variable is back inside the reset band); plant-trip latches end the episode.
@@ -31,11 +32,12 @@ import argparse
 import asyncio
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import json
+import os
 from pathlib import Path
 import sys
 import time
 
-from .economics import PRICES, hourly_margin, prices_dict
+from .economics import PRICES, hourly_margin, inventory_value, prices_dict
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "benchmark_results"
@@ -46,7 +48,11 @@ LIFT_NO_TRIP = 30.0      # ... or this long after onset if the plant would not t
 PROBE_WINDOW = 240.0
 MIN_WINDOW = 120.0       # scenario window [min]
 TAIL = 60.0              # run at least this long after the last lift
-AGENT_PRESET = "rule_twin"  # offline proposer + digital twin + validate/reprompt (no OpenAI calls)
+# run mode -> agent preset. Every action comes from the LLM (PLANT_LLM_MODEL, default
+# gpt-5-nano; --model / --base-url select a local model).
+AGENT_MODES = {"lucky": "llm_lucky", "judge": "llm_judge", "llmtwin": "llm"}
+MODE_LABEL = {"passive": "No agents", "lucky": "LLM, no validation (feeling lucky)", "judge": "LLM + LLM judge",
+              "llmtwin": "LLM + digital twin"}
 
 
 def F(fault: str, at: float = ONSET, **kw) -> dict:
@@ -146,10 +152,17 @@ async def run_scenario(scn: dict, mode: str, sched: dict, window: float, verbose
     service.messages = deque(maxlen=10_000)
     await service.load({"scenario": "nominal", "horizon_min": window + 1.0, "stop_on_trip": True})
     sup = None
-    if mode == "agents":
+    usage0 = None
+    if mode in AGENT_MODES:
+        from agents.llm import DEFAULT_MODEL, USAGE
         from agents.recovery_graph import make_config
         from agents.supervisor import AsyncSupervisor
-        sup = AsyncSupervisor(service, make_config(AGENT_PRESET), mode="autonomous")
+        model = os.environ.get("PLANT_LLM_MODEL") or DEFAULT_MODEL
+        extra = {"use_kg": False} if os.environ.get("PLANT_USE_KG") == "0" else {}  # KG ablation
+        if os.environ.get("PLANT_DIAGNOSER"):
+            extra["diagnoser"] = os.environ["PLANT_DIAGNOSER"]
+        sup = AsyncSupervisor(service, make_config(AGENT_MODES[mode], llm_model=model, **extra), mode="autonomous")
+        usage0 = USAGE.summary()["total"]
         sup.start()
     injections = []
     for i, f in enumerate(scn["faults"]):
@@ -175,7 +188,7 @@ async def run_scenario(scn: dict, mode: str, sched: dict, window: float, verbose
             return
         t0 = time.time()
         while ((sup.last_cycle_t is None or sup.last_cycle_t + 1e-6 < t_now or service.held)
-               and time.time() - t0 < 900 and not sup._task.done()):
+               and time.time() - t0 < 1800 and not sup._task.done()):
             await asyncio.sleep(0.01)
 
     t = 0.0
@@ -237,8 +250,19 @@ async def run_scenario(scn: dict, mode: str, sched: dict, window: float, verbose
         log = list(service.agent_log)
         mon = [m_ for m_ in service.monitor if m_["fault"]]
         applied = [e for e in log if e.get("stage") == "applied"]
+        from agents.llm import USAGE
+        u1 = USAGE.summary()["total"]
+        uses_llm = sup.cfg.proposer == "llm" or sup.cfg.planner == "llm" or sup.cfg.judge
         agent = {
-            "preset": AGENT_PRESET,
+            "preset": sup.cfg.name,
+            "llm_model": sup.cfg.llm_model if uses_llm else None,
+            "llm_usage": {k: round(u1[k] - usage0[k], 6) for k in u1} if uses_llm else None,
+            "llm_errors": [str(e.get("error"))[:200] for e in log if e.get("stage") == "llm_error"],
+            "judge": [{"t": e["time_min"], "cycle": e.get("cycle"), "accept": e.get("accept"),
+                       "confidence": e.get("confidence"), "reason": e.get("reason"),
+                       "commands": (e.get("plan") or {}).get("commands")} for e in log if e.get("stage") == "judge"],
+            "proposals": sum(1 for e in log if e.get("stage") == "proposal"),
+            "timing": _timing(log),
             "first_detection_min": mon[0]["time_min"] if mon else None,
             "fault_cycles": len(mon),
             "decisions": len({e.get("cycle") for e in log if e.get("stage") == "node"}),
@@ -275,6 +299,31 @@ def sr_trip(env) -> bool:
     return bool(env.last_safety_result.plant_trip_latched)
 
 
+def _timing(log: list[dict]) -> dict:
+    """Wall-clock overheads of the agents (the plant is held while they decide, so these add to
+    the run time but not to the simulated time): each LLM call, each twin rollout, each decision."""
+    calls = [{"t": round(e["time_min"], 2), "cycle": e.get("cycle"), "agent": "judge" if e["stage"] == "judge" else "action",
+              "latency_s": round(e["latency_s"], 3), "tokens": e.get("tokens")}
+             for e in log if e.get("stage") in ("proposal", "judge") and e.get("latency_s") is not None]
+    twins = [{"t": round(e["time_min"], 2), "cycle": e.get("cycle"), "wall_s": e["wall_s"],
+              "counterfactual": bool(e.get("counterfactual"))}
+             for e in log if e.get("stage") == "twin" and e.get("wall_s") is not None]
+    spans: dict = {}
+    for e in log:  # a decision runs from its first to its last graph event (later acks / resets excluded)
+        c, w = e.get("cycle"), e.get("wall")
+        if c is None or w is None or e.get("stage") in ("alarm_ack", "sif_reset"):
+            continue
+        d = spans.setdefault(c, {"cycle": c, "t": round(e["time_min"], 2), "w0": w, "w1": w})
+        d["w0"], d["w1"] = min(d["w0"], w), max(d["w1"], w)
+    decisions = [{"cycle": d["cycle"], "t": d["t"], "wall_s": round(d["w1"] - d["w0"], 3)} for d in spans.values()]
+
+    def total(xs, k):
+        return round(sum(x[k] or 0.0 for x in xs), 3)
+    return {"llm_calls": calls, "twin_rollouts": twins, "decisions": decisions,
+            "llm_s": total(calls, "latency_s"), "twin_s": total(twins, "wall_s"), "decision_s": total(decisions, "wall_s"),
+            "n_llm_calls": len(calls), "n_twin_rollouts": len(twins), "n_decisions": len(decisions)}
+
+
 def _run_job(args: tuple) -> str:
     sid, mode, sched, window = args
     _utf8()
@@ -308,7 +357,7 @@ def phase_probe(n: int, ids: list[str]) -> None:
     _pool(jobs, n)
 
 
-def phase_compare(n: int, ids: list[str], modes=("agents", "passive")) -> None:
+def phase_compare(n: int, ids: list[str], modes=("lucky", "judge", "llmtwin", "passive")) -> None:
     jobs = []
     for mode in modes:  # agents first: they take longest
         for sid in ids:
@@ -321,12 +370,17 @@ def phase_compare(n: int, ids: list[str], modes=("agents", "passive")) -> None:
     _pool(jobs, n)
 
 
-def _window_profit(run: dict, window: float) -> float:
-    """Profit of a run truncated to ``window`` minutes (margin integral + trip penalty)."""
+def _window_profit(run: dict, window: float, parts: bool = False):
+    """Profit of a run truncated to ``window`` minutes: margin integral + change in liquid
+    inventory value + trip penalty (see economics.py)."""
     dt = 0.5 / 60.0
-    margin = sum(tk["margin_usd_h"] * dt for tk in run["ticks"] if tk["t"] <= window + 1e-6)
+    ticks = [tk for tk in run["ticks"] if tk["t"] <= window + 1e-6]
+    margin = sum(tk["margin_usd_h"] * dt for tk in ticks)
+    inventory = inventory_value(ticks[-1]) - inventory_value(run["ticks"][0]) if ticks else 0.0
     tripped = run["tripped"] and (run["trip_min"] or 0) <= window
-    return margin - (PRICES.trip_penalty_usd if tripped else 0.0)
+    penalty = PRICES.trip_penalty_usd if tripped else 0.0
+    total = margin + inventory - penalty
+    return {"margin": margin, "inventory": inventory, "penalty": -penalty, "total": total} if parts else total
 
 
 def footprint(run: dict, onset: float, span: float = 15.0) -> set[str]:
@@ -350,60 +404,82 @@ def report() -> dict:
             single_fp[scn["faults"][0]["fault"]] = footprint(p, ONSET)
     rows = []
     for scn in SCENARIOS:
-        p, a, pr = _load(scn["id"], "passive"), _load(scn["id"], "agents"), _load(scn["id"], "probe")
-        if p is None or a is None:
+        p, pr = _load(scn["id"], "passive"), _load(scn["id"], "probe")
+        if p is None:
             continue
-        window = a["window_min"]
-        nom = _window_profit(nominal, window)
-        pp, ap = _window_profit(p, window), _window_profit(a, window)
+        window = p["window_min"]
+        nom, pp = _window_profit(nominal, window), _window_profit(p, window)
         fps = [single_fp.get(f["fault"], set()) for f in scn["faults"]]
         overlaps = [sorted(fps[i] & fps[j]) for i in range(len(fps)) for j in range(i + 1, len(fps))]
-        ag = a["agent"] or {}
         rows.append({"id": scn["id"], "group": scn["group"], "faults": " + ".join(f["fault"] for f in scn["faults"]),
-                     "window_min": window, "lift_min": [v["lift_min"] for v in a["schedule"].values()],
+                     "window_min": window, "lift_min": [v["lift_min"] for v in p["schedule"].values()],
                      "probe_trip_min": pr["trip_min"] if pr else None, "probe_sifs": pr["sifs"] if pr else None,
                      "passive_trip_min": p["trip_min"], "passive_sifs": p["sifs"], "passive_status": p["status"],
-                     "agents_trip_min": a["trip_min"], "agents_sifs": a["sifs"], "agents_status": a["status"],
-                     "nominal_profit": round(nom, 0), "passive_profit": round(pp, 0), "agents_profit": round(ap, 0),
-                     "saving": round(ap - pp, 0), "agents_loss_vs_nominal": round(nom - ap, 0),
-                     "passive_off_spec_min": p["off_spec_min"], "agents_off_spec_min": a["off_spec_min"],
-                     "agent_detection_min": ag.get("first_detection_min"),
-                     "agent_actions": [(x["t"], x["kind"], x["commands"]) for x in ag.get("actions", [])],
-                     "agent_reprompts": ag.get("reprompts"), "agent_fallbacks": ag.get("fallbacks"),
-                     "agent_alarm_acks": sum(len(x["alarms"] or []) for x in ag.get("alarm_acks", [])),
-                     "alarms_listed_at_end_agents": [x["id"] for x in a["alarms_listed_at_end"]],
+                     "nominal_profit": round(nom, 0), "passive_profit": round(pp, 0),
+                     "passive_off_spec_min": p["off_spec_min"],
                      "alarms_listed_at_end_passive": [x["id"] for x in p["alarms_listed_at_end"]],
-                     "footprint_overlap": overlaps, "interaction": scn.get("interaction")})
+                     "footprint_overlap": overlaps, "interaction": scn.get("interaction"), "configs": {}})
     totals = {"scenarios": len(rows),
               "passive_sif_trips": sum(r["passive_status"] == "SAFE_TRIP" for r in rows),
               "passive_dry_outs": sum(r["passive_status"] == "MODEL_LIMIT" for r in rows),
-              "agents_sif_trips": sum(r["agents_status"] == "SAFE_TRIP" for r in rows),
-              "agents_dry_outs": sum(r["agents_status"] == "MODEL_LIMIT" for r in rows),
               "probe_trips": sum(r["probe_trip_min"] is not None for r in rows),
               "passive_trips": sum(r["passive_trip_min"] is not None for r in rows),
-              "agents_trips": sum(r["agents_trip_min"] is not None for r in rows),
               "nominal_profit": sum(r["nominal_profit"] for r in rows),
-              "passive_profit": sum(r["passive_profit"] for r in rows),
-              "agents_profit": sum(r["agents_profit"] for r in rows)}
-    totals["saving"] = totals["agents_profit"] - totals["passive_profit"]
-    by_group = {}
-    for r in rows:
-        g = by_group.setdefault(r["group"], {"n": 0, "passive_trips": 0, "agents_trips": 0, "passive": 0, "agents": 0})
-        g["n"] += 1
-        g["passive_trips"] += r["passive_trip_min"] is not None
-        g["agents_trips"] += r["agents_trip_min"] is not None
-        g["passive"] += r["passive_profit"]
-        g["agents"] += r["agents_profit"]
-    out = {"prices": prices_dict(),
+              "passive_profit": sum(r["passive_profit"] for r in rows)}
+    # every agent configuration that has runs: profit, stops and saving vs no agents, per scenario
+    configs = {}
+    for mode in AGENT_MODES:
+        per = {}
+        for r in rows:
+            run = _load(r["id"], mode)
+            if run is None:
+                continue
+            prof = _window_profit(run, r["window_min"])
+            ag = run.get("agent") or {}
+            per[r["id"]] = {"profit": round(prof, 0), "saving": round(prof - r["passive_profit"], 0),
+                            "trip_min": run["trip_min"], "status": run["status"], "sifs": run["sifs"],
+                            "actions": len(ag.get("actions", [])), "proposals": ag.get("proposals"),
+                            "reprompts": ag.get("reprompts"), "llm_usage": ag.get("llm_usage"),
+                            "judge_rejections": sum(1 for j in ag.get("judge", []) if not j.get("accept")),
+                            "judge_calls": len(ag.get("judge", [])), "llm_errors": len(ag.get("llm_errors", [])),
+                            "alarms_listed_at_end": [x["id"] for x in run["alarms_listed_at_end"]],
+                            "timing": {k: v for k, v in (ag.get("timing") or {}).items()
+                                       if k in ("llm_s", "twin_s", "decision_s", "n_llm_calls", "n_twin_rollouts", "n_decisions")},
+                            "wall_s": run.get("wall_s")}
+            r["configs"][mode] = per[r["id"]]
+        if per:
+            usage = [v["llm_usage"] for v in per.values() if v.get("llm_usage")]
+            configs[mode] = {"label": MODE_LABEL[mode], "preset": AGENT_MODES[mode], "n": len(per),
+                             "complete": len(per) == len(rows),
+                             "trips": sum(v["trip_min"] is not None for v in per.values()),
+                             "sif_trips": sum(v["status"] == "SAFE_TRIP" for v in per.values()),
+                             "profit": sum(v["profit"] for v in per.values()),
+                             "passive_profit_same": sum(r["passive_profit"] for r in rows if r["id"] in per),
+                             "saving": sum(v["saving"] for v in per.values()),
+                             "llm_calls": sum(u["calls"] for u in usage), "llm_cost_usd": round(sum(u["cost_usd"] for u in usage), 4),
+                             "llm_tokens": sum(u["input_tokens"] + u["output_tokens"] for u in usage),
+                             **_timing_totals([v for v in per.values()])}
+    out = {"prices": prices_dict(), "configs": configs, "mode_labels": MODE_LABEL,
            "protocol": {"onset_min": ONSET, "lift_after_trip_min": LIFT_AFTER_TRIP, "lift_no_trip_min": LIFT_NO_TRIP,
                         "probe_window_min": PROBE_WINDOW, "min_window_min": MIN_WINDOW, "tail_min": TAIL,
-                        "agent_preset": AGENT_PRESET},
+                        "agent_modes": AGENT_MODES},
            "single_fault_footprints": {k: sorted(v) for k, v in single_fp.items()},
-           "rows": rows, "totals": totals, "by_group": by_group}
+           "rows": rows, "totals": totals}
     OUT.mkdir(exist_ok=True)
     (OUT / "profit_campaign.json").write_text(json.dumps(out, indent=1, default=str), encoding="utf-8")
     _write_markdown(out)
     return out
+
+
+def _timing_totals(per: list[dict]) -> dict:
+    t = [v["timing"] for v in per if v.get("timing")]
+    n_dec, n_llm = sum(x.get("n_decisions", 0) for x in t), sum(x.get("n_llm_calls", 0) for x in t)
+    dec, llm, twin = (sum(x.get(k, 0.0) for x in t) for k in ("decision_s", "llm_s", "twin_s"))
+    return {"timed_runs": len(t), "decision_s": round(dec, 1), "llm_s": round(llm, 1), "twin_s": round(twin, 1),
+            "n_decisions": n_dec, "n_llm_calls_timed": n_llm, "n_twin_rollouts": sum(x.get("n_twin_rollouts", 0) for x in t),
+            "mean_decision_s": round(dec / n_dec, 2) if n_dec else None,
+            "mean_llm_latency_s": round(llm / n_llm, 2) if n_llm else None,
+            "run_wall_s": round(sum(v.get("wall_s") or 0.0 for v in per), 1)}
 
 
 def _money(x: float | None) -> str:
@@ -426,35 +502,41 @@ def _trip(t, sifs, status="SAFE_TRIP") -> str:
 
 
 def _write_markdown(out: dict) -> None:
+    modes = list(out.get("configs", {}))
     L = ["# Fault campaign: profit with and without the agents", "",
-         f"Agents: preset `{AGENT_PRESET}` (offline rule proposer + digital twin + validate/reprompt; PCA-only trigger).",
+         "Every agent action comes from the LLM (no rule-based agent). Configurations: "
+         + "; ".join(f"`{m}` = {MODE_LABEL[m]}" for m in modes) + ".",
          f"Faults start at {ONSET:g} min. Each fault is lifted {LIFT_AFTER_TRIP:g} min after the time the plant would "
          f"have tripped (probe run, faults never lifted, nobody acting), or {LIFT_NO_TRIP:g} min after its onset if "
          f"the probe does not trip. Window = max({MIN_WINDOW:g} min, last lift + {TAIL:g} min).",
          f"Trip penalty (shutdown + startup): {_money(PRICES.trip_penalty_usd)}; after a trip the plant earns nothing "
-         "for the rest of the window.", "",
-         "| id | group | faults | would trip at (probe) | lifted at | window | passive: trip (SIF) | agents: trip (SIF) "
-         "| nominal | passive | agents | saving |",
-         "|---|---|---|---|---|---:|---|---|---:|---:|---:|---:|"]
+         "for the rest of the window. Profit includes the change in liquid hold-up valued at the IPA price.", "",
+         "| id | faults | would trip at | no agents | " + " | ".join(MODE_LABEL[m] for m in modes) + " | nominal |",
+         "|---|---|---|---|" + "---|" * len(modes) + "---:|"]
     for r in out["rows"]:
         probe = "no trip" if r["probe_trip_min"] is None else f"{r['probe_trip_min']:.1f} min"
-        lifts = ", ".join(f"{x:g}" for x in r["lift_min"])
-        L.append(f"| {r['id']} | {r['group']} | {r['faults']} | {probe} | {lifts} | {r['window_min']:.0f} | "
-                 f"{_trip(r['passive_trip_min'], r['passive_sifs'], r['passive_status'])} | "
-                 f"{_trip(r['agents_trip_min'], r['agents_sifs'], r['agents_status'])} | "
-                 f"{_money(r['nominal_profit'])} | {_money(r['passive_profit'])} | {_money(r['agents_profit'])} | "
-                 f"{_money(r['saving'])} |")
+        cells = []
+        for m in modes:
+            c = r["configs"].get(m)
+            cells.append("—" if c is None else
+                         f"{_money(c['profit'])} · {'stop ' + format(c['trip_min'], '.1f') if c['trip_min'] is not None else 'no stop'}")
+        passive = f"{_money(r['passive_profit'])} · " + _trip(r["passive_trip_min"], r["passive_sifs"], r["passive_status"])
+        L.append(f"| {r['id']} | {r['faults']} | {probe} | {passive} | " + " | ".join(cells) + f" | {_money(r['nominal_profit'])} |")
     t = out["totals"]
-    L += ["", "| group | n | passive trips | agent trips | passive profit | agents profit | saving |",
-          "|---|---:|---:|---:|---:|---:|---:|"]
-    for g, v in out["by_group"].items():
-        L.append(f"| {g} | {v['n']} | {v['passive_trips']} | {v['agents_trips']} | {_money(v['passive'])} | "
-                 f"{_money(v['agents'])} | {_money(v['agents'] - v['passive'])} |")
-    L += ["", f"**Plant stops: without agents {t['passive_trips']}/{t['scenarios']} ({t['passive_sif_trips']} SIF trips + "
-              f"{t['passive_dry_outs']} column dry-outs with no SIF); with agents {t['agents_trips']}/{t['scenarios']} "
-              f"({t['agents_sif_trips']} SIF trip, {t['agents_dry_outs']} dry-outs).**",
-          f"**Campaign profit: nominal {_money(t['nominal_profit'])}, passive {_money(t['passive_profit'])}, "
-          f"agents {_money(t['agents_profit'])}; saving from the agents {_money(t['saving'])}.**", ""]
+    L += ["", f"**Without agents: {t['passive_trips']}/{t['scenarios']} plant stops ({t['passive_sif_trips']} SIF trips + "
+              f"{t['passive_dry_outs']} column dry-outs with no SIF), profit {_money(t['passive_profit'])}; nominal "
+              f"{_money(t['nominal_profit'])}.**", ""]
+    if modes:
+        L += ["## Agent configurations", "",
+              "| configuration | runs | plant stops | profit | saving vs no agents | LLM calls | LLM cost | "
+              "decision time | mean per decision | mean LLM latency | twin time |",
+              "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
+        for mode, c in out["configs"].items():
+            L.append(f"| {c['label']} | {c['n']}/{t['scenarios']} | {c['trips']} | {_money(c['profit'])} | "
+                     f"{_money(c['saving'])} | {c['llm_calls']} | ${c['llm_cost_usd']:.2f} | "
+                     f"{c['decision_s'] / 60:.1f} min | {c['mean_decision_s'] or 0:.1f} s | "
+                     f"{c['mean_llm_latency_s'] or 0:.1f} s | {c['twin_s'] / 60:.1f} min |")
+        L.append("")
     (OUT / "PROFIT_CAMPAIGN.md").write_text("\n".join(L), encoding="utf-8")
 
 
@@ -465,21 +547,27 @@ def main() -> None:
     ap.add_argument("rest", nargs="*")
     ap.add_argument("--jobs", type=int, default=10)
     ap.add_argument("--ids", default="", help="comma-separated scenario ids (default: all)")
+    ap.add_argument("--model", default="", help="LLM for the lucky / judge / llmtwin modes (default gpt-5-nano)")
+    ap.add_argument("--base-url", default="", help="OpenAI-compatible local server, e.g. http://localhost:1234/v1")
     a = ap.parse_args()
     ids = [s for s in a.ids.split(",") if s] or [s["id"] for s in SCENARIOS]
+    if a.model:  # inherited by the worker processes
+        os.environ["PLANT_LLM_MODEL"] = a.model
+    if a.base_url:
+        os.environ["PLANT_LLM_BASE_URL"] = a.base_url
     if a.phase == "list":
         for s in SCENARIOS:
             print(s["id"], s["group"], [(f["fault"], f["at_min"]) for f in s["faults"]])
     elif a.phase == "probe":
         phase_probe(a.jobs, ids)
     elif a.phase == "compare":
-        phase_compare(a.jobs, ids, tuple(a.rest) or ("agents", "passive"))
+        phase_compare(a.jobs, ids, tuple(a.rest) or ("lucky", "judge", "llmtwin", "passive"))
     elif a.phase == "report":
         out = report()
         print((OUT / "PROFIT_CAMPAIGN.md").read_text(encoding="utf-8"))
         print(json.dumps(out["totals"], indent=1))
     else:
-        sid, mode = a.rest[0], a.rest[1] if len(a.rest) > 1 else "agents"
+        sid, mode = a.rest[0], a.rest[1] if len(a.rest) > 1 else "llmtwin"
         sched = lift_schedule(BY_ID[sid], None if mode == "probe" else _load(sid, "probe"))
         window = PROBE_WINDOW if mode == "probe" else window_for(sched)
         res = asyncio.run(run_scenario(BY_ID[sid], mode, sched, window, verbose=True))

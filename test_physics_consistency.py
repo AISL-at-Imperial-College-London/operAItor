@@ -146,7 +146,7 @@ class AlarmAcknowledgementTests(unittest.TestCase):
         async def scenario():
             s = PlantService()
             await s.load({"scenario": "nominal", "horizon_min": 30})
-            sup = AsyncSupervisor(s, make_config("rule"), mode="autonomous")
+            sup = AsyncSupervisor(s, make_config("passive"), mode="autonomous")
             am = s.env.alarms
             am.update(1.0, {"cstr_pressure_bar": 3.6, "drum_holdup_kmol": 13.0})   # R_P_H + DR_L_LL active
             # dispatching an action takes ownership: standing alarms are acknowledged
@@ -178,7 +178,7 @@ class AlarmAcknowledgementTests(unittest.TestCase):
         async def scenario():
             s = PlantService()
             await s.load({"scenario": "nominal", "horizon_min": 30})
-            sup = AsyncSupervisor(s, make_config("rule"), mode="autonomous")
+            sup = AsyncSupervisor(s, make_config("passive"), mode="autonomous")
             s.env.last_safety_result = replace(s.env.last_safety_result, latched_causes=("R_T_HH",),
                                                plant_trip_latched=False)
             await sup._request_sif_reset()
@@ -201,7 +201,7 @@ class AlarmAcknowledgementTests(unittest.TestCase):
         async def scenario():
             s = PlantService()
             await s.load({"scenario": "nominal", "horizon_min": 30})
-            sup = AsyncSupervisor(s, make_config("rule"), mode="autonomous")
+            sup = AsyncSupervisor(s, make_config("passive"), mode="autonomous")
             am = s.env.alarms
             am.update(1.0, {"cstr_pressure_bar": 3.6})
             am.update(2.0, {"cstr_pressure_bar": 3.0})

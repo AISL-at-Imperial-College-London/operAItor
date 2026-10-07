@@ -4,12 +4,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-/* Layout: control-room board. Summary strip on top, tabs below; scenario list then a detail panel.
-   Steel blue = agents, warm grey-red = no agents, dashed slate = nominal reference. */
+/* Layout: control-room board. Summary strip, tabs, scenario list then a detail panel.
+   One colour per configuration: no agents (warm red), LLM lucky (amber),
+   LLM + judge (violet), LLM + twin (teal); nominal reference dashed slate. */
 :root {
   --bg: #f3f5f6; --panel: #ffffff; --ink: #1b2429; --muted: #5c6a72; --line: #d9e0e4; --soft: #e9eef1;
   --accent: #2a6889; --accent-soft: #dcebf3;
-  --passive: #b4573f; --agents: #2a6889; --nominal: #8a979e;
+  --passive: #b4573f; --agents: #2a6889; --lucky: #b07d12; --judge: #7a4fa8; --llmtwin: #1f8a7a; --nominal: #8a979e;
   --good: #2f7a4c; --good-soft: #dff0e5; --warn: #a86b12; --warn-soft: #f6ebd5; --bad: #b3342e; --bad-soft: #f6dedc;
   --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --f-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -19,51 +20,51 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #12181c; --panel: #192227; --ink: #e3eaee; --muted: #93a3ab; --line: #2b383f; --soft: #212c32;
   --accent: #6fb0d4; --accent-soft: #1f3a49;
-  --passive: #e08a70; --agents: #6fb0d4; --nominal: #74838b;
+  --passive: #e08a70; --agents: #6fb0d4; --lucky: #e3b54f; --judge: #b48ee0; --llmtwin: #5fcbb8; --nominal: #74838b;
   --good: #6cc391; --good-soft: #1d3527; --warn: #e0a64a; --warn-soft: #3a2e17; --bad: #ef7d74; --bad-soft: #43221f;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #12181c; --panel: #192227; --ink: #e3eaee; --muted: #93a3ab; --line: #2b383f; --soft: #212c32;
   --accent: #6fb0d4; --accent-soft: #1f3a49;
-  --passive: #e08a70; --agents: #6fb0d4; --nominal: #74838b;
+  --passive: #e08a70; --agents: #6fb0d4; --lucky: #e3b54f; --judge: #b48ee0; --llmtwin: #5fcbb8; --nominal: #74838b;
   --good: #6cc391; --good-soft: #1d3527; --warn: #e0a64a; --warn-soft: #3a2e17; --bad: #ef7d74; --bad-soft: #43221f;
   color-scheme: dark; }
 
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); }
-.wrap { max-width: 1280px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 48px; display: grid; gap: 20px; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 48px; display: grid; gap: 20px; }
 h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: .01em; }
 h1 { font-size: 30px; font-weight: 700; }
 h2 { font-size: 20px; font-weight: 600; }
 h3 { font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-p { margin: 0; max-width: 72ch; }
+p { margin: 0; max-width: 78ch; }
 .mono, td.num, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
 .small { font-size: 12.5px; }
 
 header.top { display: grid; gap: 6px; }
 header.top .eyebrow { font: 500 12px var(--f-mono); color: var(--muted); letter-spacing: .04em; }
+.status-note { border: 1px solid var(--line); border-left: 4px solid var(--warn); background: var(--panel); padding: 10px 14px; border-radius: 6px; }
 
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 4px; }
 .kpi .label { font: 600 11.5px var(--f-body); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
-.kpi .value { font: 700 28px var(--f-display); font-variant-numeric: tabular-nums; }
-.kpi .value .from { color: var(--passive); }
-.kpi .value .to { color: var(--agents); }
+.kpi .value { font: 700 26px var(--f-display); font-variant-numeric: tabular-nums; }
 .kpi .note { font-size: 12.5px; color: var(--muted); }
 
 nav.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 nav.tabs button { font: 600 14px var(--f-display); letter-spacing: .03em; background: none; border: 0; color: var(--muted);
   padding: 10px 14px; border-bottom: 3px solid transparent; cursor: pointer; }
 nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
-nav.tabs button:focus-visible, .scen-row:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:focus-visible, .scen-row:focus-visible, select:focus-visible, summary:focus-visible, label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 section.pane { display: grid; gap: 20px; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
-.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
 .chart-box { position: relative; height: 300px; min-width: 0; }
 .chart-box.tall { height: 420px; }
+.chart-box.short { height: 220px; }
 
 .table-wrap { overflow-x: auto; min-width: 0; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
@@ -75,6 +76,7 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 .scen-row:hover td { background: var(--soft); }
 .scen-row[aria-selected="true"] td { background: var(--accent-soft); }
 .pos { color: var(--good); } .neg { color: var(--bad); }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--c); margin-right: 6px; vertical-align: -1px; }
 
 .pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 600 11.5px var(--f-body);
   white-space: nowrap; border: 1px solid transparent; }
@@ -83,16 +85,15 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 .pill.warn { color: var(--warn); background: var(--warn-soft); }
 .pill.bad { color: var(--bad); background: var(--bad-soft); }
 .pill.info { color: var(--accent); background: var(--accent-soft); }
+.pill.none { color: var(--muted); background: var(--soft); }
 .chip { display: inline-block; font: 500 12px var(--f-mono); padding: 1px 7px; border-radius: 4px; background: var(--soft); margin: 1px 4px 1px 0; }
 .grp { font: 600 11px var(--f-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); white-space: nowrap; }
+.cell-mode { display: grid; gap: 3px; }
 
 .detail-head { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; justify-content: space-between; }
 .detail-head h2 { font-size: 26px; }
-.outcomes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-.outcome { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: grid; gap: 6px; background: var(--panel); }
-.outcome.passive { border-top: 3px solid var(--passive); }
-.outcome.agents { border-top: 3px solid var(--agents); }
-.outcome.probe { border-top: 3px solid var(--nominal); }
+.outcomes { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.outcome { border: 1px solid var(--line); border-top: 3px solid var(--c); border-radius: 6px; padding: 12px 14px; display: grid; gap: 6px; background: var(--panel); align-content: start; }
 .outcome .big { font: 700 22px var(--f-display); font-variant-numeric: tabular-nums; }
 dl.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; font-size: 12.5px; }
 dl.kv dt { color: var(--muted); } dl.kv dd { margin: 0; font-family: var(--f-mono); font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
@@ -102,6 +103,9 @@ select { font: 500 13px var(--f-body); padding: 6px 8px; border: 1px solid var(-
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
 .legend span::before { content: ""; display: inline-block; width: 16px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--c); }
 .legend span.dash::before { background: repeating-linear-gradient(90deg, var(--c) 0 4px, transparent 4px 7px); }
+.toggles { display: flex; gap: 6px; flex-wrap: wrap; }
+.toggles label { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; cursor: pointer; }
+.toggles input { accent-color: var(--accent); margin: 0; }
 
 .timeline { display: grid; gap: 0; }
 .ev { display: grid; grid-template-columns: 64px 108px 1fr; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--soft); font-size: 13px; }
@@ -116,7 +120,7 @@ select { font: 500 13px var(--f-body); padding: 6px 8px; border: 1px solid var(-
 .cand { font-family: var(--f-mono); font-size: 12px; }
 .cand .y { color: var(--good); font-weight: 600; } .cand .n { color: var(--bad); }
 details > summary { cursor: pointer; font-weight: 600; color: var(--accent); }
-ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 80ch; }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 84ch; }
 .bar { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; }
 .bar > i { display: block; height: 100%; background: var(--agents); }
 
@@ -132,32 +136,39 @@ ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 80
 
 <div class="wrap">
   <header class="top">
-    <div class="eyebrow">IPA → ACETONE CSTR + COLUMN · 20 FAULT SCENARIOS · AGENTS vs NO AGENTS</div>
+    <div class="eyebrow">IPA → ACETONE CSTR + COLUMN · 20 FAULT SCENARIOS · LLM AGENT CONFIGURATIONS COMPARED</div>
     <h1>Acetone Plant Fault Campaign</h1>
     <p class="muted" id="protocol"></p>
   </header>
+  <div class="status-note" id="statusNote" hidden></div>
 
   <div class="kpis" id="kpis"></div>
 
   <nav class="tabs" role="tablist" aria-label="Dashboard sections">
     <button role="tab" id="tab-overview" aria-controls="overview">Overview</button>
     <button role="tab" id="tab-scenarios" aria-controls="scenarios">Scenarios</button>
-    <button role="tab" id="tab-rounds" aria-controls="rounds">Agent development</button>
-    <button role="tab" id="tab-checks" aria-controls="checks">Loops &amp; physics</button>
+    <button role="tab" id="tab-checks" aria-controls="checks">Controllers &amp; physics</button>
   </nav>
 
   <!-- ===================================================== OVERVIEW -->
   <section class="pane" id="overview" role="tabpanel" aria-labelledby="tab-overview">
     <div class="panel">
-      <div class="detail-head"><h2>Profit per scenario</h2>
-        <div class="legend"><span style="--c:var(--passive)">No agents</span><span style="--c:var(--agents)">Agents</span><span class="dash" style="--c:var(--nominal)">Nominal (no fault)</span></div></div>
-      <p class="muted small">USD over each scenario's window, including the shutdown + startup penalty when the plant stops. Select a bar to open the scenario.</p>
-      <div class="chart-box tall"><canvas id="ovBars" aria-label="Profit per scenario, with and without agents"></canvas></div>
+      <h2>Configurations</h2>
+      <p class="muted small">Same 20 scenarios, same fault-lift times, same economics. Saving = profit minus the no-agent profit over each scenario's window.</p>
+      <div class="table-wrap"><table id="configTable"></table></div>
+    </div>
+    <div class="panel">
+      <div class="detail-head"><h2>Profit per scenario</h2><div class="legend" id="ovLegend"></div></div>
+      <p class="muted small">USD over each scenario's window, including the shutdown + startup penalty when the plant stops. Select a bar group to open the scenario.</p>
+      <div class="chart-box tall"><canvas id="ovBars" aria-label="Profit per scenario for each configuration"></canvas></div>
     </div>
     <div class="grid2">
-      <div class="panel"><h3>By scenario group</h3><div class="table-wrap"><table id="groupTable"></table></div></div>
-      <div class="panel"><h3>Why the plant stopped without agents</h3><div id="stopCauses"></div>
-        <h3 style="margin-top:6px">Where the saving comes from</h3><div id="savingSplit"></div></div>
+      <div class="panel"><h3>Plant stops per configuration</h3><div class="chart-box short"><canvas id="ovStops" aria-label="Plant stops per configuration"></canvas></div></div>
+      <div class="panel"><h3>Decision overhead: mean seconds per decision</h3>
+        <p class="small muted">Wall-clock time from detection to dispatch. The plant is held while the agents decide, so this is time a real operator would wait, not simulated time.</p>
+        <div class="chart-box short"><canvas id="ovTime" aria-label="Mean decision time split into LLM calls, twin rollouts and the rest"></canvas></div>
+        <div class="legend"><span style="--c:var(--judge)">LLM calls</span><span style="--c:var(--llmtwin)">twin rollouts</span><span style="--c:var(--nominal)">other (KG, planning, bookkeeping)</span></div></div>
+      <div class="panel"><h3>Why the plant stopped without agents</h3><div id="stopCauses"></div></div>
     </div>
     <div class="panel"><h3>How to read the numbers</h3><ul class="plain" id="caveats"></ul></div>
   </section>
@@ -171,23 +182,17 @@ ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 80
     <div id="detail" class="pane"></div>
   </section>
 
-  <!-- ===================================================== ROUNDS -->
-  <section class="pane" id="rounds" role="tabpanel" aria-labelledby="tab-rounds" hidden>
-    <div class="panel">
-      <h2>Agent development rounds</h2>
-      <p class="muted">Each round ran the agents on the same 20 scenarios. The decision logs of the failures drove the fix listed for the next round. Rounds that were stopped early to apply a fix show fewer finished runs.</p>
-      <div class="table-wrap"><table id="roundTable"></table></div>
-    </div>
-  </section>
-
   <!-- ===================================================== CHECKS -->
   <section class="pane" id="checks" role="tabpanel" aria-labelledby="tab-checks" hidden>
     <div class="panel">
-      <h2>Regulatory loop step tests</h2>
-      <p class="muted">Setpoint step on each PI loop from the nominal steady state, 40 sim-min with sensor noise. Pass = output moves the right way, PV ends within 20 % of the step (or two deadbands), no SIF, no priority-1 alarm.</p>
+      <h2>Controller setpoint tests</h2>
+      <p class="muted">Each PI loop from the nominal steady state, sensor noise on: setpoint step up at 5 min, back to the design value at 45 min, run to 85 min. Pass = output moves the right way and PV ends within 20 % of the step (or two deadbands) after both steps, no SIF, no priority-1 alarm. PNG plots of the same runs are in benchmark_results/loop_plots/.</p>
       <div class="table-wrap"><table id="loopTable"></table></div>
+      <div class="legend"><span style="--c:var(--agents)">PV (true)</span><span class="dash" style="--c:var(--bad)">setpoint</span><span style="--c:var(--lucky)">controller output (right axis)</span></div>
+      <div class="grid4" id="loopCharts"></div>
       <h3>Disturbance rejection</h3>
       <div class="table-wrap"><table id="distTable"></table></div>
+      <div class="grid4" id="distCharts"></div>
     </div>
     <div class="panel"><h2>Physics and specification checks</h2><ul class="plain" id="physics"></ul></div>
     <div class="panel"><h2>Economics assumptions</h2><dl class="kv" id="prices"></dl></div>
@@ -201,10 +206,20 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const money = (x) => x == null ? "—" : (x < 0 ? "−$" : "$") + Math.abs(Math.round(x)).toLocaleString("en-US");
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const rows = D.campaign.rows, T = D.campaign.totals, byId = Object.fromEntries(rows.map((r) => [r.id, r]));
+const CFG = D.campaign.configs || {};
 const TRIP_SIFS = new Set(["R_P_HHH", "RB_L_HH", "DR_L_LL", "DR_L_HH", "COL_P_HH"]);
 const GROUP_LABEL = { single: "Single fault", pair_indep: "Two faults, independent", pair_coupled: "Two faults, interacting",
   triple_none: "Three faults, none interact", triple_2plus1: "Three faults, two interact", triple_all: "Three faults, all interact" };
 const FAULT_LABEL = (f) => f.replace(/_/g, " ");
+// every configuration that has at least one run, in a fixed order
+const ALL_MODES = ["passive", "lucky", "judge", "llmtwin"];
+const MODES = ALL_MODES.filter((m) => m === "passive" || CFG[m]);
+const AGENT_MODES = MODES.filter((m) => m !== "passive");
+const LABEL = { passive: "No agents", ...D.mode_labels };
+const SHORT = { passive: "No agents", lucky: "LLM lucky", judge: "LLM + judge", llmtwin: "LLM + twin" };
+const color = (m) => css("--" + m);
+const runOf = (id, m) => D.scenarios[id].runs[m];
+const profitOf = (id, m) => m === "passive" ? byId[id].passive_profit : byId[id].configs?.[m]?.profit;
 const VARS = {
   drum_holdup_kmol: { label: "Reflux drum level", unit: "kmol", lim: [[14, "DR_L_LL alarm", "warn"], [42, "DR_L_HH alarm", "warn"], [10.59, "DR_L_LL SIF", "bad"], [45.37, "DR_L_HH SIF", "bad"]] },
   column_pressure_bar: { label: "Column pressure", unit: "bar", lim: [[1.15, "COL_P_H alarm", "warn"], [1.28, "COL_P_HH alarm", "warn"], [1.35, "COL_P_HH SIF", "bad"]] },
@@ -216,49 +231,46 @@ const VARS = {
   bottoms_x_acetone: { label: "Bottoms acetone", unit: "mol frac", lim: [[0.08, "BTM_X_H alarm", "warn"]] },
   top_temperature_K: { label: "Column top temperature", unit: "K", lim: [] },
   bottom_temperature_K: { label: "Column bottom temperature", unit: "K", lim: [] },
+  margin: { label: "Operating margin", unit: "USD/h", lim: [] },
 };
 
 function outcome(run) {
+  if (!run) return { cls: "none", text: "not run yet" };
   if (!run.tripped && run.trip_min == null) return { cls: "ok", text: "No stop" };
   if (run.status === "SAFE_TRIP") {
     const s = (run.sifs || []).filter((c) => TRIP_SIFS.has(c));
-    return { cls: "bad", text: `SIF trip ${s.join(", ")} · ${run.trip_min.toFixed(1)} min` };
+    return { cls: "bad", text: `SIF ${s.join(", ")} · ${run.trip_min.toFixed(1)}` };
   }
-  if (run.status === "MODEL_LIMIT") return { cls: "bad", text: `Column dry-out · ${run.trip_min.toFixed(1)} min` };
-  return { cls: "bad", text: `${run.status} · ${run.trip_min?.toFixed(1)} min` };
+  if (run.status === "MODEL_LIMIT") return { cls: "bad", text: `Dry-out · ${run.trip_min.toFixed(1)}` };
+  return { cls: "bad", text: `${run.status} · ${run.trip_min?.toFixed(1)}` };
 }
 const pill = (o) => `<span class="pill ${o.cls}">${esc(o.text)}</span>`;
 
 /* ------------------------------------------------------------ header + KPIs */
 const P = D.campaign.protocol;
-$("#protocol").textContent = `Faults start at ${P.onset_min} min and are lifted ${P.lift_after_trip_min} min after the time the plant would have tripped with nobody acting (or ${P.lift_no_trip_min} min after onset if it would not). Each scenario runs three ways: nominal reference, no agents (BPCS + SIF only), and agents (preset ${P.agent_preset}: rule proposer, digital twin, validate and reprompt).`;
-const penaltyPart = D.prices.trip_penalty * (T.passive_trips - T.agents_trips);
+$("#protocol").textContent = `Faults start at ${P.onset_min} min and are lifted ${P.lift_after_trip_min} min after the time the plant would have tripped with nobody acting (or ${P.lift_no_trip_min} min after onset if it would not). Every configuration runs the same faults on the same plant; the plant waits while the agents decide, so LLM latency does not change the outcome.`;
+if (D.status?.note) { $("#statusNote").hidden = false; $("#statusNote").textContent = D.status.note; }
+const best = AGENT_MODES.filter((m) => CFG[m]?.complete).sort((a, b) => CFG[b].saving - CFG[a].saving)[0];
 $("#kpis").innerHTML = [
-  ["Plant stops", `<span class="from">${T.passive_trips}</span> → <span class="to">${T.agents_trips}</span> <span class="muted" style="font-size:16px">/ ${T.scenarios}</span>`,
-    `Without agents: ${T.passive_sif_trips} SIF trips + ${T.passive_dry_outs} column dry-outs`],
-  ["Campaign profit", `<span class="from">${money(T.passive_profit)}</span> → <span class="to">${money(T.agents_profit)}</span>`,
-    `Nominal reference over the same windows: ${money(T.nominal_profit)}`],
-  ["Saving from agents", `<span class="to">${money(T.saving)}</span>`,
-    `${money(penaltyPart)} avoided trip penalties + ${money(T.saving - penaltyPart)} operating margin`],
-  ["Scenarios better with agents", `<span class="to">${rows.filter((r) => r.saving > 0).length}</span> <span class="muted" style="font-size:16px">/ ${rows.length}</span>`,
-    `Only stop with agents: T03, physically unrecoverable`],
-].map(([l, v, n]) => `<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join("");
+  ["No agents", `<span style="color:var(--passive)">${T.passive_trips}</span> <span class="muted" style="font-size:15px">stops / ${T.scenarios}</span>`,
+    `Profit ${money(T.passive_profit)} · nominal ${money(T.nominal_profit)}`],
+  ...AGENT_MODES.map((m) => { const c = CFG[m];
+    return [LABEL[m], `<span style="color:var(--${m})">${c.trips}</span> <span class="muted" style="font-size:15px">stops / ${c.n}${c.complete ? "" : " run so far"}</span>`,
+      `Saving ${money(c.saving)}${c.llm_calls ? ` · ${c.llm_calls} LLM calls · $${c.llm_cost_usd.toFixed(2)}` : ""}`]; }),
+].map(([l, v, n]) => `<div class="kpi"><div class="label">${esc(l)}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join("");
 
 /* ------------------------------------------------------------ tabs */
-const TABS = ["overview", "scenarios", "rounds", "checks"];
+const TABS = ["overview", "scenarios", "checks"];
+const charts = {};
 function showTab(name) {
   if (!TABS.includes(name)) name = "overview";
-  for (const t of TABS) {
-    $("#" + t).hidden = t !== name;
-    $("#tab-" + t).setAttribute("aria-selected", String(t === name));
-  }
+  for (const t of TABS) { $("#" + t).hidden = t !== name; $("#tab-" + t).setAttribute("aria-selected", String(t === name)); }
   try { localStorage.setItem("fc-tab", name); } catch (e) {}
-  if (name === "scenarios" && !charts.detailBuilt) renderDetail(selected);
+  if (name === "checks" && !charts.loopsBuilt) renderLoopCharts();
 }
 for (const t of TABS) $("#tab-" + t).addEventListener("click", () => { history.replaceState(null, "", "#" + t); showTab(t); });
 
 /* ------------------------------------------------------------ chart helpers */
-const charts = {};
 const markers = {
   id: "markers",
   afterDatasetsDraw(chart, _a, opts) {
@@ -276,7 +288,7 @@ const markers = {
       ctx.strokeStyle = v.color; ctx.setLineDash(v.dash ? [4, 3] : []); ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.moveTo(px, a.top); ctx.lineTo(px, a.bottom); ctx.stroke();
       ctx.fillStyle = v.color; ctx.textAlign = "left";
-      ctx.fillText(v.label, Math.min(px + 3, a.right - ctx.measureText(v.label).width - 2), a.top + 11 + 12 * (lane++ % 3));
+      ctx.fillText(v.label, Math.min(px + 3, a.right - ctx.measureText(v.label).width - 2), a.top + 11 + 12 * (lane++ % 4));
     }
     ctx.restore();
   },
@@ -295,36 +307,68 @@ function baseOpts(xTitle, yTitle) {
     },
   };
 }
-function line(label, xs, ys, color, dash) {
-  return { label, data: xs.map((x, i) => ({ x, y: ys[i] })), borderColor: color, backgroundColor: color,
-    borderWidth: dash ? 1.5 : 2, borderDash: dash ? [5, 4] : [], pointRadius: 0, tension: 0 };
+function line(label, xs, ys, col, dash, extra = {}) {
+  return { label, data: xs.map((x, i) => ({ x, y: ys[i] })), borderColor: col, backgroundColor: col,
+    borderWidth: dash ? 1.5 : 2, borderDash: dash ? [5, 4] : [], pointRadius: 0, tension: 0, ...extra };
 }
-function mk(id, cfg) { charts[id]?.destroy(); charts[id] = new Chart($("#" + id), cfg); }
+function mk(id, cfg) { charts[id]?.destroy(); const el = document.getElementById(id); if (el) charts[id] = new Chart(el, cfg); }
+const legendHtml = (modes, nominal = true) => modes.map((m) => `<span style="--c:var(--${m})">${esc(SHORT[m])}</span>`).join("") +
+  (nominal ? `<span class="dash" style="--c:var(--nominal)">Nominal</span>` : "");
 
 /* ------------------------------------------------------------ overview */
+function renderConfigTable() {
+  const head = `<thead><tr><th>Configuration</th><th>Validation</th><th class="num">Runs</th><th class="num">Plant stops</th>
+    <th class="num">Profit</th><th class="num">Saving vs no agents</th><th class="num">LLM calls</th><th class="num">LLM cost</th>
+    <th class="num">Decisions</th><th class="num">Mean / decision</th><th class="num">Mean LLM latency</th><th class="num">Twin time</th></tr></thead>`;
+  const how = { lucky: "none: first proposal applied", judge: "second LLM accepts / rejects, no simulator",
+    llmtwin: "digital twin rollout, retries, best-vs-doing-nothing fallback" };
+  const body = [`<tr><td><span class="swatch" style="--c:var(--passive)"></span>No agents</td><td class="small muted">BPCS + SIFs only</td>
+      <td class="num">${T.scenarios}</td><td class="num">${T.passive_trips}</td><td class="num">${money(T.passive_profit)}</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
+      <td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>`,
+    ...AGENT_MODES.map((m) => { const c = CFG[m];
+      return `<tr><td><span class="swatch" style="--c:var(--${m})"></span>${esc(LABEL[m])}</td><td class="small muted">${how[m]}</td>
+        <td class="num">${c.n}/${T.scenarios}</td><td class="num">${c.trips}</td><td class="num">${money(c.profit)}</td>
+        <td class="num ${c.saving >= 0 ? "pos" : "neg"}">${money(c.saving)}</td><td class="num">${c.llm_calls || "—"}</td>
+        <td class="num">${c.llm_calls ? "$" + c.llm_cost_usd.toFixed(2) : "—"}</td>
+        <td class="num">${c.timed_runs ? c.n_decisions : "—"}</td><td class="num">${c.mean_decision_s != null ? c.mean_decision_s.toFixed(1) + " s" : "—"}</td>
+        <td class="num">${c.mean_llm_latency_s != null ? c.mean_llm_latency_s.toFixed(1) + " s" : "—"}</td>
+        <td class="num">${c.timed_runs ? (c.twin_s / 60).toFixed(1) + " min" : "—"}</td></tr>`; })].join("");
+  $("#configTable").innerHTML = head + "<tbody>" + body + "</tbody>";
+}
 function renderOverview() {
+  $("#ovLegend").innerHTML = legendHtml(MODES);
   const labels = rows.map((r) => r.id);
   const o = baseOpts("", "USD over the window");
+  o.parsing = true;
   o.scales.x = { type: "category", grid: { display: false }, ticks: { color: css("--muted"), font: { family: "IBM Plex Mono" } } };
   o.interaction = { mode: "index", intersect: false };
   o.plugins.tooltip.callbacks = { label: (c) => `${c.dataset.label}: ${money(c.raw)}` };
   o.onClick = (_e, els) => { if (els.length) { selectScenario(labels[els[0].index]); history.replaceState(null, "", "#scenarios"); showTab("scenarios"); } };
-  o.parsing = true;
   mk("ovBars", { type: "bar", data: { labels, datasets: [
-    { label: "No agents", data: rows.map((r) => r.passive_profit), backgroundColor: css("--passive"), borderRadius: 2 },
-    { label: "Agents", data: rows.map((r) => r.agents_profit), backgroundColor: css("--agents"), borderRadius: 2 },
+    ...MODES.map((m) => ({ label: SHORT[m], data: rows.map((r) => profitOf(r.id, m) ?? null), backgroundColor: color(m), borderRadius: 2 })),
     { type: "line", label: "Nominal", data: rows.map((r) => r.nominal_profit), borderColor: css("--nominal"), borderDash: [5, 4],
       borderWidth: 1.5, pointRadius: 2, pointBackgroundColor: css("--nominal"), backgroundColor: css("--nominal") },
   ] }, options: o });
+  const so = baseOpts("", "stops");
+  so.parsing = true; so.indexAxis = "y";
+  so.scales.x = { type: "linear", min: 0, max: T.scenarios, grid: { color: css("--soft") }, ticks: { color: css("--muted"), stepSize: 2 } };
+  so.scales.y = { type: "category", grid: { display: false }, ticks: { color: css("--muted") } };
+  const tm = AGENT_MODES.filter((m) => CFG[m]?.n_decisions);
+  const per = (m, k) => CFG[m][k] / CFG[m].n_decisions;
+  const to = baseOpts("", "");
+  to.parsing = true; to.indexAxis = "y";
+  to.scales.x = { stacked: true, grid: { color: css("--soft") }, ticks: { color: css("--muted") }, title: { display: true, text: "seconds per decision", color: css("--muted") } };
+  to.scales.y = { stacked: true, type: "category", grid: { display: false }, ticks: { color: css("--muted") } };
+  to.plugins.tooltip.callbacks = { label: (c) => `${c.dataset.label}: ${c.raw.toFixed(1)} s` };
+  mk("ovTime", { type: "bar", data: { labels: tm.map((m) => SHORT[m]), datasets: [
+    { label: "LLM calls", data: tm.map((m) => per(m, "llm_s")), backgroundColor: css("--judge") },
+    { label: "twin rollouts", data: tm.map((m) => per(m, "twin_s")), backgroundColor: css("--llmtwin") },
+    { label: "other", data: tm.map((m) => Math.max(0, per(m, "decision_s") - per(m, "llm_s") - per(m, "twin_s"))), backgroundColor: css("--nominal") },
+  ] }, options: to });
+  mk("ovStops", { type: "bar", data: { labels: MODES.map((m) => SHORT[m]), datasets: [{ data: MODES.map((m) => m === "passive" ? T.passive_trips : CFG[m].trips),
+    backgroundColor: MODES.map(color), borderRadius: 2 }] }, options: so });
 }
-function renderGroups() {
-  const order = ["single", "pair_indep", "pair_coupled", "triple_none", "triple_2plus1", "triple_all"];
-  const g = D.campaign.by_group;
-  $("#groupTable").innerHTML = `<thead><tr><th>Group</th><th class="num">n</th><th class="num">Stops<br>no agents</th><th class="num">Stops<br>agents</th>
-    <th class="num">No agents</th><th class="num">Agents</th><th class="num">Saving</th></tr></thead><tbody>` +
-    order.filter((k) => g[k]).map((k) => { const v = g[k]; return `<tr><td>${GROUP_LABEL[k]}</td><td class="num">${v.n}</td>
-      <td class="num">${v.passive_trips}</td><td class="num">${v.agents_trips}</td><td class="num neg">${money(v.passive)}</td>
-      <td class="num">${money(v.agents)}</td><td class="num pos">${money(v.agents - v.passive)}</td></tr>`; }).join("") + "</tbody>";
+function renderStopCauses() {
   const causes = {};
   for (const r of rows) {
     if (r.passive_trip_min == null) continue;
@@ -336,34 +380,30 @@ function renderGroups() {
     `<div style="display:grid;grid-template-columns:minmax(150px,200px) 1fr 28px;gap:10px;align-items:center;margin-block:4px">
       <span class="small">${esc(k)}</span><div class="bar"><i style="width:${100 * ids.length / max}%;background:var(--passive)"></i></div>
       <span class="num small">${ids.length}</span></div><div class="small muted" style="margin:-2px 0 6px">${ids.join(" · ")}</div>`).join("");
-  const margin = T.saving - penaltyPart;
-  $("#savingSplit").innerHTML = `<div class="bar" style="height:14px;display:flex"><i style="width:${100 * penaltyPart / T.saving}%"></i><i style="width:${100 * margin / T.saving}%;background:var(--good)"></i></div>
-    <div class="legend" style="margin-top:6px"><span style="--c:var(--agents)">Avoided trip penalties ${money(penaltyPart)}</span><span style="--c:var(--good)">Operating margin ${money(margin)}</span></div>
-    <p class="small muted" style="margin-top:6px">The dollar figure scales with the assumed ${money(D.prices.trip_penalty)} penalty per stop; the stop count does not.</p>`;
   $("#caveats").innerHTML = [
-    "Column dry-outs (S01, D03, C01, T02, T03 without agents) are not SIF trips: the top tray runs dry after loss of reflux and the simulator stops (README: MODEL_LIMIT). No SIF covers it; it counts as an unplanned shutdown with the same penalty.",
-    "T03 cannot be saved: the 100 kmol/h drum leak is larger than what the crippled condenser can still condense. The DR_L_LL SIF trips the plant safely.",
-    "Drum-leak scenarios (S09, D04, C03) stay negative with agents because the leak loses product while it is active; avoiding the trip still saves about $15k each.",
-    "Profit integrates flows, not inventory changes, so a run can briefly beat nominal when hold-up built during the fault is sold afterwards (e.g. S04).",
-    "The agents here are the offline rule proposer with an oracle digital twin (no LLM). The twin knows the plant state exactly but not when faults clear.",
-    "The final round reproduced the previous round's profits exactly for all 20 scenarios.",
+    "Savings are dominated by the assumed shutdown + startup penalty ($20,000 per stop); the stop counts do not depend on it.",
+    "Column dry-outs (no agents: S01, D03, C01, T02, T03) are not SIF trips: the top tray runs dry after loss of reflux and the simulator stops (README: MODEL_LIMIT). They count as unplanned shutdowns with the same penalty.",
+    "T03 cannot be saved: the 100 kmol/h drum leak exceeds what the crippled condenser can still condense.",
+    "LLM configurations use gpt-5-nano (reasoning effort low) for planning-free action proposals; the planning brief comes from the knowledge graph. The judge is a second gpt-5-nano call with the alarm and SIF limits; it has no simulator.",
+    "Feeling lucky applies the first executable proposal; only a plan that cannot be executed (unknown loop, out-of-range value) is sent back.",
+    "The digital twin is an exact copy of the plant at the decision time (it does not know when faults clear). A real twin would be less accurate.",
+    "Profit = on-spec sales and credits minus feed and utilities, plus the change in liquid hold-up (reactor, reboiler, drum) valued at the IPA price, minus the stop penalty. Without the hold-up term, an agent that lowers level setpoints and cuts feed would look profitable while it only sells material the plant already had.",
   ].map((t) => `<li>${esc(t)}</li>`).join("");
 }
 
 /* ------------------------------------------------------------ scenarios table */
 let selected = "S08";
 function renderScenTable() {
-  $("#scenTable").innerHTML = `<thead><tr><th>ID</th><th>Group</th><th>Faults</th><th>Would trip</th><th>No agents</th><th>Agents</th>
-    <th class="num">No agents</th><th class="num">Agents</th><th class="num">Saving</th></tr></thead><tbody>` +
+  $("#scenTable").innerHTML = `<thead><tr><th>ID</th><th>Faults</th><th>Would trip</th>${MODES.map((m) =>
+      `<th><span class="swatch" style="--c:var(--${m})"></span>${esc(SHORT[m])}</th>`).join("")}</tr></thead><tbody>` +
     rows.map((r) => { const s = D.scenarios[r.id];
       return `<tr class="scen-row" tabindex="0" data-id="${r.id}" aria-selected="${r.id === selected}">
-        <td class="mono"><b>${r.id}</b></td><td class="grp">${esc(GROUP_LABEL[r.group])}</td>
+        <td class="mono"><b>${r.id}</b><div class="grp">${esc(GROUP_LABEL[r.group])}</div></td>
         <td>${s.faults.map((f) => `<span class="chip">${esc(FAULT_LABEL(f.fault))}</span>`).join("")}</td>
         <td class="num">${r.probe_trip_min == null ? "never" : r.probe_trip_min.toFixed(1) + " min"}</td>
-        <td>${pill(outcome(s.passive))}</td><td>${pill(outcome(s.agents))}</td>
-        <td class="num ${r.passive_profit < 0 ? "neg" : ""}">${money(r.passive_profit)}</td>
-        <td class="num ${r.agents_profit < 0 ? "neg" : ""}">${money(r.agents_profit)}</td>
-        <td class="num pos">${money(r.saving)}</td></tr>`; }).join("") + "</tbody>";
+        ${MODES.map((m) => { const run = s.runs[m], p = profitOf(r.id, m);
+          return `<td><div class="cell-mode">${pill(outcome(run))}<span class="num small ${p < 0 ? "neg" : ""}">${run ? money(p) : ""}</span></div></td>`; }).join("")}
+      </tr>`; }).join("") + "</tbody>";
   for (const tr of document.querySelectorAll(".scen-row")) {
     tr.addEventListener("click", () => selectScenario(tr.dataset.id));
     tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectScenario(tr.dataset.id); } });
@@ -377,7 +417,8 @@ function selectScenario(id) {
 }
 
 /* ------------------------------------------------------------ scenario detail */
-let detailVar = "drum_holdup_kmol";
+let detailVar = "drum_holdup_kmol", detailMode = null;
+const shown = new Set(MODES);
 function cumulative(series, run, window) {
   const xs = [], ys = []; let c = 0;
   series.t.forEach((t, i) => { if (t > window + 1e-6) return; c += series.m[i] / 60; xs.push(t); ys.push(c); });
@@ -387,23 +428,24 @@ function cumulative(series, run, window) {
   }
   return [xs, ys];
 }
-function runCard(kind, title, run, r) {
-  const o = outcome(run), p = run.profit_usd;
+function runCard(m, run, id) {
+  if (!run) return `<div class="outcome" style="--c:var(--${m})"><h3>${esc(SHORT[m])}</h3>${pill(outcome(null))}</div>`;
+  const p = run.profit_usd, a = run.agent;
   const latched = (run.sifs || []).filter((c) => !TRIP_SIFS.has(c));
-  const listed = run.alarms_listed_at_end.map((a) => a.id);
-  return `<div class="outcome ${kind}"><h3>${title}</h3><div>${pill(o)}</div>
-    <div class="big">${money(kind === "agents" ? r.agents_profit : r.passive_profit)}</div>
+  const listed = run.alarms_listed_at_end.map((x) => x.id);
+  return `<div class="outcome" style="--c:var(--${m})"><h3>${esc(LABEL[m])}</h3><div>${pill(outcome(run))}</div>
+    <div class="big">${money(profitOf(id, m))}</div>
     <dl class="kv">
-      <dt>Margin</dt><dd>${money(p.margin)}</dd>
-      <dt>Trip penalty</dt><dd>${money(p.trip_penalty)}</dd>
-      <dt>On-spec acetone</dt><dd>${run.on_spec_acetone_kmol.toFixed(1)} kmol</dd>
+      <dt>Margin</dt><dd>${money(p.margin)}</dd><dt>Trip penalty</dt><dd>${money(p.trip_penalty)}</dd>
       <dt>Off-spec time</dt><dd>${run.off_spec_min.toFixed(1)} min</dd>
-      <dt>Other SIFs latched</dt><dd>${latched.length ? latched.map((c) => `${c} @${run.sif_first_min[c]}`).join(", ") : "none"}</dd>
-      <dt>Alarms still listed</dt><dd>${listed.length ? listed.join(", ") : "none"}</dd>
-      ${run.agent ? `<dt>First detection</dt><dd>${run.agent.first_detection_min?.toFixed(1)} min</dd>
-        <dt>Decisions</dt><dd>${run.agent.decisions} (${run.agent.reprompts} reprompts, ${run.agent.fallbacks} fallbacks)</dd>
-        <dt>Actions applied</dt><dd>${run.agent.actions.length}</dd>
-        <dt>Alarms acknowledged</dt><dd>${run.agent.alarm_acks.reduce((n, a) => n + (a.alarms || []).length, 0)}</dd>` : ""}
+      <dt>Other SIFs</dt><dd>${latched.length ? latched.join(", ") : "none"}</dd>
+      <dt>Alarms listed at end</dt><dd>${listed.length ? listed.join(", ") : "none"}</dd>
+      ${a ? `<dt>Decisions</dt><dd>${a.decisions} · ${a.actions.length} applied</dd>
+        <dt>Retries</dt><dd>${a.reprompts}${a.fallbacks ? ` · ${a.fallbacks} fallbacks` : ""}</dd>
+        ${a.llm_usage ? `<dt>LLM</dt><dd>${a.llm_usage.calls} calls · $${a.llm_usage.cost_usd.toFixed(3)}</dd>` : ""}
+        ${a.judge?.length ? `<dt>Judge</dt><dd>${a.judge.filter((j) => j.accept).length} accepted / ${a.judge.length}</dd>` : ""}
+        ${a.timing ? `<dt>Decision time</dt><dd>${a.timing.decision_s.toFixed(0)} s (LLM ${a.timing.llm_s.toFixed(0)} s, twin ${a.timing.twin_s.toFixed(0)} s)</dd>` : ""}` : ""}
+      <dt>Run wall time</dt><dd>${run.wall_s != null ? (run.wall_s / 60).toFixed(1) + " min" : "—"}</dd>
     </dl></div>`;
 }
 function cmdText(c) {
@@ -414,97 +456,101 @@ function cmdText(c) {
   return c.type === "NO_ACTION" ? "do nothing" : JSON.stringify(c);
 }
 function renderDetail(id) {
-  const s = D.scenarios[id], r = byId[id], a = s.agents, pv = s.passive;
-  const win = r.window_min;
-  const lifts = Object.values(a.schedule).map((v) => v.lift_min);
-  charts.detailBuilt = true;
-  const events = [];
-  if (a.agent?.first_detection_min != null) events.push({ t: a.agent.first_detection_min, k: "det", what: "PCA confirms a fault (3 samples over the limit)" });
-  s.faults.forEach((f, i) => events.push({ t: f.at_min, k: "flt", what: `Fault injected: ${FAULT_LABEL(f.fault)}` }));
-  [...new Set(lifts)].forEach((t) => events.push({ t, k: "flt", what: "Faults lifted" }));
-  for (const [c, t] of Object.entries(a.sif_first_min || {})) events.push({ t, k: TRIP_SIFS.has(c) ? "trip" : "sif", what: `SIF ${c} latched` });
-  for (const x of a.agent?.actions || []) events.push({ t: x.t, k: "act", what: `<b>${x.kind === "mitigation" ? "Mitigation" : "Recovery"}:</b> ${x.commands.map(cmdText).map(esc).join(" · ")}<div class="small muted">diagnosis: ${esc(x.diagnosis)}</div>` , html: true });
-  for (const x of a.agent?.alarm_acks || []) events.push({ t: x.t, k: "ack", what: `Acknowledged ${(x.alarms || []).join(", ")} <span class="muted">— ${esc(x.reason)}</span>`, html: true });
-  for (const x of a.agent?.verification || []) events.push({ t: x.t, k: "ver", what: x.reason });
-  if (a.trip_min != null) events.push({ t: a.trip_min, k: "trip", what: outcome(a).text });
-  events.sort((p, q) => p.t - q.t);
-  const KL = { det: "Detect", flt: "Fault", sif: "SIF", trip: "Stop", act: "Action", ack: "Alarm ack", ver: "Wait" };
-
-  const cycles = {};
-  for (const v of a.agent?.validations || []) (cycles[v.cycle] ||= { t: v.t, c: [] }).c.push(v);
-  const applied = (t) => (a.agent?.actions || []).find((x) => Math.abs(x.t - t) < 0.6);
-  const cycleRows = Object.entries(cycles).map(([cy, v]) => {
-    const app = applied(v.t);
-    const acc = v.c.some((c) => c.accepted);
-    const verdict = acc ? `<span class="pill ok">accepted</span>` : app ? `<span class="pill warn">best vs doing nothing applied</span>` : `<span class="pill info">nothing beats doing nothing</span>`;
-    const cands = v.c.filter((c) => !(c.failed[0] || "").startsWith("new proposal")).map((c) =>
-      `<div class="cand"><span class="${c.accepted ? "y" : "n"}">${c.accepted ? "✓" : "✗"}</span> ${c.commands.map(cmdText).map(esc).join(" · ")}${c.failed.length ? ` <span class="muted">— ${esc(c.failed[0].slice(0, 110))}</span>` : ""}</div>`).join("");
-    return `<tr><td class="num">${v.t.toFixed(1)}</td><td>${verdict}</td><td>${cands}</td></tr>`;
-  }).join("");
-
-  const alarmList = (run) => run.alarm_history.length ? run.alarm_history.map((h) =>
-    `<div class="ev" style="grid-template-columns:56px 1fr"><span class="t">${h.t.toFixed(1)}</span><span class="what"><span class="chip">${h.id}</span> ${h.transition.toLowerCase().replace(/_/g, " ")}${h.by ? ` <b>by ${h.by}</b>` : ""}</span></div>`).join("") : `<p class="muted small">No alarm events.</p>`;
-
+  const s = D.scenarios[id], r = byId[id], win = r.window_min;
+  const modesHere = MODES.filter((m) => s.runs[m]);
+  const agentModesHere = modesHere.filter((m) => m !== "passive");
+  if (!agentModesHere.includes(detailMode)) detailMode = agentModesHere[agentModesHere.length - 1] ?? null;
+  const ref = s.runs[detailMode] ?? s.runs.passive;
+  const lifts = Object.values(ref.schedule).map((v) => v.lift_min);
   $("#detail").innerHTML = `
     <div class="panel">
       <div class="detail-head"><div style="display:grid;gap:4px"><span class="grp">${esc(GROUP_LABEL[s.group])}</span><h2>${id} · ${s.faults.map((f) => esc(FAULT_LABEL(f.fault))).join(" + ")}</h2></div>
-        <div class="small muted mono">onset ${s.faults.map((f) => f.at_min).join(", ")} min · lifted ${[...new Set(lifts)].join(", ")} min · window ${win} min</div></div>
+        <div class="small muted mono">onset ${s.faults.map((f) => f.at_min).join(", ")} min · lifted ${[...new Set(lifts)].join(", ")} min · window ${win} min · would trip ${s.probe.trip_min == null ? "never" : s.probe.trip_min.toFixed(1) + " min"}</div></div>
       ${s.interaction ? `<p class="small">${esc(s.interaction)}</p>` : ""}
-      ${r.footprint_overlap?.length ? `<p class="small muted">Measured overlap of single-fault footprints: ${r.footprint_overlap.map((o) => o.length ? o.map((v) => `<span class="chip">${v}</span>`).join("") : "none").join(" | ")}</p>` : ""}
-      <div class="outcomes">
-        <div class="outcome probe"><h3>If nobody acts, faults never lifted</h3><div>${pill(outcome({ ...s.probe, tripped: s.probe.trip_min != null }))}</div>
-          <dl class="kv"><dt>SIFs</dt><dd>${Object.entries(s.probe.sif_first_min).map(([c, t]) => `${c} @${t}`).join(", ") || "none"}</dd>
-          <dt>Nominal profit</dt><dd>${money(r.nominal_profit)} over ${win} min</dd></dl>
-          <p class="small muted">This run sets the lift time: ${s.probe.trip_min == null ? `no trip, so faults lift ${D.campaign.protocol.lift_no_trip_min} min after onset` : `trip at ${s.probe.trip_min.toFixed(1)} min + ${D.campaign.protocol.lift_after_trip_min} min`}.</p></div>
-        ${runCard("passive", "No agents (faults lifted)", pv, r)}
-        ${runCard("agents", "Agents (faults lifted)", a, r)}
+      <div class="outcomes">${MODES.map((m) => runCard(m, s.runs[m], id)).join("")}</div>
+    </div>
+    <div class="panel">
+      <div class="controls"><h3 style="margin-right:auto">Plant states</h3>
+        <label class="small muted" for="varSel">Variable</label>
+        <select id="varSel">${Object.entries(VARS).map(([k, v]) => `<option value="${k}" ${k === detailVar ? "selected" : ""}>${v.label}</option>`).join("")}</select></div>
+      <div class="toggles" role="group" aria-label="Configurations shown">${modesHere.map((m) =>
+        `<label><input type="checkbox" data-mode="${m}" ${shown.has(m) ? "checked" : ""}><span class="swatch" style="--c:var(--${m})"></span>${esc(SHORT[m])}</label>`).join("")}</div>
+      <div class="grid2">
+        <div><div class="chart-box"><canvas id="varChart" aria-label="Selected process variable per configuration"></canvas></div>
+          <div class="legend"><span class="dash" style="--c:var(--nominal)">Nominal</span><span style="--c:var(--warn)">alarm</span><span style="--c:var(--bad)">SIF</span></div></div>
+        <div><div class="chart-box"><canvas id="cumChart" aria-label="Cumulative profit per configuration"></canvas></div>
+          <p class="small muted">Cumulative profit; a stop shows as the shutdown + startup drop.</p></div>
       </div>
     </div>
-    <div class="grid2">
-      <div class="panel"><h3>Cumulative profit</h3>
-        <div class="legend"><span style="--c:var(--passive)">No agents</span><span style="--c:var(--agents)">Agents</span><span class="dash" style="--c:var(--nominal)">Nominal</span></div>
-        <div class="chart-box"><canvas id="cumChart" aria-label="Cumulative profit over the scenario window"></canvas></div></div>
-      <div class="panel"><div class="controls"><h3 style="margin-right:auto">Process variable</h3>
-        <label class="small muted" for="varSel">Show</label><select id="varSel">${Object.entries(VARS).map(([k, v]) => `<option value="${k}" ${k === detailVar ? "selected" : ""}>${v.label}</option>`).join("")}</select></div>
-        <div class="legend"><span style="--c:var(--passive)">No agents</span><span style="--c:var(--agents)">Agents</span><span class="dash" style="--c:var(--nominal)">Nominal</span><span style="--c:var(--warn)">alarm</span><span style="--c:var(--bad)">SIF</span></div>
-        <div class="chart-box"><canvas id="varChart" aria-label="Selected process variable"></canvas></div></div>
-    </div>
-    <div class="grid2">
-      <div class="panel"><h3>Agent timeline</h3><div class="timeline">${events.map((e) =>
-        `<div class="ev"><span class="t">${e.t.toFixed(1)}</span><span class="k ${e.k}">${KL[e.k]}</span><span class="what">${e.html ? e.what : esc(e.what)}</span></div>`).join("")}</div></div>
-      <div class="panel"><h3>Decisions: candidates checked in the digital twin</h3>
-        ${cycleRows ? `<div class="table-wrap"><table><thead><tr><th class="num">min</th><th>Verdict</th><th>Candidates (✓ restores the plant)</th></tr></thead><tbody>${cycleRows}</tbody></table></div>` : `<p class="muted small">No decisions: the plant never needed one.</p>`}</div>
-    </div>
-    <div class="grid2">
-      <div class="panel"><details><summary>Alarm events, no agents (${pv.alarm_history.length})</summary><div class="timeline">${alarmList(pv)}</div></details></div>
-      <div class="panel"><details><summary>Alarm events, agents (${a.alarm_history.length})</summary><div class="timeline">${alarmList(a)}</div></details></div>
-    </div>`;
+    ${agentModesHere.length ? `<div class="panel"><div class="controls"><h3 style="margin-right:auto">Agent decisions</h3>
+        <label class="small muted" for="modeSel">Configuration</label>
+        <select id="modeSel">${agentModesHere.map((m) => `<option value="${m}" ${m === detailMode ? "selected" : ""}>${esc(LABEL[m])}</option>`).join("")}</select></div>
+      <div class="grid2" id="agentDetail"></div></div>` : ""}
+    <div class="panel"><details><summary>Alarm events per configuration</summary><div class="grid2" style="margin-top:10px">${modesHere.map((m) =>
+      `<div><h3 style="color:var(--${m})">${esc(SHORT[m])} (${s.runs[m].alarm_history.length})</h3><div class="timeline">${s.runs[m].alarm_history.map((h) =>
+        `<div class="ev" style="grid-template-columns:56px 1fr"><span class="t">${h.t.toFixed(1)}</span><span class="what"><span class="chip">${h.id}</span> ${h.transition.toLowerCase().replace(/_/g, " ")}${h.by ? ` <b>by ${h.by}</b>` : ""}</span></div>`).join("")}</div></div>`).join("")}</div></details></div>`;
   $("#varSel").addEventListener("change", (e) => { detailVar = e.target.value; drawVar(id); });
-  drawCum(id); drawVar(id);
+  for (const cb of document.querySelectorAll(".toggles input")) cb.addEventListener("change", () => {
+    cb.checked ? shown.add(cb.dataset.mode) : shown.delete(cb.dataset.mode); drawVar(id); drawCum(id); });
+  $("#modeSel")?.addEventListener("change", (e) => { detailMode = e.target.value; renderAgent(id); });
+  drawVar(id); drawCum(id); renderAgent(id);
+}
+function renderAgent(id) {
+  const s = D.scenarios[id], run = s.runs[detailMode], el = $("#agentDetail");
+  if (!el || !run) return;
+  const a = run.agent || { actions: [], alarm_acks: [], verification: [], validations: [], judge: [] };
+  const KL = { det: "Detect", flt: "Fault", sif: "SIF", trip: "Stop", act: "Action", ack: "Alarm ack", ver: "Wait" };
+  const events = [];
+  if (a.first_detection_min != null) events.push({ t: a.first_detection_min, k: "det", what: "PCA confirms a fault (3 samples over the limit)" });
+  s.faults.forEach((f) => events.push({ t: f.at_min, k: "flt", what: `Fault injected: ${FAULT_LABEL(f.fault)}` }));
+  [...new Set(Object.values(run.schedule).map((v) => v.lift_min))].forEach((t) => events.push({ t, k: "flt", what: "Faults lifted" }));
+  for (const [c, t] of Object.entries(run.sif_first_min || {})) events.push({ t, k: TRIP_SIFS.has(c) ? "trip" : "sif", what: `SIF ${c} latched` });
+  for (const x of a.actions) events.push({ t: x.t, html: true, k: "act", what: `<b>${x.kind === "mitigation" ? "Mitigation" : "Applied"}:</b> ${x.commands.map(cmdText).map(esc).join(" · ")}<div class="small muted">diagnosis: ${esc(x.diagnosis)}</div>` });
+  for (const x of a.alarm_acks) events.push({ t: x.t, html: true, k: "ack", what: `Acknowledged ${(x.alarms || []).join(", ")} <span class="muted">— ${esc(x.reason)}</span>` });
+  for (const x of a.verification) events.push({ t: x.t, k: "ver", what: x.reason });
+  if (run.trip_min != null) events.push({ t: run.trip_min, k: "trip", what: outcome(run).text });
+  events.sort((p, q) => p.t - q.t);
+  const cycles = {};
+  for (const v of a.validations) (cycles[v.cycle] ||= { t: v.t, c: [] }).c.push(v);
+  const applied = (t) => a.actions.find((x) => Math.abs(x.t - t) < 0.6);
+  const cycleRows = Object.values(cycles).map((v) => {
+    const acc = v.c.some((c) => c.accepted), app = applied(v.t);
+    const verdict = acc ? `<span class="pill ok">applied</span>` : app ? `<span class="pill warn">fallback applied</span>` : `<span class="pill info">nothing applied</span>`;
+    const cands = v.c.filter((c) => !(c.failed[0] || "").startsWith("new proposal")).map((c) =>
+      `<div class="cand"><span class="${c.accepted ? "y" : "n"}">${c.accepted ? "✓" : "✗"}</span> ${c.commands.map(cmdText).map(esc).join(" · ")}${c.failed.length ? ` <span class="muted">— ${esc(c.failed[0].slice(0, 160))}</span>` : ""}</div>`).join("");
+    return `<tr><td class="num">${v.t.toFixed(1)}</td><td>${verdict}</td><td>${cands}</td></tr>`;
+  }).join("");
+  const how = { lucky: "✓ = executable (no validation)", judge: "✓ = the LLM judge accepted",
+    llmtwin: "✓ = the twin shows the plant restored" }[detailMode];
+  el.innerHTML = `<div><h3>Timeline</h3><div class="timeline">${events.map((e) =>
+      `<div class="ev"><span class="t">${e.t.toFixed(1)}</span><span class="k ${e.k}">${KL[e.k]}</span><span class="what">${e.html ? e.what : esc(e.what)}</span></div>`).join("")}</div></div>
+    <div><h3>Decisions <span class="muted" style="text-transform:none;letter-spacing:0">(${how})</span></h3>
+      ${cycleRows ? `<div class="table-wrap"><table><thead><tr><th class="num">min</th><th>Verdict</th><th>Candidates</th></tr></thead><tbody>${cycleRows}</tbody></table></div>` : `<p class="muted small">No decisions in this run.</p>`}
+      ${a.llm_errors?.length ? `<p class="small neg">${a.llm_errors.length} LLM call(s) failed; the rule agent stood in for those attempts.</p>` : ""}</div>`;
 }
 function vMarks(id) {
-  const s = D.scenarios[id], a = s.agents, pv = s.passive, out = [];
+  const s = D.scenarios[id], out = [];
   out.push({ x: s.faults[0].at_min, label: "fault", color: css("--muted"), dash: true });
-  const lift = Math.max(...Object.values(a.schedule).map((v) => v.lift_min));
-  out.push({ x: lift, label: "lifted", color: css("--muted"), dash: true });
-  if (pv.trip_min != null) out.push({ x: pv.trip_min, label: "stop (no agents)", color: css("--passive") });
-  if (a.trip_min != null) out.push({ x: a.trip_min, label: "stop (agents)", color: css("--agents") });
+  const any = s.runs[MODES.find((m) => s.runs[m] && m !== "passive")] ?? s.runs.passive;
+  out.push({ x: Math.max(...Object.values(any.schedule).map((v) => v.lift_min)), label: "lifted", color: css("--muted"), dash: true });
+  for (const m of MODES) { const run = s.runs[m]; if (run && shown.has(m) && run.trip_min != null) out.push({ x: run.trip_min, label: `stop: ${SHORT[m]}`, color: color(m) }); }
   return out;
 }
 function drawCum(id) {
   const s = D.scenarios[id], win = byId[id].window_min;
-  const [nx, ny] = cumulative(D.nominal, null, win), [px, py] = cumulative(s.passive.series, s.passive, win), [ax, ay] = cumulative(s.agents.series, s.agents, win);
-  const o = baseOpts("minutes", "USD");
-  o.scales.x.max = win; o.scales.x.min = 0;
+  const sets = [line("Nominal", ...cumulative(D.nominal, null, win), css("--nominal"), true)];
+  for (const m of MODES) if (s.runs[m] && shown.has(m)) sets.push(line(SHORT[m], ...cumulative(s.runs[m].series, s.runs[m], win), color(m)));
+  const o = baseOpts("minutes", "USD"); o.scales.x.max = win; o.scales.x.min = 0;
   o.plugins.markers = { v: vMarks(id) };
   o.plugins.tooltip.callbacks = { label: (c) => `${c.dataset.label}: ${money(c.parsed.y)}` };
-  mk("cumChart", { type: "line", data: { datasets: [line("Nominal", nx, ny, css("--nominal"), true), line("No agents", px, py, css("--passive")), line("Agents", ax, ay, css("--agents"))] }, options: o });
+  mk("cumChart", { type: "line", data: { datasets: sets }, options: o });
 }
 function drawVar(id) {
-  const s = D.scenarios[id], win = byId[id].window_min, v = VARS[detailVar], k = detailVar;
+  const s = D.scenarios[id], win = byId[id].window_min, v = VARS[detailVar], k = detailVar === "margin" ? "m" : detailVar;
   const cut = (ser) => { const xs = [], ys = []; ser.t.forEach((t, i) => { if (t <= win + 1e-6) { xs.push(t); ys.push(ser[k][i]); } }); return [xs, ys]; };
-  const [nx, ny] = cut(D.nominal), [px, py] = cut(s.passive.series), [ax, ay] = cut(s.agents.series);
-  const all = [...ny, ...py, ...ay].filter((x) => x != null);
+  const sets = [line("Nominal", ...cut(D.nominal), css("--nominal"), true)];
+  for (const m of MODES) if (s.runs[m] && shown.has(m)) sets.push(line(SHORT[m], ...cut(s.runs[m].series), color(m)));
+  const all = sets.flatMap((d) => d.data.map((p) => p.y)).filter((x) => x != null);
   let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.08 || Math.abs(hi) * 0.01 || 1;
   lo -= pad; hi += pad;
   const near = v.lim.filter(([y]) => y >= lo - (hi - lo) * 0.6 && y <= hi + (hi - lo) * 0.6);
@@ -512,32 +558,28 @@ function drawVar(id) {
   const o = baseOpts("minutes", `${v.label} [${v.unit}]`);
   o.scales.x.max = win; o.scales.x.min = 0; o.scales.y.min = lo; o.scales.y.max = hi;
   o.plugins.markers = { v: vMarks(id), h: near.map(([y, label, sev]) => ({ y, label, color: css(sev === "bad" ? "--bad" : "--warn") })) };
-  mk("varChart", { type: "line", data: { datasets: [line("Nominal", nx, ny, css("--nominal"), true), line("No agents", px, py, css("--passive")), line("Agents", ax, ay, css("--agents"))] }, options: o });
+  mk("varChart", { type: "line", data: { datasets: sets }, options: o });
 }
 
-/* ------------------------------------------------------------ rounds */
-function renderRounds() {
-  const finalR = D.rounds.find((r) => r.round === "final");
-  $("#roundTable").innerHTML = `<thead><tr><th>Round</th><th class="num">Finished</th><th class="num">Stops</th><th>Survived</th><th>Stopped</th><th>Change made for this round</th></tr></thead><tbody>` +
-    D.rounds.map((r) => `<tr><td class="mono"><b>${r.round}</b></td><td class="num">${r.finished}/20</td>
-      <td class="num">${r.stops}</td><td>${r.survived.map((x) => `<span class="chip">${x}</span>`).join("")}</td>
-      <td>${r.stopped.map((x) => `<span class="chip" style="color:var(--bad)">${x}</span>`).join("") || "—"}</td>
-      <td class="small">${esc(r.note)}</td></tr>`).join("") + "</tbody>";
-}
-
-/* ------------------------------------------------------------ checks */
+/* ------------------------------------------------------------ controllers + checks */
+function settleTxt(m) { return m.settling_min == null ? "not yet" : m.settling_min.toFixed(1) + " min"; }
 function renderChecks() {
   const L = D.loops;
   if (L.setpoint_steps) {
-    $("#loopTable").innerHTML = `<thead><tr><th>Loop</th><th>PV</th><th>Output</th><th class="num">SP step</th><th class="num">PV at 40 min</th><th class="num">Overshoot</th><th class="num">Settled</th><th>Result</th></tr></thead><tbody>` +
-      L.setpoint_steps.map((r) => `<tr><td class="mono"><b>${r.loop}</b></td><td class="small">${r.pv}</td><td class="small">${r.mv}</td>
-        <td class="num">${r.sp0.toFixed(3)} → ${r.sp1.toFixed(3)}</td><td class="num">${r.pv_end.toFixed(3)}</td><td class="num">${r.overshoot_pct.toFixed(0)} %</td>
-        <td class="num">${r.settling_min == null ? "not yet" : r.settling_min.toFixed(1) + " min"}</td>
-        <td>${r.pass ? `<span class="pill ok">pass</span>` : `<span class="pill warn">stable, slow / underdamped</span>`}</td></tr>`).join("") + "</tbody>";
+    $("#loopTable").innerHTML = `<thead><tr><th>Loop</th><th>PV → output</th><th class="num">Setpoint step</th><th class="num">Up: overshoot</th><th class="num">Up: settled</th><th class="num">Back: overshoot</th><th class="num">Back: settled</th><th>Result</th></tr></thead><tbody>` +
+      L.setpoint_steps.map((r) => { const u = r.step_up ?? r, b = r.step_back;
+        return `<tr><td class="mono"><b>${r.loop}</b></td><td class="small">${esc(r.pv)} → ${esc(r.mv)}</td>
+        <td class="num">${r.sp0.toFixed(3)} → ${r.sp1.toFixed(3)}</td><td class="num">${u.overshoot_pct.toFixed(0)} %</td><td class="num">${settleTxt(u)}</td>
+        <td class="num">${b ? b.overshoot_pct.toFixed(0) + " %" : "—"}</td><td class="num">${b ? settleTxt(b) : "—"}</td>
+        <td>${r.pass ? `<span class="pill ok">pass</span>` : `<span class="pill warn">stable, slow</span>`}</td></tr>`; }).join("") + "</tbody>";
     $("#distTable").innerHTML = `<thead><tr><th>Disturbance</th><th>Loop</th><th class="num">Setpoint</th><th class="num">Max deviation</th><th class="num">Output start → end</th><th>Result</th></tr></thead><tbody>` +
       L.disturbances.map((r) => `<tr><td>${esc(r.disturbance.replace(/_/g, " "))}</td><td class="mono">${r.loop}</td><td class="num">${r.sp.toFixed(3)}</td>
         <td class="num">${r.max_deviation.toFixed(3)}</td><td class="num">${r.mv_start.toFixed(3)} → ${r.mv_end.toFixed(3)}</td>
         <td>${r.pass ? `<span class="pill ok">pass</span>` : `<span class="pill bad">fail</span>`}</td></tr>`).join("") + "</tbody>";
+    if (L.series) {
+      $("#loopCharts").innerHTML = L.setpoint_steps.map((r) => `<div><h3>${r.loop} · ${esc(r.pv.replace(/_/g, " "))}</h3><div class="chart-box short"><canvas id="lc_${r.loop}"></canvas></div></div>`).join("");
+      $("#distCharts").innerHTML = L.disturbances.map((r) => `<div><h3>${r.loop} · ${esc(r.disturbance.replace(/_/g, " "))}</h3><div class="chart-box short"><canvas id="dc_${r.target}"></canvas></div></div>`).join("");
+    }
   }
   $("#physics").innerHTML = [
     "SIF thresholds match the README table exactly (R_T_HH 348 K … COL_P_HH 1.35 bar); plant-trip latches are R_P_HHH, RB_L_HH, DR_L_LL, DR_L_HH, COL_P_HH.",
@@ -546,8 +588,7 @@ function renderChecks() {
     "Design point holds: 100 kmol/h IPA, conversion 0.700, reactor 3.000 bar, column 1.000 bar, CW valve 60 %.",
     "Component balance closes at steady state: reaction 70.0 kmol/h = H2 vented 70.0 = acetone out 69.99 (distillate + bottoms).",
     "SIFs act on true states, alarms on BPCS measurements; pump and actuator faults act after the SIF layer, as specified.",
-    "Normal disturbances are physical steps (±3 K cooling water / ambient, ±5 K feed / heating utility, ±10 % steam); README updated to match.",
-    "Note: the live console keeps running after a plant trip (campaigns reset SIFs); the benchmark stops the plant at a trip, as the README describes.",
+    "Normal disturbances are physical steps (±3 K cooling water / ambient, ±5 K feed / heating utility, ±10 % steam).",
   ].map((t) => `<li>${esc(t)}</li>`).join("");
   const p = D.prices;
   $("#prices").innerHTML = [
@@ -557,16 +598,31 @@ function renderChecks() {
     ["Nominal margin", "about $727/h"],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
 }
+function loopChart(id, ser, extraV) {
+  const o = baseOpts("minutes", "");
+  o.scales.y2 = { position: "right", grid: { display: false }, ticks: { color: css("--lucky") } };
+  o.plugins.markers = { v: extraV };
+  mk(id, { type: "line", data: { datasets: [
+    line("PV", ser.t, ser.pv, css("--agents")), line("SP", ser.t, ser.sp, css("--bad"), true, { stepped: true }),
+    line("output", ser.t, ser.mv, css("--lucky"), false, { yAxisID: "y2", borderWidth: 1.2 }),
+  ] }, options: o });
+}
+function renderLoopCharts() {
+  const L = D.loops; if (!L.series) return;
+  charts.loopsBuilt = true;
+  for (const r of L.setpoint_steps) if (L.series[r.loop]) loopChart("lc_" + r.loop, L.series[r.loop], []);
+  for (const r of L.disturbances) { const s = L.series[`${r.loop}_dist_${r.target}`]; if (s) loopChart("dc_" + r.target, s, [{ x: 5, label: "disturbance", color: css("--muted"), dash: true }]); }
+}
 
 /* ------------------------------------------------------------ boot */
 try { const s = localStorage.getItem("fc-scen"); if (s && D.scenarios[s]) selected = s; } catch (e) {}
-renderGroups(); renderScenTable(); renderRounds(); renderChecks();
-function renderCharts() { renderOverview(); if (charts.detailBuilt) { drawCum(selected); drawVar(selected); } }
+renderConfigTable(); renderStopCauses(); renderScenTable(); renderChecks();
+function renderCharts() { renderOverview(); drawVar(selected); drawCum(selected); if (charts.loopsBuilt) renderLoopCharts(); }
 let start = location.hash.slice(1);
 if (!TABS.includes(start)) { try { start = localStorage.getItem("fc-tab") || "overview"; } catch (e) { start = "overview"; } }
-showTab(start);
-renderCharts();
 renderDetail(selected);
+showTab(start);
+renderOverview();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCharts);
 new MutationObserver(renderCharts).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 </script>
