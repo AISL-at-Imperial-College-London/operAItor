@@ -1,0 +1,1654 @@
+{
+ "command_targets": {
+  "SET_SETPOINT (loop: pv / mv)": {
+   "R_LIC": "cstr_holdup_kmol / cstr_outflow",
+   "R_TIC": "cstr_temperature_K / cstr_heater_factor",
+   "R_PIC": "cstr_pressure_bar / cstr_vent_valve",
+   "RB_LIC": "reboiler_holdup_kmol / bottoms_flow",
+   "DR_LIC": "drum_holdup_kmol / distillate_flow",
+   "COL_PIC": "column_pressure_bar / condenser_cooling_valve",
+   "TOP_TIC": "top_temperature_K / reflux_flow",
+   "BOT_TIC": "bottom_temperature_K / steam_factor"
+  },
+  "START_SPARE (pump train: duty / standby)": {
+   "FEED": "P-101A / P-101B",
+   "CSTR_OUTLET": "P-102A / P-102B",
+   "REFLUX": "P-201A / P-201B",
+   "DISTILLATE": "P-202A / P-202B",
+   "BOTTOMS": "P-203A / P-203B"
+  },
+  "OPERATE_AUXILIARY (device: input)": {
+   "H2_BDV": "cstr_bdv_valve",
+   "EMERGENCY_COOLING": "cstr_emergency_cooling_factor"
+  },
+  "SET_THROUGHPUT": "fresh_ipa_feed"
+ },
+ "coverage": {
+  "mapped_kg_nodes": 205,
+  "simulator_without_kg_node": {
+   "measurements": [],
+   "inputs": [],
+   "loops": [],
+   "alarms": [],
+   "sifs": []
+  },
+  "kg_nodes_without_simulator_counterpart": [
+   "PO_CSTR_Dynamics",
+   "PO_Column_Stages",
+   "PO_Condenser",
+   "PO_FreshFeed",
+   "PO_H2_Removal",
+   "PO_Reboiler",
+   "PO_RefluxDrum"
+  ]
+ },
+ "nodes": {
+  "obs_param_column_pressure_bar": {
+   "kind": "measurement",
+   "sim": "column_pressure_bar",
+   "alarms": {
+    "COL_P_H": "> 1.15 bar",
+    "COL_P_HH": "> 1.28 bar"
+   },
+   "controlled_by": "COL_PIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "COL_PIC"
+   }
+  },
+  "pump_train_DISTILLATE": {
+   "kind": "pump_train",
+   "sim": "DISTILLATE",
+   "primary": "P-202A",
+   "standby": "P-202B",
+   "flow": "distillate_flow",
+   "command": {
+    "type": "START_SPARE",
+    "target": "DISTILLATE"
+   }
+  },
+  "controller_R_LIC": {
+   "kind": "loop",
+   "sim": "R_LIC",
+   "pv": "cstr_holdup_kmol",
+   "mv": "cstr_outflow",
+   "setpoint_range": [
+    25.0,
+    68.0
+   ],
+   "unit": "kmol",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_LIC"
+   }
+  },
+  "PO_R_TIC": {
+   "kind": "loop",
+   "sim": "R_TIC",
+   "pv": "cstr_temperature_K",
+   "mv": "cstr_heater_factor",
+   "setpoint_range": [
+    325.0,
+    345.0
+   ],
+   "unit": "K",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_TIC"
+   }
+  },
+  "exo_param_catalyst_activity": {
+   "kind": "exogenous",
+   "sim": "catalyst_activity",
+   "commandable": false,
+   "note": "disturbance / fault variable, not an operator lever"
+  },
+  "fault_h2_pcv_stuck_closed": {
+   "kind": "fault",
+   "sim": "h2_pcv_stuck_closed"
+  },
+  "act_param_cstr_outflow": {
+   "kind": "input",
+   "sim": "cstr_outflow",
+   "manipulated_by": "R_LIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_LIC"
+   },
+   "pump_train": "CSTR_OUTLET"
+  },
+  "alarm_DR_L_HH": {
+   "kind": "alarm",
+   "sim": "DR_L_HH",
+   "tag": "drum_holdup_kmol",
+   "limit": 42.0,
+   "direction": "HIGH",
+   "priority": 1
+  },
+  "act_param_cstr_emergency_cooling_factor": {
+   "kind": "input",
+   "sim": "cstr_emergency_cooling_factor",
+   "auxiliary": "EMERGENCY_COOLING",
+   "command": {
+    "type": "OPERATE_AUXILIARY",
+    "target": "EMERGENCY_COOLING"
+   }
+  },
+  "obs_param_reboiler_holdup_kmol": {
+   "kind": "measurement",
+   "sim": "reboiler_holdup_kmol",
+   "alarms": {
+    "RB_L_HH": "> 48 kmol",
+    "RB_L_LL": "< 16 kmol"
+   },
+   "controlled_by": "RB_LIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "RB_LIC"
+   }
+  },
+  "obs_param_pump_BOTTOMS_failed": {
+   "kind": "pump_status",
+   "sim": "pump_BOTTOMS_failed",
+   "pump_train": "BOTTOMS",
+   "command": {
+    "type": "START_SPARE",
+    "target": "BOTTOMS"
+   }
+  },
+  "act_param_cstr_heater_factor": {
+   "kind": "input",
+   "sim": "cstr_heater_factor",
+   "manipulated_by": "R_TIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_TIC"
+   }
+  },
+  "action_RESET_SIF": {
+   "kind": "operator_action",
+   "sim": "RESET_SIF"
+  },
+  "obs_param_tray_01_temperature_K": {
+   "kind": "measurement",
+   "sim": "tray_01_temperature_K",
+   "alarms": {}
+  },
+  "act_param_distillate_flow": {
+   "kind": "input",
+   "sim": "distillate_flow",
+   "manipulated_by": "DR_LIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "DR_LIC"
+   },
+   "pump_train": "DISTILLATE"
+  },
+  "fault_reflux_pump_trip": {
+   "kind": "fault",
+   "sim": "reflux_pump_trip"
+  },
+  "obs_param_tray_04_temperature_K": {
+   "kind": "measurement",
+   "sim": "tray_04_temperature_K",
+   "alarms": {}
+  },
+  "obs_param_tray_03_pressure_bar": {
+   "kind": "measurement",
+   "sim": "tray_03_pressure_bar",
+   "alarms": {}
+  },
+  "act_param_cstr_bdv_valve": {
+   "kind": "input",
+   "sim": "cstr_bdv_valve",
+   "auxiliary": "H2_BDV",
+   "command": {
+    "type": "OPERATE_AUXILIARY",
+    "target": "H2_BDV"
+   }
+  },
+  "controller_BOT_TIC": {
+   "kind": "loop",
+   "sim": "BOT_TIC",
+   "pv": "bottom_temperature_K",
+   "mv": "steam_factor",
+   "setpoint_range": [
+    345.0,
+    365.0
+   ],
+   "unit": "K",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "BOT_TIC"
+   }
+  },
+  "alarm_R_P_H": {
+   "kind": "alarm",
+   "sim": "R_P_H",
+   "tag": "cstr_pressure_bar",
+   "limit": 3.5,
+   "direction": "HIGH",
+   "priority": 2
+  },
+  "action_SET_THROUGHPUT": {
+   "kind": "operator_action",
+   "sim": "SET_THROUGHPUT"
+  },
+  "obs_param_cstr_pressure_bar": {
+   "kind": "measurement",
+   "sim": "cstr_pressure_bar",
+   "alarms": {
+    "R_P_H": "> 3.5 bar",
+    "R_P_HH": "> 3.8 bar"
+   },
+   "controlled_by": "R_PIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_PIC"
+   }
+  },
+  "obs_param_tray_01_pressure_bar": {
+   "kind": "measurement",
+   "sim": "tray_01_pressure_bar",
+   "alarms": {}
+  },
+  "obs_param_reboiler_pressure_bar": {
+   "kind": "measurement",
+   "sim": "reboiler_pressure_bar",
+   "alarms": {}
+  },
+  "alarm_COL_P_HH": {
+   "kind": "alarm",
+   "sim": "COL_P_HH",
+   "tag": "column_pressure_bar",
+   "limit": 1.28,
+   "direction": "HIGH",
+   "priority": 1
+  },
+  "alarm_P201_TRIP": {
+   "kind": "alarm",
+   "sim": "P201_TRIP",
+   "tag": "pump_REFLUX_failed",
+   "limit": 0.5,
+   "direction": "HIGH",
+   "priority": 1
+  },
+  "fault_cstr_liquid_leak": {
+   "kind": "fault",
+   "sim": "cstr_liquid_leak"
+  },
+  "fault_condenser_cooling_loss": {
+   "kind": "fault",
+   "sim": "condenser_cooling_loss"
+  },
+  "SIF_R_L_HH": {
+   "kind": "sif",
+   "sim": "R_L_HH"
+  },
+  "obs_param_tray_09_pressure_bar": {
+   "kind": "measurement",
+   "sim": "tray_09_pressure_bar",
+   "alarms": {}
+  },
+  "obs_param_top_pressure_bar": {
+   "kind": "measurement",
+   "sim": "top_pressure_bar",
+   "alarms": {}
+  },
+  "obs_param_bottom_temperature_K": {
+   "kind": "measurement",
+   "sim": "bottom_temperature_K",
+   "alarms": {},
+   "controlled_by": "BOT_TIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "BOT_TIC"
+   }
+  },
+  "obs_param_tray_09_temperature_K": {
+   "kind": "measurement",
+   "sim": "tray_09_temperature_K",
+   "alarms": {}
+  },
+  "PO_TOP_TIC": {
+   "kind": "loop",
+   "sim": "TOP_TIC",
+   "pv": "top_temperature_K",
+   "mv": "reflux_flow",
+   "setpoint_range": [
+    325.0,
+    340.0
+   ],
+   "unit": "K",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "TOP_TIC"
+   }
+  },
+  "PO_R_PIC": {
+   "kind": "loop",
+   "sim": "R_PIC",
+   "pv": "cstr_pressure_bar",
+   "mv": "cstr_vent_valve",
+   "setpoint_range": [
+    2.5,
+    3.4
+   ],
+   "unit": "bar",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_PIC"
+   }
+  },
+  "PO_RB_LIC": {
+   "kind": "loop",
+   "sim": "RB_LIC",
+   "pv": "reboiler_holdup_kmol",
+   "mv": "bottoms_flow",
+   "setpoint_range": [
+    18.0,
+    48.0
+   ],
+   "unit": "kmol",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "RB_LIC"
+   }
+  },
+  "obs_param_tray_02_temperature_K": {
+   "kind": "measurement",
+   "sim": "tray_02_temperature_K",
+   "alarms": {}
+  },
+  "obs_param_cstr_h2_vent_kmol_h": {
+   "kind": "measurement",
+   "sim": "cstr_h2_vent_kmol_h",
+   "alarms": {}
+  },
+  "alarm_P102_TRIP": {
+   "kind": "alarm",
+   "sim": "P102_TRIP",
+   "tag": "pump_CSTR_OUTLET_failed",
+   "limit": 0.5,
+   "direction": "HIGH",
+   "priority": 1
+  },
+  "obs_param_tray_02_pressure_bar": {
+   "kind": "measurement",
+   "sim": "tray_02_pressure_bar",
+   "alarms": {}
+  },
+  "obs_param_tray_03_temperature_K": {
+   "kind": "measurement",
+   "sim": "tray_03_temperature_K",
+   "alarms": {}
+  },
+  "SIF_R_L_LL": {
+   "kind": "sif",
+   "sim": "R_L_LL"
+  },
+  "obs_param_pump_CSTR_OUTLET_failed": {
+   "kind": "pump_status",
+   "sim": "pump_CSTR_OUTLET_failed",
+   "pump_train": "CSTR_OUTLET",
+   "command": {
+    "type": "START_SPARE",
+    "target": "CSTR_OUTLET"
+   }
+  },
+  "obs_param_tray_08_temperature_K": {
+   "kind": "measurement",
+   "sim": "tray_08_temperature_K",
+   "alarms": {}
+  },
+  "obs_param_tray_05_temperature_K": {
+   "kind": "measurement",
+   "sim": "tray_05_temperature_K",
+   "alarms": {}
+  },
+  "fault_reboiler_liquid_leak": {
+   "kind": "fault",
+   "sim": "reboiler_liquid_leak"
+  },
+  "obs_param_pump_REFLUX_failed": {
+   "kind": "pump_status",
+   "sim": "pump_REFLUX_failed",
+   "pump_train": "REFLUX",
+   "command": {
+    "type": "START_SPARE",
+    "target": "REFLUX"
+   }
+  },
+  "obs_param_drum_holdup_kmol": {
+   "kind": "measurement",
+   "sim": "drum_holdup_kmol",
+   "alarms": {
+    "DR_L_HH": "> 42 kmol",
+    "DR_L_LL": "< 14 kmol"
+   },
+   "controlled_by": "DR_LIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "DR_LIC"
+   }
+  },
+  "fault_reactor_heater_stuck_high": {
+   "kind": "fault",
+   "sim": "reactor_heater_stuck_high"
+  },
+  "obs_param_tray_05_pressure_bar": {
+   "kind": "measurement",
+   "sim": "tray_05_pressure_bar",
+   "alarms": {}
+  },
+  "act_param_condenser_cooling_valve": {
+   "kind": "input",
+   "sim": "condenser_cooling_valve",
+   "manipulated_by": "COL_PIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "COL_PIC"
+   }
+  },
+  "controller_COL_PIC": {
+   "kind": "loop",
+   "sim": "COL_PIC",
+   "pv": "column_pressure_bar",
+   "mv": "condenser_cooling_valve",
+   "setpoint_range": [
+    0.9,
+    1.15
+   ],
+   "unit": "bar",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "COL_PIC"
+   }
+  },
+  "exo_param_reboiler_liquid_leak_kmol_h": {
+   "kind": "exogenous",
+   "sim": "reboiler_liquid_leak_kmol_h",
+   "commandable": false,
+   "note": "disturbance / fault variable, not an operator lever"
+  },
+  "obs_param_tray_08_pressure_bar": {
+   "kind": "measurement",
+   "sim": "tray_08_pressure_bar",
+   "alarms": {}
+  },
+  "obs_param_top_temperature_K": {
+   "kind": "measurement",
+   "sim": "top_temperature_K",
+   "alarms": {},
+   "controlled_by": "TOP_TIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "TOP_TIC"
+   }
+  },
+  "obs_param_tray_10_temperature_K": {
+   "kind": "measurement",
+   "sim": "tray_10_temperature_K",
+   "alarms": {}
+  },
+  "PO_DR_LIC": {
+   "kind": "loop",
+   "sim": "DR_LIC",
+   "pv": "drum_holdup_kmol",
+   "mv": "distillate_flow",
+   "setpoint_range": [
+    16.0,
+    42.0
+   ],
+   "unit": "kmol",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "DR_LIC"
+   }
+  },
+  "alarm_DIST_X_L": {
+   "kind": "alarm",
+   "sim": "DIST_X_L",
+   "tag": "distillate_x_acetone",
+   "limit": 0.9,
+   "direction": "LOW",
+   "priority": 3
+  },
+  "fault_reflux_drum_leak": {
+   "kind": "fault",
+   "sim": "reflux_drum_leak"
+  },
+  "action_SET_SETPOINT": {
+   "kind": "operator_action",
+   "sim": "SET_SETPOINT"
+  },
+  "alarm_RB_L_HH": {
+   "kind": "alarm",
+   "sim": "RB_L_HH",
+   "tag": "reboiler_holdup_kmol",
+   "limit": 48.0,
+   "direction": "HIGH",
+   "priority": 1
+  },
+  "alarm_R_T_H": {
+   "kind": "alarm",
+   "sim": "R_T_H",
+   "tag": "cstr_temperature_K",
+   "limit": 342.0,
+   "direction": "HIGH",
+   "priority": 2
+  },
+  "alarm_P101_TRIP": {
+   "kind": "alarm",
+   "sim": "P101_TRIP",
+   "tag": "pump_FEED_failed",
+   "limit": 0.5,
+   "direction": "HIGH",
+   "priority": 1
+  },
+  "fault_bottoms_flow_freeze": {
+   "kind": "fault",
+   "sim": "bottoms_flow_freeze"
+  },
+  "alarm_R_L_HH": {
+   "kind": "alarm",
+   "sim": "R_L_HH",
+   "tag": "cstr_holdup_kmol",
+   "limit": 68.0,
+   "direction": "HIGH",
+   "priority": 1
+  },
+  "alarm_R_P_HH": {
+   "kind": "alarm",
+   "sim": "R_P_HH",
+   "tag": "cstr_pressure_bar",
+   "limit": 3.8,
+   "direction": "HIGH",
+   "priority": 1
+  },
+  "SIF_R_P_HHH": {
+   "kind": "sif",
+   "sim": "R_P_HHH"
+  },
+  "controller_R_PIC": {
+   "kind": "loop",
+   "sim": "R_PIC",
+   "pv": "cstr_pressure_bar",
+   "mv": "cstr_vent_valve",
+   "setpoint_range": [
+    2.5,
+    3.4
+   ],
+   "unit": "bar",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_PIC"
+   }
+  },
+  "alarm_RB_L_LL": {
+   "kind": "alarm",
+   "sim": "RB_L_LL",
+   "tag": "reboiler_holdup_kmol",
+   "limit": 16.0,
+   "direction": "LOW",
+   "priority": 1
+  },
+  "act_param_cstr_vent_valve": {
+   "kind": "input",
+   "sim": "cstr_vent_valve",
+   "manipulated_by": "R_PIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_PIC"
+   }
+  },
+  "action_NO_ACTION": {
+   "kind": "operator_action",
+   "sim": "NO_ACTION"
+  },
+  "exo_param_fresh_feed_temperature_K": {
+   "kind": "exogenous",
+   "sim": "fresh_feed_temperature_K",
+   "commandable": false,
+   "note": "disturbance / fault variable, not an operator lever"
+  },
+  "SIF_COL_P_HH": {
+   "kind": "sif",
+   "sim": "COL_P_HH"
+  },
+  "SIF_RB_L_LL": {
+   "kind": "sif",
+   "sim": "RB_L_LL"
+  },
+  "action_SET_MANUAL_OUTPUT": {
+   "kind": "operator_action",
+   "sim": "SET_MANUAL_OUTPUT"
+  },
+  "SIF_R_T_HH": {
+   "kind": "sif",
+   "sim": "R_T_HH"
+  },
+  "obs_param_cstr_x_acetone": {
+   "kind": "measurement",
+   "sim": "cstr_x_acetone",
+   "alarms": {}
+  },
+  "SIF_RB_L_HH": {
+   "kind": "sif",
+   "sim": "RB_L_HH"
+  },
+  "obs_param_bottoms_x_acetone": {
+   "kind": "measurement",
+   "sim": "bottoms_x_acetone",
+   "alarms": {
+    "BTM_X_H": "> 0.08 mol frac"
+   }
+  },
+  "alarm_P202_TRIP": {
+   "kind": "alarm",
+   "sim": "P202_TRIP",
+   "tag": "pump_DISTILLATE_failed",
+   "limit": 0.5,
+   "direction": "HIGH",
+   "priority": 1
+  },
+  "alarm_R_L_H": {
+   "kind": "alarm",
+   "sim": "R_L_H",
+   "tag": "cstr_holdup_kmol",
+   "limit": 62.0,
+   "direction": "HIGH",
+   "priority": 2
+  },
+  "obs_param_distillate_x_acetone": {
+   "kind": "measurement",
+   "sim": "distillate_x_acetone",
+   "alarms": {
+    "DIST_X_L": "< 0.9 mol frac"
+   }
+  },
+  "exo_param_drum_liquid_leak_kmol_h": {
+   "kind": "exogenous",
+   "sim": "drum_liquid_leak_kmol_h",
+   "commandable": false,
+   "note": "disturbance / fault variable, not an operator lever"
+  },
+  "act_param_bottoms_flow": {
+   "kind": "input",
+   "sim": "bottoms_flow",
+   "manipulated_by": "RB_LIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "RB_LIC"
+   },
+   "pump_train": "BOTTOMS"
+  },
+  "pump_train_FEED": {
+   "kind": "pump_train",
+   "sim": "FEED",
+   "primary": "P-101A",
+   "standby": "P-101B",
+   "flow": "fresh_ipa_feed",
+   "command": {
+    "type": "START_SPARE",
+    "target": "FEED"
+   }
+  },
+  "fault_reflux_valve_stiction": {
+   "kind": "fault",
+   "sim": "reflux_valve_stiction"
+  },
+  "fault_reactor_pressure_sensor_low_bias": {
+   "kind": "fault",
+   "sim": "reactor_pressure_sensor_low_bias"
+  },
+  "fault_cstr_outlet_capacity_loss": {
+   "kind": "fault",
+   "sim": "cstr_outlet_capacity_loss"
+  },
+  "action_ACK_ALARM": {
+   "kind": "operator_action",
+   "sim": "ACK_ALARM"
+  },
+  "fault_top_temperature_sensor_freeze": {
+   "kind": "fault",
+   "sim": "top_temperature_sensor_freeze"
+  },
+  "exo_param_steam_pressure_bar": {
+   "kind": "exogenous",
+   "sim": "steam_pressure_bar",
+   "commandable": false,
+   "note": "disturbance / fault variable, not an operator lever"
+  },
+  "fault_cstr_heater_output_freeze": {
+   "kind": "fault",
+   "sim": "cstr_heater_output_freeze"
+  },
+  "exo_param_cstr_liquid_leak_kmol_h": {
+   "kind": "exogenous",
+   "sim": "cstr_liquid_leak_kmol_h",
+   "commandable": false,
+   "note": "disturbance / fault variable, not an operator lever"
+  },
+  "obs_param_tray_06_pressure_bar": {
+   "kind": "measurement",
+   "sim": "tray_06_pressure_bar",
+   "alarms": {}
+  },
+  "PO_COL_PIC": {
+   "kind": "loop",
+   "sim": "COL_PIC",
+   "pv": "column_pressure_bar",
+   "mv": "condenser_cooling_valve",
+   "setpoint_range": [
+    0.9,
+    1.15
+   ],
+   "unit": "bar",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "COL_PIC"
+   }
+  },
+  "action_START_SPARE": {
+   "kind": "operator_action",
+   "sim": "START_SPARE"
+  },
+  "fault_h2_pcv_capacity_degradation": {
+   "kind": "fault",
+   "sim": "h2_pcv_capacity_degradation"
+  },
+  "action_SELECT_PRIMARY": {
+   "kind": "operator_action",
+   "sim": "SELECT_PRIMARY"
+  },
+  "alarm_COL_P_H": {
+   "kind": "alarm",
+   "sim": "COL_P_H",
+   "tag": "column_pressure_bar",
+   "limit": 1.15,
+   "direction": "HIGH",
+   "priority": 2
+  },
+  "act_param_steam_factor": {
+   "kind": "input",
+   "sim": "steam_factor",
+   "manipulated_by": "BOT_TIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "BOT_TIC"
+   }
+  },
+  "exo_param_condenser_cooling_effectiveness": {
+   "kind": "exogenous",
+   "sim": "condenser_cooling_effectiveness",
+   "commandable": false,
+   "note": "disturbance / fault variable, not an operator lever"
+  },
+  "alarm_R_L_L": {
+   "kind": "alarm",
+   "sim": "R_L_L",
+   "tag": "cstr_holdup_kmol",
+   "limit": 38.0,
+   "direction": "LOW",
+   "priority": 2
+  },
+  "obs_param_cstr_temperature_K": {
+   "kind": "measurement",
+   "sim": "cstr_temperature_K",
+   "alarms": {
+    "R_T_H": "> 342 K",
+    "R_T_HH": "> 346 K"
+   },
+   "controlled_by": "R_TIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_TIC"
+   }
+  },
+  "obs_param_pump_DISTILLATE_failed": {
+   "kind": "pump_status",
+   "sim": "pump_DISTILLATE_failed",
+   "pump_train": "DISTILLATE",
+   "command": {
+    "type": "START_SPARE",
+    "target": "DISTILLATE"
+   }
+  },
+  "act_param_reflux_flow": {
+   "kind": "input",
+   "sim": "reflux_flow",
+   "manipulated_by": "TOP_TIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "TOP_TIC"
+   },
+   "pump_train": "REFLUX"
+  },
+  "action_OPERATE_AUXILIARY": {
+   "kind": "operator_action",
+   "sim": "OPERATE_AUXILIARY"
+  },
+  "obs_param_cstr_holdup_kmol": {
+   "kind": "measurement",
+   "sim": "cstr_holdup_kmol",
+   "alarms": {
+    "R_L_H": "> 62 kmol",
+    "R_L_HH": "> 68 kmol",
+    "R_L_L": "< 38 kmol",
+    "R_L_LL": "< 25 kmol"
+   },
+   "controlled_by": "R_LIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_LIC"
+   }
+  },
+  "obs_param_tray_07_temperature_K": {
+   "kind": "measurement",
+   "sim": "tray_07_temperature_K",
+   "alarms": {}
+  },
+  "PO_R_LIC": {
+   "kind": "loop",
+   "sim": "R_LIC",
+   "pv": "cstr_holdup_kmol",
+   "mv": "cstr_outflow",
+   "setpoint_range": [
+    25.0,
+    68.0
+   ],
+   "unit": "kmol",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_LIC"
+   }
+  },
+  "exo_param_condenser_pressure_bar": {
+   "kind": "exogenous",
+   "sim": "condenser_pressure_bar",
+   "commandable": false,
+   "note": "disturbance / fault variable, not an operator lever"
+  },
+  "fault_catalyst_activity_loss": {
+   "kind": "fault",
+   "sim": "catalyst_activity_loss"
+  },
+  "alarm_P203_TRIP": {
+   "kind": "alarm",
+   "sim": "P203_TRIP",
+   "tag": "pump_BOTTOMS_failed",
+   "limit": 0.5,
+   "direction": "HIGH",
+   "priority": 1
+  },
+  "controller_RB_LIC": {
+   "kind": "loop",
+   "sim": "RB_LIC",
+   "pv": "reboiler_holdup_kmol",
+   "mv": "bottoms_flow",
+   "setpoint_range": [
+    18.0,
+    48.0
+   ],
+   "unit": "kmol",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "RB_LIC"
+   }
+  },
+  "alarm_R_T_HH": {
+   "kind": "alarm",
+   "sim": "R_T_HH",
+   "tag": "cstr_temperature_K",
+   "limit": 346.0,
+   "direction": "HIGH",
+   "priority": 1
+  },
+  "fault_reflux_flow_freeze": {
+   "kind": "fault",
+   "sim": "reflux_flow_freeze"
+  },
+  "controller_TOP_TIC": {
+   "kind": "loop",
+   "sim": "TOP_TIC",
+   "pv": "top_temperature_K",
+   "mv": "reflux_flow",
+   "setpoint_range": [
+    325.0,
+    340.0
+   ],
+   "unit": "K",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "TOP_TIC"
+   }
+  },
+  "alarm_DR_L_LL": {
+   "kind": "alarm",
+   "sim": "DR_L_LL",
+   "tag": "drum_holdup_kmol",
+   "limit": 14.0,
+   "direction": "LOW",
+   "priority": 1
+  },
+  "obs_param_tray_07_pressure_bar": {
+   "kind": "measurement",
+   "sim": "tray_07_pressure_bar",
+   "alarms": {}
+  },
+  "obs_param_tray_04_pressure_bar": {
+   "kind": "measurement",
+   "sim": "tray_04_pressure_bar",
+   "alarms": {}
+  },
+  "act_param_fresh_ipa_feed": {
+   "kind": "input",
+   "sim": "fresh_ipa_feed",
+   "pump_train": "FEED",
+   "command": {
+    "type": "SET_THROUGHPUT"
+   }
+  },
+  "obs_param_tray_06_temperature_K": {
+   "kind": "measurement",
+   "sim": "tray_06_temperature_K",
+   "alarms": {}
+  },
+  "alarm_R_L_LL": {
+   "kind": "alarm",
+   "sim": "R_L_LL",
+   "tag": "cstr_holdup_kmol",
+   "limit": 25.0,
+   "direction": "LOW",
+   "priority": 1
+  },
+  "PO_BOT_TIC": {
+   "kind": "loop",
+   "sim": "BOT_TIC",
+   "pv": "bottom_temperature_K",
+   "mv": "steam_factor",
+   "setpoint_range": [
+    345.0,
+    365.0
+   ],
+   "unit": "K",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "BOT_TIC"
+   }
+  },
+  "action_SET_MODE": {
+   "kind": "operator_action",
+   "sim": "SET_MODE"
+  },
+  "exo_param_cooling_water_temperature_K": {
+   "kind": "exogenous",
+   "sim": "cooling_water_temperature_K",
+   "commandable": false,
+   "note": "disturbance / fault variable, not an operator lever"
+  },
+  "pump_train_REFLUX": {
+   "kind": "pump_train",
+   "sim": "REFLUX",
+   "primary": "P-201A",
+   "standby": "P-201B",
+   "flow": "reflux_flow",
+   "command": {
+    "type": "START_SPARE",
+    "target": "REFLUX"
+   }
+  },
+  "controller_DR_LIC": {
+   "kind": "loop",
+   "sim": "DR_LIC",
+   "pv": "drum_holdup_kmol",
+   "mv": "distillate_flow",
+   "setpoint_range": [
+    16.0,
+    42.0
+   ],
+   "unit": "kmol",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "DR_LIC"
+   }
+  },
+  "exo_param_ambient_temperature_K": {
+   "kind": "exogenous",
+   "sim": "ambient_temperature_K",
+   "commandable": false,
+   "note": "disturbance / fault variable, not an operator lever"
+  },
+  "SIF_DR_L_HH": {
+   "kind": "sif",
+   "sim": "DR_L_HH"
+  },
+  "pump_train_BOTTOMS": {
+   "kind": "pump_train",
+   "sim": "BOTTOMS",
+   "primary": "P-203A",
+   "standby": "P-203B",
+   "flow": "bottoms_flow",
+   "command": {
+    "type": "START_SPARE",
+    "target": "BOTTOMS"
+   }
+  },
+  "SIF_DR_L_LL": {
+   "kind": "sif",
+   "sim": "DR_L_LL"
+  },
+  "alarm_BTM_X_H": {
+   "kind": "alarm",
+   "sim": "BTM_X_H",
+   "tag": "bottoms_x_acetone",
+   "limit": 0.08,
+   "direction": "HIGH",
+   "priority": 3
+  },
+  "exo_param_cstr_heating_utility_temperature_K": {
+   "kind": "exogenous",
+   "sim": "cstr_heating_utility_temperature_K",
+   "commandable": false,
+   "note": "disturbance / fault variable, not an operator lever"
+  },
+  "pump_train_CSTR_OUTLET": {
+   "kind": "pump_train",
+   "sim": "CSTR_OUTLET",
+   "primary": "P-102A",
+   "standby": "P-102B",
+   "flow": "cstr_outflow",
+   "command": {
+    "type": "START_SPARE",
+    "target": "CSTR_OUTLET"
+   }
+  },
+  "SIF_R_P_HH": {
+   "kind": "sif",
+   "sim": "R_P_HH"
+  },
+  "obs_param_tray_10_pressure_bar": {
+   "kind": "measurement",
+   "sim": "tray_10_pressure_bar",
+   "alarms": {}
+  },
+  "obs_param_pump_FEED_failed": {
+   "kind": "pump_status",
+   "sim": "pump_FEED_failed",
+   "pump_train": "FEED",
+   "command": {
+    "type": "START_SPARE",
+    "target": "FEED"
+   }
+  },
+  "controller_R_TIC": {
+   "kind": "loop",
+   "sim": "R_TIC",
+   "pv": "cstr_temperature_K",
+   "mv": "cstr_heater_factor",
+   "setpoint_range": [
+    325.0,
+    345.0
+   ],
+   "unit": "K",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_TIC"
+   }
+  },
+  "PSV-101": {
+   "kind": "equipment",
+   "sim": "PSV-101",
+   "measurements": [
+    "cstr_pressure_bar",
+    "cstr_h2_vent_kmol_h"
+   ],
+   "note": "passive relief valve; not commandable"
+  },
+  "P-202A": {
+   "kind": "pump",
+   "sim": "P-202A",
+   "pump_train": "DISTILLATE",
+   "role": "primary",
+   "command": {
+    "type": "START_SPARE",
+    "target": "DISTILLATE"
+   }
+  },
+  "R-101": {
+   "kind": "equipment",
+   "sim": "R-101",
+   "loops": [
+    "R_LIC",
+    "R_TIC",
+    "R_PIC"
+   ]
+  },
+  "P-203A": {
+   "kind": "pump",
+   "sim": "P-203A",
+   "pump_train": "BOTTOMS",
+   "role": "primary",
+   "command": {
+    "type": "START_SPARE",
+    "target": "BOTTOMS"
+   }
+  },
+  "PT-101": {
+   "kind": "sensor",
+   "sim": "cstr_pressure_bar",
+   "measures": [
+    "cstr_pressure_bar"
+   ],
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_PIC"
+   }
+  },
+  "TT-201-05": {
+   "kind": "sensor",
+   "sim": "tray_05_temperature_K",
+   "measures": [
+    "tray_05_temperature_K"
+   ]
+  },
+  "TT-201-10": {
+   "kind": "sensor",
+   "sim": "tray_10_temperature_K",
+   "measures": [
+    "tray_10_temperature_K"
+   ]
+  },
+  "BDV-101": {
+   "kind": "aux_equipment",
+   "sim": "H2_BDV",
+   "input": "cstr_bdv_valve",
+   "command": {
+    "type": "OPERATE_AUXILIARY",
+    "target": "H2_BDV"
+   }
+  },
+  "P-102B": {
+   "kind": "pump",
+   "sim": "P-102B",
+   "pump_train": "CSTR_OUTLET",
+   "role": "standby",
+   "command": {
+    "type": "START_SPARE",
+    "target": "CSTR_OUTLET"
+   }
+  },
+  "C-201-TRAY-07": {
+   "kind": "tray",
+   "sim": "C-201-TRAY-07",
+   "measurements": [
+    "tray_07_temperature_K",
+    "tray_07_pressure_bar"
+   ]
+  },
+  "TT-201-08": {
+   "kind": "sensor",
+   "sim": "tray_08_temperature_K",
+   "measures": [
+    "tray_08_temperature_K"
+   ]
+  },
+  "PT-201-09": {
+   "kind": "sensor",
+   "sim": "tray_09_pressure_bar",
+   "measures": [
+    "tray_09_pressure_bar"
+   ]
+  },
+  "PT-201-05": {
+   "kind": "sensor",
+   "sim": "tray_05_pressure_bar",
+   "measures": [
+    "tray_05_pressure_bar"
+   ]
+  },
+  "TT-201-09": {
+   "kind": "sensor",
+   "sim": "tray_09_temperature_K",
+   "measures": [
+    "tray_09_temperature_K"
+   ]
+  },
+  "PT-201T": {
+   "kind": "sensor",
+   "sim": "top_pressure_bar",
+   "measures": [
+    "top_pressure_bar"
+   ]
+  },
+  "P-201B": {
+   "kind": "pump",
+   "sim": "P-201B",
+   "pump_train": "REFLUX",
+   "role": "standby",
+   "command": {
+    "type": "START_SPARE",
+    "target": "REFLUX"
+   }
+  },
+  "C-201-TRAY-01": {
+   "kind": "tray",
+   "sim": "C-201-TRAY-01",
+   "measurements": [
+    "tray_01_temperature_K",
+    "tray_01_pressure_bar"
+   ]
+  },
+  "PT-201-08": {
+   "kind": "sensor",
+   "sim": "tray_08_pressure_bar",
+   "measures": [
+    "tray_08_pressure_bar"
+   ]
+  },
+  "TT-201": {
+   "kind": "sensor",
+   "sim": "top_temperature_K",
+   "measures": [
+    "top_temperature_K"
+   ],
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "TOP_TIC"
+   }
+  },
+  "P-101B": {
+   "kind": "pump",
+   "sim": "P-101B",
+   "pump_train": "FEED",
+   "role": "standby",
+   "command": {
+    "type": "START_SPARE",
+    "target": "FEED"
+   }
+  },
+  "CV-201": {
+   "kind": "actuator",
+   "sim": "condenser_cooling_valve",
+   "manipulated_by": "COL_PIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "COL_PIC"
+   }
+  },
+  "P-202B": {
+   "kind": "pump",
+   "sim": "P-202B",
+   "pump_train": "DISTILLATE",
+   "role": "standby",
+   "command": {
+    "type": "START_SPARE",
+    "target": "DISTILLATE"
+   }
+  },
+  "TT-201-03": {
+   "kind": "sensor",
+   "sim": "tray_03_temperature_K",
+   "measures": [
+    "tray_03_temperature_K"
+   ]
+  },
+  "C-201-TRAY-08": {
+   "kind": "tray",
+   "sim": "C-201-TRAY-08",
+   "measurements": [
+    "tray_08_temperature_K",
+    "tray_08_pressure_bar"
+   ]
+  },
+  "P-101A": {
+   "kind": "pump",
+   "sim": "P-101A",
+   "pump_train": "FEED",
+   "role": "primary",
+   "command": {
+    "type": "START_SPARE",
+    "target": "FEED"
+   }
+  },
+  "FV-202": {
+   "kind": "actuator",
+   "sim": "steam_factor",
+   "manipulated_by": "BOT_TIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "BOT_TIC"
+   }
+  },
+  "C-201-TRAY-06": {
+   "kind": "tray",
+   "sim": "C-201-TRAY-06",
+   "measurements": [
+    "tray_06_temperature_K",
+    "tray_06_pressure_bar"
+   ]
+  },
+  "C-201": {
+   "kind": "equipment",
+   "sim": "C-201",
+   "loops": [
+    "COL_PIC",
+    "TOP_TIC",
+    "BOT_TIC"
+   ]
+  },
+  "FT-101H2": {
+   "kind": "sensor",
+   "sim": "cstr_h2_vent_kmol_h",
+   "measures": [
+    "cstr_h2_vent_kmol_h"
+   ]
+  },
+  "TT-201-07": {
+   "kind": "sensor",
+   "sim": "tray_07_temperature_K",
+   "measures": [
+    "tray_07_temperature_K"
+   ]
+  },
+  "E-102": {
+   "kind": "aux_equipment",
+   "sim": "EMERGENCY_COOLING",
+   "input": "cstr_emergency_cooling_factor",
+   "command": {
+    "type": "OPERATE_AUXILIARY",
+    "target": "EMERGENCY_COOLING"
+   }
+  },
+  "PT-201-07": {
+   "kind": "sensor",
+   "sim": "tray_07_pressure_bar",
+   "measures": [
+    "tray_07_pressure_bar"
+   ]
+  },
+  "TT-201-02": {
+   "kind": "sensor",
+   "sim": "tray_02_temperature_K",
+   "measures": [
+    "tray_02_temperature_K"
+   ]
+  },
+  "PT-201-02": {
+   "kind": "sensor",
+   "sim": "tray_02_pressure_bar",
+   "measures": [
+    "tray_02_pressure_bar"
+   ]
+  },
+  "E-101": {
+   "kind": "actuator",
+   "sim": "cstr_heater_factor",
+   "manipulated_by": "R_TIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_TIC"
+   }
+  },
+  "C-201-TRAY-02": {
+   "kind": "tray",
+   "sim": "C-201-TRAY-02",
+   "measurements": [
+    "tray_02_temperature_K",
+    "tray_02_pressure_bar"
+   ]
+  },
+  "E-202": {
+   "kind": "equipment",
+   "sim": "E-202",
+   "loops": [
+    "BOT_TIC",
+    "RB_LIC"
+   ]
+  },
+  "C-201-TRAY-03": {
+   "kind": "tray",
+   "sim": "C-201-TRAY-03",
+   "measurements": [
+    "tray_03_temperature_K",
+    "tray_03_pressure_bar"
+   ]
+  },
+  "LT-101": {
+   "kind": "sensor",
+   "sim": "cstr_holdup_kmol",
+   "measures": [
+    "cstr_holdup_kmol"
+   ],
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_LIC"
+   }
+  },
+  "C-201-TRAY-10": {
+   "kind": "tray",
+   "sim": "C-201-TRAY-10",
+   "measurements": [
+    "tray_10_temperature_K",
+    "tray_10_pressure_bar"
+   ]
+  },
+  "TT-202": {
+   "kind": "sensor",
+   "sim": "bottom_temperature_K",
+   "measures": [
+    "bottom_temperature_K"
+   ],
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "BOT_TIC"
+   }
+  },
+  "PT-201-06": {
+   "kind": "sensor",
+   "sim": "tray_06_pressure_bar",
+   "measures": [
+    "tray_06_pressure_bar"
+   ]
+  },
+  "TT-101": {
+   "kind": "sensor",
+   "sim": "cstr_temperature_K",
+   "measures": [
+    "cstr_temperature_K"
+   ],
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_TIC"
+   }
+  },
+  "PT-201": {
+   "kind": "sensor",
+   "sim": "column_pressure_bar",
+   "measures": [
+    "column_pressure_bar"
+   ],
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "COL_PIC"
+   }
+  },
+  "C-201-TRAY-05": {
+   "kind": "tray",
+   "sim": "C-201-TRAY-05",
+   "measurements": [
+    "tray_05_temperature_K",
+    "tray_05_pressure_bar"
+   ]
+  },
+  "P-102A": {
+   "kind": "pump",
+   "sim": "P-102A",
+   "pump_train": "CSTR_OUTLET",
+   "role": "primary",
+   "command": {
+    "type": "START_SPARE",
+    "target": "CSTR_OUTLET"
+   }
+  },
+  "PT-201-03": {
+   "kind": "sensor",
+   "sim": "tray_03_pressure_bar",
+   "measures": [
+    "tray_03_pressure_bar"
+   ]
+  },
+  "E-201": {
+   "kind": "equipment",
+   "sim": "E-201",
+   "loops": [
+    "COL_PIC"
+   ]
+  },
+  "PT-202": {
+   "kind": "sensor",
+   "sim": "reboiler_pressure_bar",
+   "measures": [
+    "reboiler_pressure_bar"
+   ]
+  },
+  "LT-202": {
+   "kind": "sensor",
+   "sim": "reboiler_holdup_kmol",
+   "measures": [
+    "reboiler_holdup_kmol"
+   ],
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "RB_LIC"
+   }
+  },
+  "C-201-TRAY-04": {
+   "kind": "tray",
+   "sim": "C-201-TRAY-04",
+   "measurements": [
+    "tray_04_temperature_K",
+    "tray_04_pressure_bar"
+   ]
+  },
+  "PT-201-01": {
+   "kind": "sensor",
+   "sim": "tray_01_pressure_bar",
+   "measures": [
+    "tray_01_pressure_bar"
+   ]
+  },
+  "TT-201-06": {
+   "kind": "sensor",
+   "sim": "tray_06_temperature_K",
+   "measures": [
+    "tray_06_temperature_K"
+   ]
+  },
+  "AIT-101": {
+   "kind": "sensor",
+   "sim": "cstr_x_acetone",
+   "measures": [
+    "cstr_x_acetone"
+   ]
+  },
+  "PCV-101": {
+   "kind": "actuator",
+   "sim": "cstr_vent_valve",
+   "manipulated_by": "R_PIC",
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "R_PIC"
+   }
+  },
+  "TT-201-01": {
+   "kind": "sensor",
+   "sim": "tray_01_temperature_K",
+   "measures": [
+    "tray_01_temperature_K"
+   ]
+  },
+  "LT-201": {
+   "kind": "sensor",
+   "sim": "drum_holdup_kmol",
+   "measures": [
+    "drum_holdup_kmol"
+   ],
+   "command": {
+    "type": "SET_SETPOINT",
+    "target": "DR_LIC"
+   }
+  },
+  "AIT-201D": {
+   "kind": "sensor",
+   "sim": "distillate_x_acetone",
+   "measures": [
+    "distillate_x_acetone"
+   ]
+  },
+  "C-201-TRAY-09": {
+   "kind": "tray",
+   "sim": "C-201-TRAY-09",
+   "measurements": [
+    "tray_09_temperature_K",
+    "tray_09_pressure_bar"
+   ]
+  },
+  "TT-201-04": {
+   "kind": "sensor",
+   "sim": "tray_04_temperature_K",
+   "measures": [
+    "tray_04_temperature_K"
+   ]
+  },
+  "V-201": {
+   "kind": "equipment",
+   "sim": "V-201",
+   "loops": [
+    "DR_LIC"
+   ]
+  },
+  "AIT-202B": {
+   "kind": "sensor",
+   "sim": "bottoms_x_acetone",
+   "measures": [
+    "bottoms_x_acetone"
+   ]
+  },
+  "P-201A": {
+   "kind": "pump",
+   "sim": "P-201A",
+   "pump_train": "REFLUX",
+   "role": "primary",
+   "command": {
+    "type": "START_SPARE",
+    "target": "REFLUX"
+   }
+  },
+  "PT-201-04": {
+   "kind": "sensor",
+   "sim": "tray_04_pressure_bar",
+   "measures": [
+    "tray_04_pressure_bar"
+   ]
+  },
+  "PT-201-10": {
+   "kind": "sensor",
+   "sim": "tray_10_pressure_bar",
+   "measures": [
+    "tray_10_pressure_bar"
+   ]
+  },
+  "P-203B": {
+   "kind": "pump",
+   "sim": "P-203B",
+   "pump_train": "BOTTOMS",
+   "role": "standby",
+   "command": {
+    "type": "START_SPARE",
+    "target": "BOTTOMS"
+   }
+  }
+ }
+}

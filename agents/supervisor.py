@@ -21,6 +21,7 @@ from pathlib import Path
 
 from fdd import DEFAULT_MODEL_PATH, PCAMonitor
 from integrated_plant.actions import SupervisoryAction
+from integrated_plant.alarms import AlarmState
 from server.plant_service import PlantService
 
 from .kg import KnowledgeGraph
@@ -45,7 +46,7 @@ class AsyncSupervisor:
         if pca is None and Path(DEFAULT_MODEL_PATH).exists():
             pca = PCAMonitor.load(DEFAULT_MODEL_PATH)
         self.monitor = MonitoringAgent(pca if self.cfg.use_pca else None, persistence=self.cfg.persistence,
-                                       cooldown_min=self.cfg.cooldown_min, rules_trigger=self.cfg.rules_trigger)
+                                       cooldown_min=self.cfg.cooldown_min, rules_trigger=self.cfg.rules_trigger, quality_needs_pca=self.cfg.quality_needs_pca)
         self.action_agent = action_agent or make_action_agent(self.cfg)
         self.planner = planner or make_planner(self.cfg)
         self.pending: dict[int, dict] = {}
@@ -56,6 +57,8 @@ class AsyncSupervisor:
                               on_decision_end=lambda: service.set_agent_hold(False))
         self.graph = build_recovery_graph(self.ctx)
         self._task: asyncio.Task | None = None
+        self.last_cycle_t: float | None = None     # sim time of the last finished monitoring cycle
+        self._last_applied_t: float | None = None  # sim time of the last action the agents applied
 
         service.command_handlers.update({"agent_mode": self._cmd_mode, "agent_approve": self._cmd_approve,
                                          "agent_dismiss": self._cmd_dismiss})
@@ -75,10 +78,64 @@ class AsyncSupervisor:
             last_t = obs["time_min"]
             try:
                 await self.graph.ainvoke({"observation": obs, "catalog": catalog})
+                if self.mode == "autonomous":
+                    await self._acknowledge_returned_alarms()
+                    await self._request_sif_reset()
             except Exception as exc:  # keep supervising even if one cycle fails
                 await self.service.notify(f"[agent] cycle failed: {type(exc).__name__}: {exc}", "error")
             finally:
                 await self.service.set_agent_hold(False)
+                self.last_cycle_t = last_t
+
+    # ------------------------------------------------------------ SIF reset
+    async def _request_sif_reset(self) -> None:
+        """While non-trip SIFs are latched, request a reset every cycle (README: SIF reset is an
+        operator/agent action). The SIF logic only resets a latch once its variable is back inside the
+        reset band, and re-trips immediately if the cause is still there. A plant-trip latch is left
+        for the operator (restart)."""
+        env = self.service.env
+        if not self.cfg.sif_reset or env is None or env.done:
+            return
+        sr = env.last_safety_result
+        latched = tuple(sr.latched_causes)
+        if latched and not sr.plant_trip_latched:
+            self.service._pending_reset_sif = True
+            self._last_applied_t = self.service.status()["time_min"]  # the agents are handling this incident
+            if latched != getattr(self, "_reset_reported", ()):
+                await self.service.broadcast({"type": "agent", "stage": "sif_reset", "cycle": self.ctx.cycle,
+                                              "time_min": self.service.status()["time_min"], "alarms": list(latched),
+                                              "reason": "SIF reset requested (resets once back inside the band)"})
+        self._reset_reported = latched
+
+    # ------------------------------------------------------------ alarm acknowledgement
+    def _alarms_in(self, state: AlarmState) -> list:
+        env = self.service.env
+        return [] if env is None else [s for s in env.alarms.status.values() if s.state == state]
+
+    async def _acknowledge_returned_alarms(self) -> None:
+        """Acknowledge alarms that returned to normal while the agents were handling the plant.
+
+        An alarm that returns to normal stays on the list as RTN_UNACK until someone acknowledges
+        it. If the agents applied an action while it was present (or up to one twin look-ahead
+        before it came on, i.e. it belongs to the incident being handled), the agents acknowledge
+        it, which clears it from the Alarms page. Returned alarms with no agent involvement are
+        left for the operator.
+        """
+        if self._last_applied_t is None:
+            return
+        ids = [s.definition.alarm_id for s in self._alarms_in(AlarmState.RTN_UNACK)
+               if s.first_active_min is not None
+               and self._last_applied_t >= s.first_active_min - self.cfg.twin_horizon_min]
+        if ids:
+            await self._acknowledge(ids, "returned to normal after the agents' recovery action")
+
+    async def _acknowledge(self, ids: list[str], reason: str) -> None:
+        result = await self.service.apply_action(
+            SupervisoryAction(acknowledge_alarm_ids=tuple(ids), note="agent alarm acknowledgement"),
+            source="action-agent")
+        await self.service.broadcast({"type": "agent", "stage": "alarm_ack", "cycle": self.ctx.cycle,
+                                      "time_min": self.service.status()["time_min"], "alarms": ids,
+                                      "reason": reason, "result": result})
 
     # ------------------------------------------------------------ graph callbacks
     async def _emit(self, event: dict) -> None:
@@ -102,8 +159,18 @@ class AsyncSupervisor:
                 "plan": info["plan"], "diagnosis": info["diagnosis"]["summary"],
                 "objective": (info.get("brief") or {}).get("objective"), "kind": info.get("kind", "restoring")}
         if self.mode == "autonomous":
+            # The agents take ownership of the incident: acknowledge the alarms that are standing.
+            standing = tuple(s.definition.alarm_id for s in self._alarms_in(AlarmState.ACTIVE_UNACK))
+            action = replace(action, acknowledge_alarm_ids=tuple(action.acknowledge_alarm_ids) + standing,
+                             note=f"agent {action.note}".strip())
             result = await self.service.apply_action(action, source="action-agent")
+            self._last_applied_t = self.service.status()["time_min"]
             await self.service.broadcast({**base, "stage": "applied", "result": result})
+            if standing:
+                await self.service.broadcast({"type": "agent", "stage": "alarm_ack", "cycle": self.ctx.cycle,
+                                              "time_min": self._last_applied_t, "alarms": list(standing),
+                                              "reason": "taken over by the action agent (the alarm leaves "
+                                                        "the list once its variable is back within limits)"})
             return {"status": "applied", **result}
         pid = next(self._ids)
         self.pending[pid] = {"id": pid, "action": action, **base}
@@ -124,6 +191,7 @@ class AsyncSupervisor:
         if p is None:
             return {"ok": False, "summary": "proposal no longer pending"}
         result = await self.service.apply_action(p["action"], source="operator-approved agent")
+        self._last_applied_t = self.service.status()["time_min"]
         await self.service.broadcast({"type": "agent", "stage": "approved", "proposal_id": p["id"],
                                       "time_min": self.service.status()["time_min"], "result": result})
         return result
@@ -135,6 +203,8 @@ class AsyncSupervisor:
         return {"ok": p is not None, "summary": "dismissed"}
 
     async def _on_load(self) -> None:
+        self._last_applied_t = None
+        self.last_cycle_t = None
         self.monitor.memory.reset()
         self.pending.clear()
         self.ctx.actions_taken = 0

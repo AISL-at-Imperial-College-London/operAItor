@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import json
 import time
 from typing import Any, Awaitable, Callable, Literal, TypedDict
@@ -39,7 +39,7 @@ from jpc_recovery_langgraph import compile_plan, inspect_operation
 from fdd import PCAMonitor, rule_checks
 from integrated_plant.alarms import default_alarm_definitions
 
-from .action import LLMActionAgent, RuleActionAgent, normalise_plan, slim_observation
+from .action import LLMActionAgent, RuleActionAgent, explain_plan_errors, normalise_plan, slim_observation
 from .llm import DEFAULT_MODEL
 from .kg import KnowledgeGraph
 from .monitoring import MonitoringAgent
@@ -56,7 +56,7 @@ class AgentConfig:
     proposer: Literal["none", "rule", "llm"] = "rule"
     planner: Literal["kg", "llm"] = "kg"
     use_pca: bool = True
-    rules_trigger: bool = True
+    rules_trigger: bool = False      # False: only PCA triggers the framework (rules inform diagnosis)
     use_kg: bool = True
     twin: bool = False
     llm_model: str = DEFAULT_MODEL
@@ -72,9 +72,14 @@ class AgentConfig:
     # (default); "restore" = fully normal (no alarms, no saturated loops, PCA within limits); "safe" = SIF envelope only
     acceptance: Literal["alarms", "restore", "safe"] = "alarms"
     pca_band_sigma: float = 3.0       # soft alarm level for PCA-only faulty variables (mean ± kσ of normal data)
+    quality_needs_pca: bool = True    # quality-only alarms (priority 3) trigger the agents only if PCA confirms
     blocking_priority: int = 2        # new alarms of priority ≤ this block acceptance; 3 = quality alarms only noted
     restore_hold_min: float = 2.0     # the criterion must hold this long to count as restored
-    fallback_to_safe: bool = True     # retries exhausted: apply the best candidate that was at least safe
+    twin_confirm_min: float = 5.0     # keep simulating this long after recovery, then stop the rollout early
+    fallback_to_safe: bool = True     # retries exhausted: apply the best candidate if it beats doing nothing
+    mitigation_wait_min: float = 10.0 # after a mitigation (no full recovery predicted) re-decide after this long
+    sif_reset: bool = True            # agents request a SIF reset while non-trip SIFs are latched (README:
+                                      # operator/agent action); the SIF only resets latches back in their band
     grace_min: float = 1.0
     safe_hold_min: float = 1.0
     deadline_min: float = 10.0
@@ -88,7 +93,7 @@ class AgentConfig:
 PRESETS: dict[str, dict] = {
     "passive":    dict(proposer="none"),                                   # monitor only
     "rule":       dict(proposer="rule", reprompt_max=0),                   # rules ignore feedback
-    "rule_twin":  dict(proposer="rule", twin=True, reprompt_max=2),  # rule agent escalates on reprompt
+    "rule_twin":  dict(proposer="rule", twin=True, reprompt_max=4),  # rule agent escalates on reprompt
     "llm":        dict(proposer="llm", use_kg=True, twin=True),            # full framework
     "llm_plan":   dict(proposer="llm", planner="llm", use_kg=True, twin=True),
     "llm_nokg":   dict(proposer="llm", use_kg=False, twin=True),
@@ -123,58 +128,82 @@ def make_planner(cfg: AgentConfig):
 FAILED_TERMINAL = {"SAFE_TRIP", "DAMAGE", "MODEL_LIMIT", "NUMERICAL_FAILURE"}
 
 
-def clone_env(env: EpisodeRunner) -> EpisodeRunner:
+def clone_env(env: EpisodeRunner, present_only: bool = True) -> EpisodeRunner:
+    """Deep copy of the plant for twin rollouts.
+
+    ``present_only``: the agents know which faults are active now, not when they will clear or
+    what will happen next. Active injected faults/disturbances are therefore made persistent in
+    the copy and future injections are removed (otherwise the twin would 'know' the schedule).
+    """
     records, env.records = env.records, []
     try:
-        return copy.deepcopy(env)
+        twin = copy.deepcopy(env)
     finally:
         env.records = records
+    if present_only:
+        t = twin.t_h
+
+        def present(items):
+            return [replace(f, end_h=None) if f.active(t) else f for f in items if f.start_h <= t + 1e-12]
+        twin.runtime_inputs.events = present(twin.runtime_inputs.events)
+        for eng in (twin.spec.actuator_faults, twin.spec.sensor_faults, twin.spec.pump_faults):
+            eng.faults = present(eng.faults)
+    return twin
+
+
+def consequence_key(m: dict) -> tuple:
+    """Ranking of twin outcomes, lower is better: no trip (or a later one), more faulty targets back
+    within limits, less time unsafe, closer to normal (PCA). Used to compare candidates against the
+    counterfactual 'do nothing' rollout when nothing restores the plant (e.g. several faults at once)."""
+    if m.get("rollout") != "ok":
+        return (2, 0.0, 99, 1.0, 1e9)
+    f = m.get("final") or {}
+    failed = m.get("terminal_status") in FAILED_TERMINAL
+    not_met = sum(1 for s in f.get("targets", []) if not s["ok"])
+    pca = (f.get("t2_ratio") or 0.0) + (f.get("spe_ratio") or 0.0)
+    return (int(failed), -(m.get("terminal_min") or 0.0) if failed else 0.0, not_met,
+            round(float(m.get("unsafe_fraction", 1.0)), 2), round(pca, 3))
 
 
 ALARM_DEFS = {d.alarm_id: d for d in default_alarm_definitions()}
 
 
-def faulty_targets(detection: dict, diagnosis: dict, pca: PCAMonitor | None, sigma: float = 3.0) -> list[dict]:
-    """The variables that are faulty right now, each with the limit it must return within.
+def faulty_targets(detection: dict, diagnosis: dict, pca: PCAMonitor | None, sigma: float = 3.0,
+                   observation: dict | None = None) -> list[dict]:
+    """The metrics that are faulty right now, each with the limit it must return within.
 
-    Active alarms → their alarm limit; failed duty pumps → must not be failed;
-    PCA-only evidence (no alarm on that tag) → top contributing measurements must
-    return within mean ± sigma·std of the normal-operation training data.
+    Active alarms → their alarm limit; failed duty pumps → running again; a fault
+    confirmed by PCA → Hotelling T² and SPE back under their control limits (the PCA
+    statistic is itself the faulty metric, so "recovered" means "PCA says normal").
     """
     rules = detection["rules"]
-    targets, tags = [], set()
+    targets = []
     for alarm in rules.get("active_alarms", []):
         d = ALARM_DEFS.get(alarm)
         if d is None or d.tag.startswith("pump_"):
             continue
-        tags.add(d.tag)
         targets.append({"name": alarm, "kind": "alarm", "tag": d.tag, "direction": d.direction,
                         "limit": d.limit, "unit": d.unit, "label": d.description})
     for train in rules.get("failed_trains", []):
         targets.append({"name": f"{train} pump", "kind": "pump", "train": train, "label": f"{train} duty pump failed"})
     if pca is not None and detection.get("pca_persistent"):
-        for c in diagnosis.get("contributors", [])[:3]:
-            var = c["variable"]
-            if not var.startswith("meas.") or var[5:] in tags or var not in pca.variables:
-                continue
-            i = pca.variables.index(var)
-            lo, hi = pca.mean[i] - sigma * pca.std[i], pca.mean[i] + sigma * pca.std[i]
-            targets.append({"name": var[5:], "kind": "pca", "tag": var[5:], "lo": float(lo), "hi": float(hi),
-                            "label": f"{var[5:]} outside its normal ±{sigma:g}σ band"})
+        targets.append({"name": "PCA T²", "kind": "pca_stat", "stat": "t2", "direction": "HIGH",
+                        "limit": float(pca.t2_limit), "unit": "", "label": "Hotelling T² above its limit"})
+        targets.append({"name": "PCA SPE", "kind": "pca_stat", "stat": "spe", "direction": "HIGH",
+                        "limit": float(pca.spe_limit), "unit": "", "label": "SPE (Q) above its limit"})
     return targets
 
 
-def _target_status(t: dict, obs: dict) -> dict:
+def _target_status(t: dict, obs: dict, score=None) -> dict:
     if t["kind"] == "pump":
         failed = bool(obs["pump_trains"][t["train"]]["selected_failed"])
         return {"name": t["name"], "ok": not failed, "value": "failed" if failed else "running", "limit": "running"}
-    v = float(obs["measurements"].get(t["tag"], float("nan")))
-    if t["kind"] == "alarm":
-        ok = v < t["limit"] if t["direction"].upper() == "HIGH" else v > t["limit"]
-        limit = f"{'<' if t['direction'].upper() == 'HIGH' else '>'} {t['limit']:g} {t['unit']}".strip()
+    if t["kind"] == "pca_stat":
+        v = float("nan") if score is None else float(getattr(score, t["stat"]))
     else:
-        ok = t["lo"] < v < t["hi"]
-        limit = f"{t['lo']:.4g}–{t['hi']:.4g}"
+        v = float(obs["measurements"].get(t["tag"], float("nan")))
+    ok = v < t["limit"] if t["direction"].upper() == "HIGH" else v > t["limit"]
+    limit = f"{'<' if t['direction'].upper() == 'HIGH' else '>'} {t['limit']:.4g} {t['unit']}".strip()
     return {"name": t["name"], "ok": bool(ok), "value": round(v, 4), "limit": limit}
 
 
@@ -201,11 +230,14 @@ def twin_rollout(twin: EpisodeRunner, action: SupervisoryAction, cfg: AgentConfi
     pred, last = [], {}
     while not twin.done and 60 * twin.t_h < end - 1e-9:
         before = 60 * twin.t_h
-        obs, _ = twin.step(SupervisoryAction.no_action())
+        sr = twin.last_safety_result
+        reset = bool(cfg.sif_reset and sr.latched_causes and not sr.plant_trip_latched)
+        obs, _ = twin.step(SupervisoryAction(reset_sifs=True, note="twin_sif_reset") if reset
+                           else SupervisoryAction.no_action())
         check = inspect_operation(twin, obs, truth=True)
         rules = rule_checks(obs)
         score = pca.score_observation(obs) if pca is not None else None
-        status = [_target_status(t, obs) for t in targets]
+        status = [_target_status(t, obs, score) for t in targets]
         target_names = {t["name"] for t in targets}
         new_alarms = [a for a in rules["active_alarms"] if a not in target_names]
         blocking = [a for a in new_alarms
@@ -229,6 +261,18 @@ def twin_rollout(twin: EpisodeRunner, action: SupervisoryAction, cfg: AgentConfi
         normal_hold = normal_hold + dt if met else 0.0
         if time_to_restore is None and met and normal_hold + 1e-9 >= cfg.restore_hold_min:
             time_to_restore = elapsed
+        if time_to_restore is not None and elapsed >= time_to_restore + cfg.twin_confirm_min and met:
+            pred.append([round(obs["time_min"], 2), None if score is None else round(score.t2, 3),
+                         None if score is None else round(score.spe, 3), int(check["safe_now"]), int(met)])
+            last = {"unsafe_tags": check["unsafe_tags"], "active_alarms": rules["active_alarms"],
+                    "saturated_loops": rules["saturated_loops"], "failed_trains": rules["failed_trains"],
+                    "sif_latched": rules["sif_latched"],
+                    "t2_ratio": None if score is None else round(score.t2 / score.t2_limit, 3),
+                    "spe_ratio": None if score is None else round(score.spe / score.spe_limit, 3),
+                    "normal": normal, "alarms_clear": alarms_clear, "met": met, "safe": check["safe_now"],
+                    "targets": status, "new_alarms_blocking": blocking,
+                    "new_alarms_noted": [a for a in new_alarms if a not in blocking]}
+            break  # recovered and confirmed: the rest of the horizon would not change the verdict
         pred.append([round(obs["time_min"], 2),
                      None if score is None else round(score.t2, 3), None if score is None else round(score.spe, 3),
                      int(check["safe_now"]), int(met)])
@@ -241,6 +285,7 @@ def twin_rollout(twin: EpisodeRunner, action: SupervisoryAction, cfg: AgentConfi
                 "targets": status, "new_alarms_blocking": blocking,
                 "new_alarms_noted": [a for a in new_alarms if a not in blocking]}
     return {"rollout": "ok", "horizon_min": end - start, "terminal_status": twin.outcomes.state.status.value,
+            "terminal_min": round(60 * twin.t_h - start, 2) if twin.done else None,
             "safe_reached": time_to_safe is not None, "time_to_safe_min": time_to_safe,
             "restored": time_to_restore is not None and bool(last.get("met")), "criterion": cfg.acceptance,
             "time_to_restore_min": time_to_restore,
@@ -289,6 +334,8 @@ def validate_outcome(m: dict, cfg: AgentConfig) -> dict:
     failed = [c for c in checks if not c["ok"]]
     safe_ok = all(c["ok"] for c in checks
                   if not c["check"].startswith(("plant restored", "faulty variables")))
+    # A fallback mitigation must not create new safety alarms (e.g. a level setpoint next to its alarm).
+    safe_ok = safe_ok and not (m.get("final") or {}).get("new_alarms_blocking")
     return {"accepted": not failed, "fail_reason": failed[0]["check"] if failed else "",
             "criterion": cfg.acceptance, "checks": checks, "safe_ok": safe_ok}
 
@@ -312,7 +359,9 @@ class RecoveryState(TypedDict, total=False):
     evaluation: dict
     feedback: str
     attempts: int
-    safe_candidates: list
+    safe_candidates: list   # every rolled-out candidate with its consequence key
+    baseline: dict          # counterfactual NO_ACTION rollout of this decision
+    tried: list
     outcome: str
 
 
@@ -362,7 +411,7 @@ def build_recovery_graph(ctx: RunContext):
             det = {**det, "should_act": False}
         await emit({"event": "monitor", "t": det["time_min"], "detection": det, "diagnosis": diag})
         return {"detection": det, "diagnosis": diag, "attempts": 0, "feedback": "", "outcome": "no_action",
-                "safe_candidates": []}
+                "safe_candidates": [], "tried": []}
 
     async def kg_retrieval(state: RecoveryState) -> dict:
         ctx.cycle += 1  # a new decision cycle starts here (fault confirmed, agents engaged)
@@ -415,7 +464,9 @@ def build_recovery_graph(ctx: RunContext):
         plan, cites = normalise_plan(raw_plan)
         # Turn the plan into a plant command (catalog names, bounds). Not a pipeline step:
         # a plan that cannot be executed is rejected by the validate agent and reprompted.
-        action, errors = compile_plan(plan, state["observation"], state["catalog"])
+        errors = explain_plan_errors(plan, state["catalog"])
+        action, compile_errors = compile_plan(plan, state["observation"], state["catalog"])
+        errors = errors or compile_errors
         await emit({"event": "proposal", "t": state["detection"]["time_min"], "attempt": state["attempts"],
                     "plan": plan, "kg_citations": cites, "latency_s": usage["latency_s"],
                     "tokens": usage.get("total_tokens"), "errors": errors or None})
@@ -425,17 +476,24 @@ def build_recovery_graph(ctx: RunContext):
                 "action": action, "errors": errors}
 
     async def twin_evaluate(state: RecoveryState) -> dict:
+        if state["plan"]["commands"] in (state.get("tried") or []):
+            reason = "identical to a proposal already rejected in this decision"
+            await emit({"event": "twin_skipped", "t": state["detection"]["time_min"], "reason": reason})
+            return {"twin": {"rollout": "duplicate", "reason": reason}}
         if state.get("errors"):
             reason = "plan not executable: " + "; ".join(state["errors"])
             await emit({"event": "twin_skipped", "t": state["detection"]["time_min"], "reason": reason})
             return {"twin": {"rollout": "invalid_plan", "reason": reason}}
-        if not cfg.twin or state["action"] == SupervisoryAction.no_action():
-            reason = "twin disabled in this preset" if not cfg.twin else "NO_ACTION: nothing to simulate"
+        if not cfg.twin:
+            reason = "twin disabled in this preset"
             await emit({"event": "twin_skipped", "t": state["detection"]["time_min"], "reason": reason})
             return {"twin": {"rollout": "skipped", "reason": reason}}
+        # NO_ACTION is rolled out as well: doing nothing is only acceptable if the twin shows the
+        # plant recovering by itself (e.g. a transient); otherwise it is the counterfactual baseline.
         await node("twin_evaluate", state, horizon_min=cfg.twin_horizon_min)
         twin = await ctx.snapshot_env()
-        targets = faulty_targets(state["detection"], state["diagnosis"], ctx.monitor.pca, cfg.pca_band_sigma)
+        targets = faulty_targets(state["detection"], state["diagnosis"], ctx.monitor.pca, cfg.pca_band_sigma,
+                                 state["observation"])
         m = await asyncio.to_thread(twin_rollout, twin, state["action"], cfg, ctx.monitor.pca, targets)
         await emit({"event": "twin", "t": state["detection"]["time_min"], "plan": state["plan"], **m})
         return {"twin": m}
@@ -444,7 +502,11 @@ def build_recovery_graph(ctx: RunContext):
         """Validate agent: does the twin show the plant restored? If not, feedback → reprompter."""
         await node("validate", state)
         m = state["twin"]
-        if m.get("rollout") == "invalid_plan":
+        if m.get("rollout") == "duplicate":
+            v = {"accepted": False, "fail_reason": "new proposal", "criterion": cfg.acceptance, "safe_ok": False,
+                 "checks": [{"check": "new proposal", "ok": False,
+                             "detail": "same commands as a rejected attempt; propose something different"}]}
+        elif m.get("rollout") == "invalid_plan":
             v = {"accepted": False, "fail_reason": "plan executable", "criterion": cfg.acceptance, "safe_ok": False,
                  "checks": [{"check": "plan executable", "ok": False, "detail": "; ".join(state["errors"])}]}
         elif m.get("rollout") == "skipped":
@@ -453,13 +515,19 @@ def build_recovery_graph(ctx: RunContext):
         else:
             v = validate_outcome(m, cfg)
         cands = list(state.get("safe_candidates") or [])
-        if not v["accepted"] and v["safe_ok"] and m.get("rollout") == "ok":
-            f = m.get("final") or {}
-            cands.append({"plan": state["plan"], "action": state["action"],
-                          "score": (f.get("t2_ratio") or 0) + (f.get("spe_ratio") or 0)})
+        out = {}
+        if not v["accepted"] and m.get("rollout") == "ok":
+            if state["action"] == SupervisoryAction.no_action():
+                out["baseline"] = {"key": consequence_key(m), "terminal_status": m.get("terminal_status")}
+            else:
+                cands.append({"plan": state["plan"], "action": state["action"], "key": consequence_key(m),
+                              "safe_ok": v["safe_ok"]})
         await emit({"event": "validation", "t": state["detection"]["time_min"], "plan": state["plan"],
                     "attempt": state["attempts"], **v})
-        return {"evaluation": v, "safe_candidates": cands}
+        tried = list(state.get("tried") or [])
+        if not v["accepted"]:
+            tried.append(state["plan"]["commands"])
+        return {"evaluation": v, "safe_candidates": cands, "tried": tried, **out}
 
     async def reprompt(state: RecoveryState) -> dict:
         ev, m = state["evaluation"], state.get("twin") or {}
@@ -476,12 +544,22 @@ def build_recovery_graph(ctx: RunContext):
         await node("dispatch", state)
         t_obs = state["detection"]["time_min"]
         ttr = (state.get("twin") or {}).get("time_to_restore_min")
-        accepted = state.get("outcome") != "mitigation" and (state.get("evaluation") or {}).get("accepted")
-        wait = ttr + cfg.restore_hold_min if accepted and ttr is not None else None
+        mitigation = state.get("outcome") == "mitigation"
+        accepted = not mitigation and (state.get("evaluation") or {}).get("accepted")
+        if accepted and ttr is not None:
+            wait = ttr + cfg.restore_hold_min
+            reason = f"twin predicts recovery in {ttr:.1f} min; no new decision until t={t_obs + wait:.1f}"
+        elif mitigation:
+            # No candidate recovers the plant; the twin's prediction for this action covers its
+            # whole look-ahead, so re-deciding earlier would contradict it.
+            wait = cfg.mitigation_wait_min
+            reason = (f"mitigation (no candidate fully recovers the plant): re-evaluate after "
+                      f"{wait:.0f} min, at t={t_obs + wait:.1f}")
+        else:
+            wait, reason = None, ""
         ctx.monitor.mark_acted(t_obs, state["diagnosis"]["summary"], wait)
         if wait:
-            await emit({"event": "verification", "t": t_obs, "until": t_obs + wait,
-                        "reason": f"twin predicts recovery in {ttr:.1f} min; no new decision until t={t_obs + wait:.1f}"})
+            await emit({"event": "verification", "t": t_obs, "until": t_obs + wait, "reason": reason})
         try:
             if state["action"] == SupervisoryAction.no_action():
                 await emit({"event": "advisory", "t": state["detection"]["time_min"], "plan": state["plan"],
@@ -501,11 +579,26 @@ def build_recovery_graph(ctx: RunContext):
         await node("reject", state)
         cands = state.get("safe_candidates") or []
         if cfg.fallback_to_safe and cands:
-            best = min(cands, key=lambda c: c["score"])
-            await emit({"event": "fallback", "t": state["detection"]["time_min"], "plan": best["plan"],
-                        "reason": "no candidate restores the plant; applying the best safe mitigation",
-                        "n_safe": len(cands)})
-            return {"plan": best["plan"], "action": best["action"], "outcome": "mitigation"}
+            base = state.get("baseline")
+            if base is None and cfg.twin:  # counterfactual: what happens if nobody acts?
+                twin = await ctx.snapshot_env()
+                targets = faulty_targets(state["detection"], state["diagnosis"], ctx.monitor.pca,
+                                         cfg.pca_band_sigma, state["observation"])
+                m = await asyncio.to_thread(twin_rollout, twin, SupervisoryAction.no_action(), cfg,
+                                            ctx.monitor.pca, targets)
+                await emit({"event": "twin", "t": state["detection"]["time_min"], "counterfactual": True,
+                            "plan": {"commands": [{"type": "NO_ACTION"}], "reasoning": "counterfactual: do nothing"},
+                            **m})
+                base = {"key": consequence_key(m), "terminal_status": m.get("terminal_status")}
+            better = [c for c in cands if base is None or c["key"] < base["key"]]
+            if better:
+                best = min(better, key=lambda c: c["key"])
+                await emit({"event": "fallback", "t": state["detection"]["time_min"], "plan": best["plan"],
+                            "reason": "no candidate restores the plant; applying the candidate that does best "
+                                      "against doing nothing (no/later trip, more faulty variables back, less "
+                                      "time unsafe)", "n_safe": len(better), "key": best["key"],
+                            "baseline_key": base["key"] if base else None})
+                return {"plan": best["plan"], "action": best["action"], "outcome": "mitigation"}
         ctx.monitor.mark_acted(state["detection"]["time_min"], state["diagnosis"]["summary"])
         await emit({"event": "reject", "t": state["detection"]["time_min"],
                     "reason": state["evaluation"].get("fail_reason")})

@@ -9,8 +9,9 @@
                          ▼                                          │
             AsyncSupervisor (agents/supervisor.py) runs the recovery LangGraph:
 
-   START → monitoring ──no fault / cooldown──────────────────────────────► END
-              │  hypotheses (PCA T²/SPE contributions + alarm / pump / loop rules)
+   START → monitoring ──no persistent PCA fault / cooldown──────────────► END
+              │  trigger: PCA only (T² or SPE over its limit for 3 samples)
+              │  hypotheses (PCA contributions + alarm / pump / loop evidence)
               ▼
          kg_retrieval → planning → action_propose → digital twin → validate → dispatch → END
                                         ▲                                    not restored │
@@ -51,13 +52,13 @@ In the console:
     rejected by Validate ("plan executable") and reprompted.
   - The *digital twin* simulates the candidate for 30 min on a copy of the
     plant.
-  - *Validate* (default `acceptance="alarms"`) accepts when the variables that
-    are faulty at decision time return within their alarm limits and stay
-    there for 2 min, with the plant safe and no new safety alarm:
+  - *Validate* (default `acceptance="alarms"`) accepts when the metrics that
+    are faulty at decision time return within their limits and stay there for
+    2 min, with the plant safe and no new safety alarm:
     - active alarms → their alarm limit;
     - failed duty pumps → running again;
-    - PCA-only evidence → top contributing measurements back within ±3σ of
-      normal operation;
+    - a fault confirmed by PCA → Hotelling T² and SPE back under their limits
+      (the PCA statistic is the faulty metric);
     - new safety alarms (priority 1–2) block; new quality alarms (priority 3,
       purity / bottoms acetone) are only noted.
 
@@ -66,8 +67,9 @@ In the console:
     reprompter. When retries run out, the best safe candidate is applied as a
     **mitigation** (`fallback_to_safe`).
   - *Verification window*: after an accepted action, no new decision is taken
-    until the twin's predicted recovery time (+2 min) has passed, unless a new
-    pump fails.
+    until the twin's predicted recovery time (+2 min) has passed. After a
+    mitigation, no new decision is taken for the twin's whole 30-min look-ahead.
+    In both cases a newly failed pump still triggers immediately.
   - If an LLM call fails, that attempt falls back to the rule agent (shown as
     "LLM call failed, rule fallback used").
 - **Twin and reprompter are on in both defaults.** With OpenAI the preset is
@@ -184,7 +186,7 @@ condenser fault started while it was still abnormal.
 | Module | Role |
 |---|---|
 | `fdd/pca.py`, `fdd/diagnosis.py` | PCA T²/SPE limits and contributions; rule checks; hypotheses from contributions, alarms, pumps and saturated loops |
-| `agents/monitoring.py` | Monitoring agent: concurrent detectors, 3-sample PCA persistence, 5-min cooldown |
+| `agents/monitoring.py` | Monitoring agent: PCA is the only trigger (3-sample persistence, 5-min cooldown); alarm / pump / loop rules only feed the diagnosis. `AgentConfig(rules_trigger=True)` restores rule triggering; rules also trigger if no PCA model is loaded |
 | `agents/kg.py` | KG retrieval seeded by the hypotheses (fault → symptoms → loops/actuators → allowed operator actions) and free-text search |
 | `agents/planning.py` | Planning agent: target fault, objective, KG-grounded candidate levers, constraints (`KGPlanner`, or `LLMPlanner`) |
 | `agents/action.py` | Action agent: `RuleActionAgent` (incl. unwinding of earlier emergency moves) or `LLMActionAgent` |
@@ -192,35 +194,102 @@ condenser fault started while it was still abnormal.
 | `agents/supervisor.py` | Runs the graph next to the live plant. Modes: off / advisory (approve in UI) / autonomous |
 | `agents/chat.py` | Chat agent: tools `plant_status`, `current_values`, `trend`, `fault_diagnosis`, `agent_activity`, `knowledge_graph`, `list_variables`; per-session memory |
 
+### Validation, fallback, SIF reset and alarms (2026-10-06)
+
+- **Every proposal is rolled out by the twin, NO_ACTION included.** Doing nothing is accepted only if
+  the twin shows the plant recovering by itself.
+- **Counterfactual fallback.** When no candidate restores the plant (e.g. several faults at once, one
+  of them a sensor fault), the "do nothing" rollout is the baseline. The candidate that beats it is
+  applied as a mitigation; the ranking is in `consequence_key`:
+  1. no trip (or a later one);
+  2. more faulty targets back within limits;
+  3. less time unsafe;
+  4. lower PCA T² + SPE.
+
+  After a mitigation the agents re-decide after `mitigation_wait_min` (10 min).
+- **The twin knows only the present.** `clone_env(present_only=True)` keeps the faults active now
+  persistent and removes future injections. The twin cannot "know" when a fault will clear.
+- **SIF reset** (`sif_reset=True`): the agents request a reset while non-trip SIFs are latched. The
+  README lists SIF reset as an operator/agent action. The SIF logic resets only latches whose variable
+  is back in the reset band. Plant-trip latches are left for the operator.
+- **Alarm acknowledgement:**
+  - When the agents apply an action, they acknowledge the standing alarms. Each alarm then leaves the
+    Alarms list by itself once its variable is back within limits.
+  - Alarms that returned to normal during an incident the agents handled are acknowledged, which
+    removes them from the list.
+  - Alarms with no agent involvement stay for the operator.
+  - The alarm history shows who acknowledged each alarm (`· action-agent`).
+
 The chat agent is read-only and sees only what an operator sees, never the
 injected ground truth. Without `--chat-model`, a deterministic intent router
 answers with the same tools. Examples: "what is R_PIC?", "how is the reactor
 level moving?", "why is there a fault?", "what did the agents do?".
 
+## KG ↔ simulator translation
+
+[agents/kg_map.py](agents/kg_map.py) maps every KG node to its simulator counterpart. It
+is built from the KG and the simulator's own catalogs, so it stays in sync:
+
+| KG node | Simulator counterpart |
+|---|---|
+| `controller_*` / `PO_*` | Loop, with its PV, MV and setpoint range |
+| `act_param_*` | Input, and the loop or auxiliary that drives it |
+| `obs_param_*` | Measurement, with its loop and alarms |
+| `pump_train_*`, `P-…` | Pump train / pump |
+| `alarm_*`, `SIF_*`, `fault_*` | Alarm, safety trip, fault library |
+| Equipment tags (`PT-101`, `PCV-101`, `CV-201`, `BDV-101`, `E-102` …) | Their loop, measurement or auxiliary |
+| `exo_param_*` | Exogenous variable, flagged not commandable |
+
+It is used in three places:
+
+- **KG evidence.** Every node sent to the agents carries a `sim` field with the
+  simulator name and the exact command to use.
+- **Command targets.** Whatever name an agent writes is resolved to the catalog
+  target (e.g. `PCV-101`, `controller_R_PIC`, `obs_param_cstr_pressure_bar` →
+  `R_PIC`; `P-201A` → `REFLUX`).
+- **Chat.** KG answers include "In the simulation: …".
+
+Regenerate the table and coverage report with `py -3 -m agents.kg_map`. It writes
+`knowledge_graph/kg_sim_mapping.json`.
+
+## Normal disturbances
+
+Disturbances are physical steps (`DISTURBANCE_STEPS` in `integrated_plant/scenario.py`).
+The console, the campaigns and the random scenario generator all use them:
+
+| Variable | Step |
+|---|---|
+| Cooling water temperature | ±3 K |
+| Feed temperature | ±5 K |
+| Reactor heating utility temperature | ±5 K |
+| Ambient temperature | ±3 K |
+| Steam header pressure | ±10% |
+
+Before 2026-10-05 every variable was scaled by ±10%. On absolute temperatures that
+meant ±30–39 K (e.g. cooling water at 55 °C), which is a severe upset rather than
+normal variability. `randomized_step_disturbance_scenario(..., magnitude_fraction=0.10)`
+still reproduces the old behaviour.
+
 ## PCA model
 
-The model has 42 features: 34 BPCS measurements plus 8 controller outputs. It
-is trained on six normal-operation runs: nominal, three ±10% disturbance seeds,
-and steady operation at 70% and 85% throughput. The reduced-load runs matter:
-the agents cut load, and without them PCA reads reduced-load operation itself
-as a fault and keeps the agents from restoring it.
+The model has 42 features: 34 BPCS measurements plus 8 controller outputs. It is
+trained on six normal-operation runs: nominal, three seeded runs with physical
+disturbance steps, and steady operation at 70% and 85% throughput.
 
-It keeps 5 PCs (96.5% of variance), with limits max(theoretical, empirical
-99th percentile). That gives a 2.1% per-sample false-alarm rate on training
-data and 0% before onset in the fault tests. Detection delays at a 15-min onset:
+It keeps 20 PCs (95.4% of variance), with limits max(theoretical, empirical 99th
+percentile). That gives a 1.97% per-sample false-alarm rate on training data and 0%
+before onset in the fault tests. Detection delays at a 15-min onset (3-sample persistence):
 
 | Fault | Delay (min) |
 |---|---|
 | Sensor bias | 0 |
-| Pump trip | 3 |
-| Drum leak | 7 |
-| PCV degradation | 8.5 |
-| Condenser loss | 10 |
-| Stuck heater | 10 |
+| Pump trip | 1.0 |
+| Condenser loss | 0.5 |
+| Stuck heater | 0.5 |
+| Drum leak | 1.5 |
+| PCV degradation | 7.5 |
 
-Options: `train_pca.py --cpv 0.90` (4 PCs) is faster on condenser loss but
-misses the sensor bias; `--limits theory` is more sensitive but raises more
-false alarms.
+Retrain after simulator changes with `py -3 train_pca.py --evaluate` (about 4 min).
 
 ## Benchmark
 
@@ -228,19 +297,31 @@ false alarms.
 with frozen, async or delay clocks, and sweeps faults × seeds × presets. See
 [RECOVERY_BENCHMARK.md](RECOVERY_BENCHMARK.md).
 
+**20-scenario profit campaign** (`benchmark/profit_campaign.py`, economics in `benchmark/economics.py`).
+There are 10 single-fault, 7 two-fault and 3 three-fault scenarios. Each runs without agents and with
+agents, against a nominal reference, and faults are lifted 10 min after the time the plant would have
+tripped. Results are in `benchmark_results/PROFIT_CAMPAIGN.md`.
+
+```powershell
+py -3 -m benchmark.profit_campaign probe --jobs 21     # when would each scenario trip?
+py -3 -m benchmark.profit_campaign compare --jobs 20   # agents + passive with the lift schedule
+py -3 -m benchmark.profit_campaign report
+py -3 -m benchmark.loop_tests                          # BPCS loop step / disturbance tests
+```
+
 ## Known limitations
 
 - **Diagnosis can confuse faults.** Contribution-based diagnosis can mix up
   faults with similar signatures; for example, condenser loss can show up as
   pump or level hypotheses. Alarm evidence helps before PCA confirms.
-- **The rule action agent is limited** (it is what runs with `--llm off`). It knows only five responses:
-  - start a spare pump;
+- **The rule action agent is limited** (it is what runs with `--llm off`). Its responses are:
+  - start spare pumps (all at once if several failed);
   - open the blowdown;
+  - for a condenser-limited column, cut boilup, reflux and throughput together;
   - cut throughput;
-  - close the blowdown again;
-  - restore throughput.
+  - raise the TOP_TIC setpoint when the reflux drum drains;
+  - unwind once the plant is quiet: close the blowdown, and return setpoints and throughput to nominal.
 
-  It returns NO_ACTION otherwise (for example on a reactor outlet capacity
-  loss). That gap is what the LLM presets are meant to fill.
+  It returns NO_ACTION otherwise. That gap is what the LLM presets are meant to fill.
 - **The twin is an oracle.** It is a clone of the true simulator state.
 - **The simulator is CPU bound.** It needs about 1 s of CPU per simulated minute.

@@ -155,7 +155,7 @@ function CampaignSection() {
 export function MasterPanel() {
   const meta = usePlant((s) => s.meta);
   const snap = usePlant((s) => s.snap);
-  const [dist, setDist] = useState({ target: "cooling_water_temperature_K", multiplier: "1.1", duration_min: 15 });
+  const [dist, setDist] = useState({ target: "cooling_water_temperature_K", direction: "1", duration_min: 15 });
   const [actu, setActu] = useState({ target: "cstr_vent_valve", mode: "freeze", severity_pct: 50, duration_min: 0 });
   const [pump, setPump] = useState({ pump_id: "P-201A", duration_min: 0 });
   const [sens, setSens] = useState({ target: "cstr_pressure_bar", mode: "bias", bias_pct: -20, duration_min: 0 });
@@ -173,10 +173,11 @@ export function MasterPanel() {
         <h4>Disturbance</h4>
         <Field label="Variable"><Select value={dist.target} options={Object.entries(inj.disturbances)} onChange={(v) => setDist({ ...dist, target: v })} /></Field>
         <div className="row">
-          <Field label="Step"><Select value={dist.multiplier} options={[["1.1", "+10%"], ["0.9", "−10%"]]} onChange={(v) => setDist({ ...dist, multiplier: v })} /></Field>
+          <Field label="Step"><Select value={dist.direction} onChange={(v) => setDist({ ...dist, direction: v })}
+            options={[["1", `+${inj.disturbance_steps?.[dist.target] ?? "step"}`], ["-1", `−${inj.disturbance_steps?.[dist.target] ?? "step"}`]]} /></Field>
           <Field label="Duration [min]"><Num value={dist.duration_min} onChange={(v) => setDist({ ...dist, duration_min: v })} /></Field>
         </div>
-        <button className="btn" onClick={() => inject("disturbance", { ...dist, multiplier: +dist.multiplier })}>Inject disturbance</button>
+        <button className="btn" onClick={() => inject("disturbance", { ...dist, direction: +dist.direction })}>Inject disturbance</button>
       </section>
       <section>
         <h4>Actuator fault</h4>

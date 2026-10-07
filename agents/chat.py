@@ -201,7 +201,8 @@ class PlantTools:
         if not hits:
             return {"error": f"nothing in the KG matches {query!r}"}
         top = hits[0]
-        return {"match": self.kg.compact(top), "related": self.kg.neighbours(top)[:15], "other_matches": hits[1:]}
+        return {"match": self.kg.compact(top), "in_simulation": self.kg.vmap.lookup(top),
+                "related": self.kg.neighbours(top)[:15], "other_matches": hits[1:]}
 
     def list_variables(self) -> dict:
         return {"variables": sorted(self.keys()), "aliases": {k: v[0] for k, v in ALIASES.items()}}
@@ -247,8 +248,15 @@ def _offline_answer(tools: PlantTools, text: str) -> str:
         rel = "; ".join(f"{x['relation']} {'→' if x['direction'] == 'out' else '←'} {x['label'] or x['node']}"
                         for x in r["related"][:8])
         others = f"\nOther matches: {', '.join(r['other_matches'])}" if r["other_matches"] else ""
+        sim = r.get("in_simulation") or {}
+        sim_txt = ""
+        if sim:
+            bits = [f"{k}: {v}" for k, v in sim.items() if k in ("sim", "pv", "mv", "controlled_by", "manipulated_by",
+                                                                   "pump_train", "auxiliary", "alarms", "loops")]
+            cmd = sim.get("command")
+            sim_txt = "\nIn the simulation: " + "; ".join(bits) + (f"; command: {cmd}" if cmd else "")
         return (f"**{n['label'] or n['id']}** (`{n['id']}`, {', '.join(n['type'])})\n{n['comment']}"
-                + (f"\nRelations: {rel}" if rel else "") + others)
+                + sim_txt + (f"\nRelations: {rel}" if rel else "") + others)
 
     def describe_trend(name: str) -> str | None:
         r = tools.trend(name, minutes)

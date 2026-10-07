@@ -34,7 +34,9 @@ The random normal-variability generator independently selects one or more of:
 - CSTR heating-utility temperature
 - ambient temperature
 
-Each selected disturbance is a 15 min rectangular pulse at exactly +/-10% of nominal. Start times are independently randomized and overlaps are allowed. A seed makes the full schedule reproducible.
+Each selected disturbance is a 15 min rectangular pulse. Since 2026-10-05 the step is physical
+(+/-3 K CW/ambient, +/-5 K feed/heating utility, +/-10 % steam pressure); the original
++/-10 %-of-nominal rule (+/-30 K on temperatures) is kept as `magnitude_fraction=0.10`. Start times are independently randomized and overlaps are allowed. A seed makes the full schedule reproducible.
 
 ## Implemented fault mechanisms
 

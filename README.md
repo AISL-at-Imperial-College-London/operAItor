@@ -132,7 +132,10 @@ The first disturbance model follows a deliberately simple rule:
 
 - randomly select a subset of disturbance variables
 - each selected disturbance is a **15 min rectangular step**
-- step magnitude is **+10% or -10% of the nominal variable value**
+- step magnitude is a **physical step** (since 2026-10-05): +/-3 K cooling-water and ambient
+  temperature, +/-5 K fresh-feed and CSTR heating-utility temperature, +/-10 % steam-header
+  pressure (`integrated_plant.scenario.DISTURBANCE_STEPS`). The earlier +/-10 % of the nominal
+  value meant +/-30 K on absolute temperatures; `magnitude_fraction=0.10` reproduces it.
 - start time is randomized
 - different disturbances are initialized independently, so **overlap is allowed**
 - the random seed makes the run reproducible

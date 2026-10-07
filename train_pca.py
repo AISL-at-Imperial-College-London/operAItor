@@ -29,9 +29,12 @@ def _simulate(job: tuple[str, float, int, float]) -> list[dict]:
     kind, duration_min, seed, onset_min = job
     from integrated_plant import (EpisodeRunner, EpisodeTiming, IntegratedPlantDAE, SupervisoryAction,
                                   curated_episode, nominal_episode, normal_variability_episode)
-    load = None
+    load = step = None
     if kind.startswith("load:"):  # normal operation at reduced throughput, e.g. load:0.7
         load, kind = float(kind.split(":")[1]), "variability"
+    elif kind.startswith("step:"):  # one normal disturbance step, e.g. step:cooling_water_temperature_K:+1
+        _, target, sign = kind.split(":")
+        step, kind = (target, float(sign)), "nominal"
     if kind == "nominal":
         spec = nominal_episode(duration_min)
     elif kind == "variability":
@@ -40,7 +43,16 @@ def _simulate(job: tuple[str, float, int, float]) -> list[dict]:
         spec = curated_episode(kind, duration_min, onset_min)
     env = EpisodeRunner(IntegratedPlantDAE(), spec,
                         timing=EpisodeTiming(plant_step_min=0.1, decision_interval_min=0.5))
-    if load is None:
+    if step is not None:  # nominal plant, one 15-min disturbance step starting at 5 min
+        from integrated_plant import RuntimeInputEvent
+        from integrated_plant.scenario import disturbance_step
+        mode, value, _ = disturbance_step(step[0], step[1])
+        env.reset()
+        env.runtime_inputs.add(RuntimeInputEvent(f"train_{step[0]}", "disturbance", step[0], 5 / 60, 20 / 60, mode, value))
+        while not env.done:
+            env.step()
+        settle = 0.0
+    elif load is None:
         env.run(pad_to_horizon=False)
         settle = 0.0
     else:
@@ -81,6 +93,10 @@ def main():
         jobs = [("nominal", args.duration_min / 2, 0, 0.0)]
         jobs += [("variability", args.duration_min, s, 0.0) for s in args.seeds]
         jobs += [(f"load:{f:g}", args.duration_min, 100 + i, 0.0) for i, f in enumerate(args.loads)]
+        # Every normal disturbance step, both directions, so PCA learns them as normal.
+        from integrated_plant.scenario import DISTURBANCE_STEPS
+        targets = [t for t in DISTURBANCE_STEPS if t != "feed_temperature_K"]  # same variable as fresh_feed_*
+        jobs += [(f"step:{t}:{s:+d}", 90.0, 0, 0.0) for t in targets for s in (1, -1)]  # incl. the slow recovery tail
         print(f"simulating {len(jobs)} normal-operation episodes ...", flush=True)
         with ProcessPoolExecutor(args.workers) as pool:
             rows = [r for batch in pool.map(_simulate, jobs) for r in batch]

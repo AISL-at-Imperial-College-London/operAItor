@@ -219,18 +219,42 @@ def _pulse(nominal: float, start_h: float, duration_h: float, multiplier: float)
     ])
 
 
+# Size of one "normal" disturbance step. Temperatures are stepped in kelvin (additive)
+# and pressures as a fraction of nominal. Before 2026-10-05 every variable was scaled by
+# +/-10 %, which on absolute temperatures meant +/-30-39 K (cooling water at 55 degC):
+# a severe upset rather than normal variability.
+DISTURBANCE_STEPS: dict[str, tuple[str, float]] = {
+    "feed_temperature_K": ("add", 5.0),
+    "fresh_feed_temperature_K": ("add", 5.0),  # same variable, PlantInputs name (console injections)
+    "cooling_water_temperature_K": ("add", 3.0),
+    "steam_pressure_bar": ("mul", 0.10),
+    "cstr_heating_utility_temperature_K": ("add", 5.0),
+    "ambient_temperature_K": ("add", 3.0),
+}
+
+
+def disturbance_step(target: str, sign: float) -> tuple[str, float, str]:
+    """(runtime mode, value, label) for one normal disturbance step on ``target``."""
+    mode, size = DISTURBANCE_STEPS[target]
+    if mode == "add":
+        return "add", sign * size, f"{'+' if sign > 0 else '-'}{size:g} K"
+    return "multiply", 1.0 + sign * size, f"{'+' if sign > 0 else '-'}{100 * size:g}%"
+
+
 def randomized_step_disturbance_scenario(
     duration_min: float = 180.0,
     seed: int = 20261004,
     step_duration_min: float = 15.0,
-    magnitude_fraction: float = 0.10,
+    magnitude_fraction: float | None = None,
     earliest_start_min: float = 30.0,
     max_disturbances: int = 5,
 ) -> Scenario:
-    """Random subset of 15-min +/-10% normal disturbances.
+    """Random subset of 15-min normal disturbances (sizes in ``DISTURBANCE_STEPS``).
 
     Each selected variable receives one rectangular pulse.  Start times are
     independent, so overlap is allowed.  The seed fully determines the run.
+    ``magnitude_fraction`` restores the old behaviour (scale every variable by
+    1 +/- fraction) for reproducing earlier datasets.
     """
     duration_h = float(duration_min) / 60.0
     pulse_h = float(step_duration_min) / 60.0
@@ -254,7 +278,13 @@ def randomized_step_disturbance_scenario(
         nominal = candidates[target]
         start = float(rng.uniform(lo, hi)) if hi > lo else lo
         sign = float(rng.choice([-1.0, 1.0]))
-        mult = 1.0 + sign * float(magnitude_fraction)
+        if magnitude_fraction is not None:  # legacy: relative step on every variable
+            mult, magnitude, label = 1.0 + sign * float(magnitude_fraction), sign * float(magnitude_fraction), \
+                f"{100 * sign * float(magnitude_fraction):+g}%"
+        else:
+            mode, value, label = disturbance_step(target, sign)
+            mult = (nominal + value) / nominal if mode == "add" else value
+            magnitude = value if mode == "add" else value - 1.0
         kwargs[target] = _pulse(nominal, start, pulse_h, mult)
         events.append(ScenarioEvent(
             name=f"disturbance_{target}_{'up' if sign > 0 else 'down'}",
@@ -262,8 +292,8 @@ def randomized_step_disturbance_scenario(
             target=target,
             start_h=start,
             end_h=start + pulse_h,
-            magnitude=sign * float(magnitude_fraction),
-            metadata=f"{step_duration_min:g} min step",
+            magnitude=magnitude,
+            metadata=f"{step_duration_min:g} min step {label}",
         ))
     return Scenario(
         duration_h=duration_h,

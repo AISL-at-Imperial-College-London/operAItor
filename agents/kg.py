@@ -80,9 +80,19 @@ class KnowledgeGraph:
         for pred, oid in self.out[nid]:
             if self.useful(oid):
                 rels.setdefault(pred, []).append(oid)
+        sim = self.vmap.lookup(nid)
         return {"id": nid, "type": [t for t in self.types(nid) if not t.startswith(("Type_", "Instance_"))],
                 "label": self.label(nid), "comment": self.comment(nid),
+                **({"sim": sim} if sim else {}),
                 **({"values": literals} if literals else {}), **({"relations": rels} if rels else {})}
+
+    @property
+    def vmap(self):
+        """KG node ↔ simulator variable / command-target translation (agents/kg_map.py)."""
+        if getattr(self, "_vmap", None) is None:
+            from .kg_map import VariableMap
+            self._vmap = VariableMap(self)
+        return self._vmap
 
     def neighbours(self, nid: str) -> list[dict]:
         """Labelled one-hop relations in both directions (for chat answers)."""

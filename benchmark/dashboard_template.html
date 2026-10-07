@@ -1,0 +1,572 @@
+<title>Acetone Plant Fault Campaign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* Layout: control-room board. Summary strip on top, tabs below; scenario list then a detail panel.
+   Steel blue = agents, warm grey-red = no agents, dashed slate = nominal reference. */
+:root {
+  --bg: #f3f5f6; --panel: #ffffff; --ink: #1b2429; --muted: #5c6a72; --line: #d9e0e4; --soft: #e9eef1;
+  --accent: #2a6889; --accent-soft: #dcebf3;
+  --passive: #b4573f; --agents: #2a6889; --nominal: #8a979e;
+  --good: #2f7a4c; --good-soft: #dff0e5; --warn: #a86b12; --warn-soft: #f6ebd5; --bad: #b3342e; --bad-soft: #f6dedc;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12181c; --panel: #192227; --ink: #e3eaee; --muted: #93a3ab; --line: #2b383f; --soft: #212c32;
+  --accent: #6fb0d4; --accent-soft: #1f3a49;
+  --passive: #e08a70; --agents: #6fb0d4; --nominal: #74838b;
+  --good: #6cc391; --good-soft: #1d3527; --warn: #e0a64a; --warn-soft: #3a2e17; --bad: #ef7d74; --bad-soft: #43221f;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #12181c; --panel: #192227; --ink: #e3eaee; --muted: #93a3ab; --line: #2b383f; --soft: #212c32;
+  --accent: #6fb0d4; --accent-soft: #1f3a49;
+  --passive: #e08a70; --agents: #6fb0d4; --nominal: #74838b;
+  --good: #6cc391; --good-soft: #1d3527; --warn: #e0a64a; --warn-soft: #3a2e17; --bad: #ef7d74; --bad-soft: #43221f;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); }
+.wrap { max-width: 1280px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 48px; display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: 30px; font-weight: 700; }
+h2 { font-size: 20px; font-weight: 600; }
+h3 { font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+p { margin: 0; max-width: 72ch; }
+.mono, td.num, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+
+header.top { display: grid; gap: 6px; }
+header.top .eyebrow { font: 500 12px var(--f-mono); color: var(--muted); letter-spacing: .04em; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 4px; }
+.kpi .label { font: 600 11.5px var(--f-body); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.kpi .value { font: 700 28px var(--f-display); font-variant-numeric: tabular-nums; }
+.kpi .value .from { color: var(--passive); }
+.kpi .value .to { color: var(--agents); }
+.kpi .note { font-size: 12.5px; color: var(--muted); }
+
+nav.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+nav.tabs button { font: 600 14px var(--f-display); letter-spacing: .03em; background: none; border: 0; color: var(--muted);
+  padding: 10px 14px; border-bottom: 3px solid transparent; cursor: pointer; }
+nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+nav.tabs button:focus-visible, .scen-row:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+section.pane { display: grid; gap: 20px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.chart-box { position: relative; height: 300px; min-width: 0; }
+.chart-box.tall { height: 420px; }
+
+.table-wrap { overflow-x: auto; min-width: 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; font: 600 11.5px var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+  padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--soft); vertical-align: top; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+.scen-row { cursor: pointer; }
+.scen-row:hover td { background: var(--soft); }
+.scen-row[aria-selected="true"] td { background: var(--accent-soft); }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 600 11.5px var(--f-body);
+  white-space: nowrap; border: 1px solid transparent; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.ok { color: var(--good); background: var(--good-soft); }
+.pill.warn { color: var(--warn); background: var(--warn-soft); }
+.pill.bad { color: var(--bad); background: var(--bad-soft); }
+.pill.info { color: var(--accent); background: var(--accent-soft); }
+.chip { display: inline-block; font: 500 12px var(--f-mono); padding: 1px 7px; border-radius: 4px; background: var(--soft); margin: 1px 4px 1px 0; }
+.grp { font: 600 11px var(--f-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); white-space: nowrap; }
+
+.detail-head { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; justify-content: space-between; }
+.detail-head h2 { font-size: 26px; }
+.outcomes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.outcome { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: grid; gap: 6px; background: var(--panel); }
+.outcome.passive { border-top: 3px solid var(--passive); }
+.outcome.agents { border-top: 3px solid var(--agents); }
+.outcome.probe { border-top: 3px solid var(--nominal); }
+.outcome .big { font: 700 22px var(--f-display); font-variant-numeric: tabular-nums; }
+dl.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; font-size: 12.5px; }
+dl.kv dt { color: var(--muted); } dl.kv dd { margin: 0; font-family: var(--f-mono); font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+
+.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+select { font: 500 13px var(--f-body); padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); color: var(--ink); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 16px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--c); }
+.legend span.dash::before { background: repeating-linear-gradient(90deg, var(--c) 0 4px, transparent 4px 7px); }
+
+.timeline { display: grid; gap: 0; }
+.ev { display: grid; grid-template-columns: 64px 108px 1fr; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--soft); font-size: 13px; }
+.ev .t { font-family: var(--f-mono); color: var(--muted); text-align: right; }
+.ev .what { min-width: 0; overflow-wrap: anywhere; }
+.k { font: 600 11px var(--f-body); text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: 4px; height: fit-content; justify-self: start; }
+.k.act { background: var(--accent-soft); color: var(--accent); }
+.k.ack { background: var(--good-soft); color: var(--good); }
+.k.sif { background: var(--warn-soft); color: var(--warn); }
+.k.trip { background: var(--bad-soft); color: var(--bad); }
+.k.det, .k.ver, .k.flt { background: var(--soft); color: var(--muted); }
+.cand { font-family: var(--f-mono); font-size: 12px; }
+.cand .y { color: var(--good); font-weight: 600; } .cand .n { color: var(--bad); }
+details > summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 80ch; }
+.bar { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--agents); }
+
+@media (max-width: 640px) {
+  .wrap { padding-inline: 16px; }
+  .ev { grid-template-columns: 52px 1fr; }
+  .ev .what { grid-column: 1 / -1; }
+  .chart-box { height: 260px; } .chart-box.tall { height: 320px; }
+  h1 { font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">IPA → ACETONE CSTR + COLUMN · 20 FAULT SCENARIOS · AGENTS vs NO AGENTS</div>
+    <h1>Acetone Plant Fault Campaign</h1>
+    <p class="muted" id="protocol"></p>
+  </header>
+
+  <div class="kpis" id="kpis"></div>
+
+  <nav class="tabs" role="tablist" aria-label="Dashboard sections">
+    <button role="tab" id="tab-overview" aria-controls="overview">Overview</button>
+    <button role="tab" id="tab-scenarios" aria-controls="scenarios">Scenarios</button>
+    <button role="tab" id="tab-rounds" aria-controls="rounds">Agent development</button>
+    <button role="tab" id="tab-checks" aria-controls="checks">Loops &amp; physics</button>
+  </nav>
+
+  <!-- ===================================================== OVERVIEW -->
+  <section class="pane" id="overview" role="tabpanel" aria-labelledby="tab-overview">
+    <div class="panel">
+      <div class="detail-head"><h2>Profit per scenario</h2>
+        <div class="legend"><span style="--c:var(--passive)">No agents</span><span style="--c:var(--agents)">Agents</span><span class="dash" style="--c:var(--nominal)">Nominal (no fault)</span></div></div>
+      <p class="muted small">USD over each scenario's window, including the shutdown + startup penalty when the plant stops. Select a bar to open the scenario.</p>
+      <div class="chart-box tall"><canvas id="ovBars" aria-label="Profit per scenario, with and without agents"></canvas></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>By scenario group</h3><div class="table-wrap"><table id="groupTable"></table></div></div>
+      <div class="panel"><h3>Why the plant stopped without agents</h3><div id="stopCauses"></div>
+        <h3 style="margin-top:6px">Where the saving comes from</h3><div id="savingSplit"></div></div>
+    </div>
+    <div class="panel"><h3>How to read the numbers</h3><ul class="plain" id="caveats"></ul></div>
+  </section>
+
+  <!-- ===================================================== SCENARIOS -->
+  <section class="pane" id="scenarios" role="tabpanel" aria-labelledby="tab-scenarios" hidden>
+    <div class="panel">
+      <h3>All runs · select a row</h3>
+      <div class="table-wrap"><table id="scenTable"></table></div>
+    </div>
+    <div id="detail" class="pane"></div>
+  </section>
+
+  <!-- ===================================================== ROUNDS -->
+  <section class="pane" id="rounds" role="tabpanel" aria-labelledby="tab-rounds" hidden>
+    <div class="panel">
+      <h2>Agent development rounds</h2>
+      <p class="muted">Each round ran the agents on the same 20 scenarios. The decision logs of the failures drove the fix listed for the next round. Rounds that were stopped early to apply a fix show fewer finished runs.</p>
+      <div class="table-wrap"><table id="roundTable"></table></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== CHECKS -->
+  <section class="pane" id="checks" role="tabpanel" aria-labelledby="tab-checks" hidden>
+    <div class="panel">
+      <h2>Regulatory loop step tests</h2>
+      <p class="muted">Setpoint step on each PI loop from the nominal steady state, 40 sim-min with sensor noise. Pass = output moves the right way, PV ends within 20 % of the step (or two deadbands), no SIF, no priority-1 alarm.</p>
+      <div class="table-wrap"><table id="loopTable"></table></div>
+      <h3>Disturbance rejection</h3>
+      <div class="table-wrap"><table id="distTable"></table></div>
+    </div>
+    <div class="panel"><h2>Physics and specification checks</h2><ul class="plain" id="physics"></ul></div>
+    <div class="panel"><h2>Economics assumptions</h2><dl class="kv" id="prices"></dl></div>
+  </section>
+</div>
+
+<script>
+const D = /*__DATA__*/null;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const money = (x) => x == null ? "—" : (x < 0 ? "−$" : "$") + Math.abs(Math.round(x)).toLocaleString("en-US");
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const rows = D.campaign.rows, T = D.campaign.totals, byId = Object.fromEntries(rows.map((r) => [r.id, r]));
+const TRIP_SIFS = new Set(["R_P_HHH", "RB_L_HH", "DR_L_LL", "DR_L_HH", "COL_P_HH"]);
+const GROUP_LABEL = { single: "Single fault", pair_indep: "Two faults, independent", pair_coupled: "Two faults, interacting",
+  triple_none: "Three faults, none interact", triple_2plus1: "Three faults, two interact", triple_all: "Three faults, all interact" };
+const FAULT_LABEL = (f) => f.replace(/_/g, " ");
+const VARS = {
+  drum_holdup_kmol: { label: "Reflux drum level", unit: "kmol", lim: [[14, "DR_L_LL alarm", "warn"], [42, "DR_L_HH alarm", "warn"], [10.59, "DR_L_LL SIF", "bad"], [45.37, "DR_L_HH SIF", "bad"]] },
+  column_pressure_bar: { label: "Column pressure", unit: "bar", lim: [[1.15, "COL_P_H alarm", "warn"], [1.28, "COL_P_HH alarm", "warn"], [1.35, "COL_P_HH SIF", "bad"]] },
+  reboiler_holdup_kmol: { label: "Reboiler level", unit: "kmol", lim: [[16, "RB_L_LL alarm", "warn"], [48, "RB_L_HH alarm", "warn"], [12.08, "RB_L_LL SIF", "bad"], [51.76, "RB_L_HH SIF", "bad"]] },
+  cstr_pressure_bar: { label: "Reactor pressure", unit: "bar", lim: [[3.5, "R_P_H alarm", "warn"], [3.8, "R_P_HH alarm", "warn"], [4.0, "R_P_HH SIF", "bad"]] },
+  cstr_temperature_K: { label: "Reactor temperature", unit: "K", lim: [[342, "R_T_H alarm", "warn"], [346, "R_T_HH alarm", "warn"], [348, "R_T_HH SIF", "bad"]] },
+  cstr_holdup_kmol: { label: "Reactor level", unit: "kmol", lim: [[38, "R_L_L alarm", "warn"], [62, "R_L_H alarm", "warn"], [72, "R_L_HH SIF", "bad"], [20, "R_L_LL SIF", "bad"]] },
+  distillate_x_acetone: { label: "Distillate purity", unit: "mol frac", lim: [[0.9, "sales spec / DIST_X_L", "warn"]] },
+  bottoms_x_acetone: { label: "Bottoms acetone", unit: "mol frac", lim: [[0.08, "BTM_X_H alarm", "warn"]] },
+  top_temperature_K: { label: "Column top temperature", unit: "K", lim: [] },
+  bottom_temperature_K: { label: "Column bottom temperature", unit: "K", lim: [] },
+};
+
+function outcome(run) {
+  if (!run.tripped && run.trip_min == null) return { cls: "ok", text: "No stop" };
+  if (run.status === "SAFE_TRIP") {
+    const s = (run.sifs || []).filter((c) => TRIP_SIFS.has(c));
+    return { cls: "bad", text: `SIF trip ${s.join(", ")} · ${run.trip_min.toFixed(1)} min` };
+  }
+  if (run.status === "MODEL_LIMIT") return { cls: "bad", text: `Column dry-out · ${run.trip_min.toFixed(1)} min` };
+  return { cls: "bad", text: `${run.status} · ${run.trip_min?.toFixed(1)} min` };
+}
+const pill = (o) => `<span class="pill ${o.cls}">${esc(o.text)}</span>`;
+
+/* ------------------------------------------------------------ header + KPIs */
+const P = D.campaign.protocol;
+$("#protocol").textContent = `Faults start at ${P.onset_min} min and are lifted ${P.lift_after_trip_min} min after the time the plant would have tripped with nobody acting (or ${P.lift_no_trip_min} min after onset if it would not). Each scenario runs three ways: nominal reference, no agents (BPCS + SIF only), and agents (preset ${P.agent_preset}: rule proposer, digital twin, validate and reprompt).`;
+const penaltyPart = D.prices.trip_penalty * (T.passive_trips - T.agents_trips);
+$("#kpis").innerHTML = [
+  ["Plant stops", `<span class="from">${T.passive_trips}</span> → <span class="to">${T.agents_trips}</span> <span class="muted" style="font-size:16px">/ ${T.scenarios}</span>`,
+    `Without agents: ${T.passive_sif_trips} SIF trips + ${T.passive_dry_outs} column dry-outs`],
+  ["Campaign profit", `<span class="from">${money(T.passive_profit)}</span> → <span class="to">${money(T.agents_profit)}</span>`,
+    `Nominal reference over the same windows: ${money(T.nominal_profit)}`],
+  ["Saving from agents", `<span class="to">${money(T.saving)}</span>`,
+    `${money(penaltyPart)} avoided trip penalties + ${money(T.saving - penaltyPart)} operating margin`],
+  ["Scenarios better with agents", `<span class="to">${rows.filter((r) => r.saving > 0).length}</span> <span class="muted" style="font-size:16px">/ ${rows.length}</span>`,
+    `Only stop with agents: T03, physically unrecoverable`],
+].map(([l, v, n]) => `<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join("");
+
+/* ------------------------------------------------------------ tabs */
+const TABS = ["overview", "scenarios", "rounds", "checks"];
+function showTab(name) {
+  if (!TABS.includes(name)) name = "overview";
+  for (const t of TABS) {
+    $("#" + t).hidden = t !== name;
+    $("#tab-" + t).setAttribute("aria-selected", String(t === name));
+  }
+  try { localStorage.setItem("fc-tab", name); } catch (e) {}
+  if (name === "scenarios" && !charts.detailBuilt) renderDetail(selected);
+}
+for (const t of TABS) $("#tab-" + t).addEventListener("click", () => { history.replaceState(null, "", "#" + t); showTab(t); });
+
+/* ------------------------------------------------------------ chart helpers */
+const charts = {};
+const markers = {
+  id: "markers",
+  afterDatasetsDraw(chart, _a, opts) {
+    const { ctx, chartArea: a, scales: { x, y } } = chart;
+    ctx.save(); ctx.font = `11px ${css("--f-mono") || "monospace"}`;
+    for (const h of opts.h || []) {
+      const py = y.getPixelForValue(h.y); if (py < a.top || py > a.bottom) continue;
+      ctx.strokeStyle = h.color; ctx.setLineDash([2, 3]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(a.left, py); ctx.lineTo(a.right, py); ctx.stroke();
+      ctx.fillStyle = h.color; ctx.textAlign = "right"; ctx.fillText(h.label, a.right - 4, py - 3);
+    }
+    let lane = 0;
+    for (const v of opts.v || []) {
+      const px = x.getPixelForValue(v.x); if (px < a.left || px > a.right) continue;
+      ctx.strokeStyle = v.color; ctx.setLineDash(v.dash ? [4, 3] : []); ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(px, a.top); ctx.lineTo(px, a.bottom); ctx.stroke();
+      ctx.fillStyle = v.color; ctx.textAlign = "left";
+      ctx.fillText(v.label, Math.min(px + 3, a.right - ctx.measureText(v.label).width - 2), a.top + 11 + 12 * (lane++ % 3));
+    }
+    ctx.restore();
+  },
+};
+Chart.register(markers);
+function baseOpts(xTitle, yTitle) {
+  const grid = css("--soft"), tick = css("--muted");
+  return {
+    responsive: true, maintainAspectRatio: false, animation: false, parsing: false, normalized: true,
+    interaction: { mode: "nearest", axis: "x", intersect: false },
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: css("--panel"), titleColor: css("--ink"), bodyColor: css("--ink"),
+      borderColor: css("--line"), borderWidth: 1, bodyFont: { family: "IBM Plex Mono" }, titleFont: { family: "IBM Plex Mono" } } },
+    scales: {
+      x: { type: "linear", title: { display: !!xTitle, text: xTitle, color: tick }, grid: { color: grid }, ticks: { color: tick } },
+      y: { title: { display: !!yTitle, text: yTitle, color: tick }, grid: { color: grid }, ticks: { color: tick } },
+    },
+  };
+}
+function line(label, xs, ys, color, dash) {
+  return { label, data: xs.map((x, i) => ({ x, y: ys[i] })), borderColor: color, backgroundColor: color,
+    borderWidth: dash ? 1.5 : 2, borderDash: dash ? [5, 4] : [], pointRadius: 0, tension: 0 };
+}
+function mk(id, cfg) { charts[id]?.destroy(); charts[id] = new Chart($("#" + id), cfg); }
+
+/* ------------------------------------------------------------ overview */
+function renderOverview() {
+  const labels = rows.map((r) => r.id);
+  const o = baseOpts("", "USD over the window");
+  o.scales.x = { type: "category", grid: { display: false }, ticks: { color: css("--muted"), font: { family: "IBM Plex Mono" } } };
+  o.interaction = { mode: "index", intersect: false };
+  o.plugins.tooltip.callbacks = { label: (c) => `${c.dataset.label}: ${money(c.raw)}` };
+  o.onClick = (_e, els) => { if (els.length) { selectScenario(labels[els[0].index]); history.replaceState(null, "", "#scenarios"); showTab("scenarios"); } };
+  o.parsing = true;
+  mk("ovBars", { type: "bar", data: { labels, datasets: [
+    { label: "No agents", data: rows.map((r) => r.passive_profit), backgroundColor: css("--passive"), borderRadius: 2 },
+    { label: "Agents", data: rows.map((r) => r.agents_profit), backgroundColor: css("--agents"), borderRadius: 2 },
+    { type: "line", label: "Nominal", data: rows.map((r) => r.nominal_profit), borderColor: css("--nominal"), borderDash: [5, 4],
+      borderWidth: 1.5, pointRadius: 2, pointBackgroundColor: css("--nominal"), backgroundColor: css("--nominal") },
+  ] }, options: o });
+}
+function renderGroups() {
+  const order = ["single", "pair_indep", "pair_coupled", "triple_none", "triple_2plus1", "triple_all"];
+  const g = D.campaign.by_group;
+  $("#groupTable").innerHTML = `<thead><tr><th>Group</th><th class="num">n</th><th class="num">Stops<br>no agents</th><th class="num">Stops<br>agents</th>
+    <th class="num">No agents</th><th class="num">Agents</th><th class="num">Saving</th></tr></thead><tbody>` +
+    order.filter((k) => g[k]).map((k) => { const v = g[k]; return `<tr><td>${GROUP_LABEL[k]}</td><td class="num">${v.n}</td>
+      <td class="num">${v.passive_trips}</td><td class="num">${v.agents_trips}</td><td class="num neg">${money(v.passive)}</td>
+      <td class="num">${money(v.agents)}</td><td class="num pos">${money(v.agents - v.passive)}</td></tr>`; }).join("") + "</tbody>";
+  const causes = {};
+  for (const r of rows) {
+    if (r.passive_trip_min == null) continue;
+    const key = r.passive_status === "SAFE_TRIP" ? (r.passive_sifs.filter((c) => TRIP_SIFS.has(c))[0] + " SIF trip") : "Column dry-out (no SIF)";
+    (causes[key] ||= []).push(r.id);
+  }
+  const max = Math.max(...Object.values(causes).map((a) => a.length));
+  $("#stopCauses").innerHTML = Object.entries(causes).sort((a, b) => b[1].length - a[1].length).map(([k, ids]) =>
+    `<div style="display:grid;grid-template-columns:minmax(150px,200px) 1fr 28px;gap:10px;align-items:center;margin-block:4px">
+      <span class="small">${esc(k)}</span><div class="bar"><i style="width:${100 * ids.length / max}%;background:var(--passive)"></i></div>
+      <span class="num small">${ids.length}</span></div><div class="small muted" style="margin:-2px 0 6px">${ids.join(" · ")}</div>`).join("");
+  const margin = T.saving - penaltyPart;
+  $("#savingSplit").innerHTML = `<div class="bar" style="height:14px;display:flex"><i style="width:${100 * penaltyPart / T.saving}%"></i><i style="width:${100 * margin / T.saving}%;background:var(--good)"></i></div>
+    <div class="legend" style="margin-top:6px"><span style="--c:var(--agents)">Avoided trip penalties ${money(penaltyPart)}</span><span style="--c:var(--good)">Operating margin ${money(margin)}</span></div>
+    <p class="small muted" style="margin-top:6px">The dollar figure scales with the assumed ${money(D.prices.trip_penalty)} penalty per stop; the stop count does not.</p>`;
+  $("#caveats").innerHTML = [
+    "Column dry-outs (S01, D03, C01, T02, T03 without agents) are not SIF trips: the top tray runs dry after loss of reflux and the simulator stops (README: MODEL_LIMIT). No SIF covers it; it counts as an unplanned shutdown with the same penalty.",
+    "T03 cannot be saved: the 100 kmol/h drum leak is larger than what the crippled condenser can still condense. The DR_L_LL SIF trips the plant safely.",
+    "Drum-leak scenarios (S09, D04, C03) stay negative with agents because the leak loses product while it is active; avoiding the trip still saves about $15k each.",
+    "Profit integrates flows, not inventory changes, so a run can briefly beat nominal when hold-up built during the fault is sold afterwards (e.g. S04).",
+    "The agents here are the offline rule proposer with an oracle digital twin (no LLM). The twin knows the plant state exactly but not when faults clear.",
+    "The final round reproduced the previous round's profits exactly for all 20 scenarios.",
+  ].map((t) => `<li>${esc(t)}</li>`).join("");
+}
+
+/* ------------------------------------------------------------ scenarios table */
+let selected = "S08";
+function renderScenTable() {
+  $("#scenTable").innerHTML = `<thead><tr><th>ID</th><th>Group</th><th>Faults</th><th>Would trip</th><th>No agents</th><th>Agents</th>
+    <th class="num">No agents</th><th class="num">Agents</th><th class="num">Saving</th></tr></thead><tbody>` +
+    rows.map((r) => { const s = D.scenarios[r.id];
+      return `<tr class="scen-row" tabindex="0" data-id="${r.id}" aria-selected="${r.id === selected}">
+        <td class="mono"><b>${r.id}</b></td><td class="grp">${esc(GROUP_LABEL[r.group])}</td>
+        <td>${s.faults.map((f) => `<span class="chip">${esc(FAULT_LABEL(f.fault))}</span>`).join("")}</td>
+        <td class="num">${r.probe_trip_min == null ? "never" : r.probe_trip_min.toFixed(1) + " min"}</td>
+        <td>${pill(outcome(s.passive))}</td><td>${pill(outcome(s.agents))}</td>
+        <td class="num ${r.passive_profit < 0 ? "neg" : ""}">${money(r.passive_profit)}</td>
+        <td class="num ${r.agents_profit < 0 ? "neg" : ""}">${money(r.agents_profit)}</td>
+        <td class="num pos">${money(r.saving)}</td></tr>`; }).join("") + "</tbody>";
+  for (const tr of document.querySelectorAll(".scen-row")) {
+    tr.addEventListener("click", () => selectScenario(tr.dataset.id));
+    tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectScenario(tr.dataset.id); } });
+  }
+}
+function selectScenario(id) {
+  selected = id;
+  for (const tr of document.querySelectorAll(".scen-row")) tr.setAttribute("aria-selected", String(tr.dataset.id === id));
+  try { localStorage.setItem("fc-scen", id); } catch (e) {}
+  renderDetail(id);
+}
+
+/* ------------------------------------------------------------ scenario detail */
+let detailVar = "drum_holdup_kmol";
+function cumulative(series, run, window) {
+  const xs = [], ys = []; let c = 0;
+  series.t.forEach((t, i) => { if (t > window + 1e-6) return; c += series.m[i] / 60; xs.push(t); ys.push(c); });
+  if (run && run.trip_min != null) {
+    const last = ys.length ? ys[ys.length - 1] : 0;
+    xs.push(run.trip_min, run.trip_min, window); ys.push(last, last - D.prices.trip_penalty, last - D.prices.trip_penalty);
+  }
+  return [xs, ys];
+}
+function runCard(kind, title, run, r) {
+  const o = outcome(run), p = run.profit_usd;
+  const latched = (run.sifs || []).filter((c) => !TRIP_SIFS.has(c));
+  const listed = run.alarms_listed_at_end.map((a) => a.id);
+  return `<div class="outcome ${kind}"><h3>${title}</h3><div>${pill(o)}</div>
+    <div class="big">${money(kind === "agents" ? r.agents_profit : r.passive_profit)}</div>
+    <dl class="kv">
+      <dt>Margin</dt><dd>${money(p.margin)}</dd>
+      <dt>Trip penalty</dt><dd>${money(p.trip_penalty)}</dd>
+      <dt>On-spec acetone</dt><dd>${run.on_spec_acetone_kmol.toFixed(1)} kmol</dd>
+      <dt>Off-spec time</dt><dd>${run.off_spec_min.toFixed(1)} min</dd>
+      <dt>Other SIFs latched</dt><dd>${latched.length ? latched.map((c) => `${c} @${run.sif_first_min[c]}`).join(", ") : "none"}</dd>
+      <dt>Alarms still listed</dt><dd>${listed.length ? listed.join(", ") : "none"}</dd>
+      ${run.agent ? `<dt>First detection</dt><dd>${run.agent.first_detection_min?.toFixed(1)} min</dd>
+        <dt>Decisions</dt><dd>${run.agent.decisions} (${run.agent.reprompts} reprompts, ${run.agent.fallbacks} fallbacks)</dd>
+        <dt>Actions applied</dt><dd>${run.agent.actions.length}</dd>
+        <dt>Alarms acknowledged</dt><dd>${run.agent.alarm_acks.reduce((n, a) => n + (a.alarms || []).length, 0)}</dd>` : ""}
+    </dl></div>`;
+}
+function cmdText(c) {
+  if (c.type === "START_SPARE") return `start spare ${c.target}`;
+  if (c.type === "SET_THROUGHPUT") return `throughput ${c.value} kmol/h`;
+  if (c.type === "SET_SETPOINT") return `${c.target} SP ${(+c.value).toFixed(c.value > 10 ? 1 : 3)}`;
+  if (c.type === "OPERATE_AUXILIARY") return `${c.target} ${c.value}`;
+  return c.type === "NO_ACTION" ? "do nothing" : JSON.stringify(c);
+}
+function renderDetail(id) {
+  const s = D.scenarios[id], r = byId[id], a = s.agents, pv = s.passive;
+  const win = r.window_min;
+  const lifts = Object.values(a.schedule).map((v) => v.lift_min);
+  charts.detailBuilt = true;
+  const events = [];
+  if (a.agent?.first_detection_min != null) events.push({ t: a.agent.first_detection_min, k: "det", what: "PCA confirms a fault (3 samples over the limit)" });
+  s.faults.forEach((f, i) => events.push({ t: f.at_min, k: "flt", what: `Fault injected: ${FAULT_LABEL(f.fault)}` }));
+  [...new Set(lifts)].forEach((t) => events.push({ t, k: "flt", what: "Faults lifted" }));
+  for (const [c, t] of Object.entries(a.sif_first_min || {})) events.push({ t, k: TRIP_SIFS.has(c) ? "trip" : "sif", what: `SIF ${c} latched` });
+  for (const x of a.agent?.actions || []) events.push({ t: x.t, k: "act", what: `<b>${x.kind === "mitigation" ? "Mitigation" : "Recovery"}:</b> ${x.commands.map(cmdText).map(esc).join(" · ")}<div class="small muted">diagnosis: ${esc(x.diagnosis)}</div>` , html: true });
+  for (const x of a.agent?.alarm_acks || []) events.push({ t: x.t, k: "ack", what: `Acknowledged ${(x.alarms || []).join(", ")} <span class="muted">— ${esc(x.reason)}</span>`, html: true });
+  for (const x of a.agent?.verification || []) events.push({ t: x.t, k: "ver", what: x.reason });
+  if (a.trip_min != null) events.push({ t: a.trip_min, k: "trip", what: outcome(a).text });
+  events.sort((p, q) => p.t - q.t);
+  const KL = { det: "Detect", flt: "Fault", sif: "SIF", trip: "Stop", act: "Action", ack: "Alarm ack", ver: "Wait" };
+
+  const cycles = {};
+  for (const v of a.agent?.validations || []) (cycles[v.cycle] ||= { t: v.t, c: [] }).c.push(v);
+  const applied = (t) => (a.agent?.actions || []).find((x) => Math.abs(x.t - t) < 0.6);
+  const cycleRows = Object.entries(cycles).map(([cy, v]) => {
+    const app = applied(v.t);
+    const acc = v.c.some((c) => c.accepted);
+    const verdict = acc ? `<span class="pill ok">accepted</span>` : app ? `<span class="pill warn">best vs doing nothing applied</span>` : `<span class="pill info">nothing beats doing nothing</span>`;
+    const cands = v.c.filter((c) => !(c.failed[0] || "").startsWith("new proposal")).map((c) =>
+      `<div class="cand"><span class="${c.accepted ? "y" : "n"}">${c.accepted ? "✓" : "✗"}</span> ${c.commands.map(cmdText).map(esc).join(" · ")}${c.failed.length ? ` <span class="muted">— ${esc(c.failed[0].slice(0, 110))}</span>` : ""}</div>`).join("");
+    return `<tr><td class="num">${v.t.toFixed(1)}</td><td>${verdict}</td><td>${cands}</td></tr>`;
+  }).join("");
+
+  const alarmList = (run) => run.alarm_history.length ? run.alarm_history.map((h) =>
+    `<div class="ev" style="grid-template-columns:56px 1fr"><span class="t">${h.t.toFixed(1)}</span><span class="what"><span class="chip">${h.id}</span> ${h.transition.toLowerCase().replace(/_/g, " ")}${h.by ? ` <b>by ${h.by}</b>` : ""}</span></div>`).join("") : `<p class="muted small">No alarm events.</p>`;
+
+  $("#detail").innerHTML = `
+    <div class="panel">
+      <div class="detail-head"><div style="display:grid;gap:4px"><span class="grp">${esc(GROUP_LABEL[s.group])}</span><h2>${id} · ${s.faults.map((f) => esc(FAULT_LABEL(f.fault))).join(" + ")}</h2></div>
+        <div class="small muted mono">onset ${s.faults.map((f) => f.at_min).join(", ")} min · lifted ${[...new Set(lifts)].join(", ")} min · window ${win} min</div></div>
+      ${s.interaction ? `<p class="small">${esc(s.interaction)}</p>` : ""}
+      ${r.footprint_overlap?.length ? `<p class="small muted">Measured overlap of single-fault footprints: ${r.footprint_overlap.map((o) => o.length ? o.map((v) => `<span class="chip">${v}</span>`).join("") : "none").join(" | ")}</p>` : ""}
+      <div class="outcomes">
+        <div class="outcome probe"><h3>If nobody acts, faults never lifted</h3><div>${pill(outcome({ ...s.probe, tripped: s.probe.trip_min != null }))}</div>
+          <dl class="kv"><dt>SIFs</dt><dd>${Object.entries(s.probe.sif_first_min).map(([c, t]) => `${c} @${t}`).join(", ") || "none"}</dd>
+          <dt>Nominal profit</dt><dd>${money(r.nominal_profit)} over ${win} min</dd></dl>
+          <p class="small muted">This run sets the lift time: ${s.probe.trip_min == null ? `no trip, so faults lift ${D.campaign.protocol.lift_no_trip_min} min after onset` : `trip at ${s.probe.trip_min.toFixed(1)} min + ${D.campaign.protocol.lift_after_trip_min} min`}.</p></div>
+        ${runCard("passive", "No agents (faults lifted)", pv, r)}
+        ${runCard("agents", "Agents (faults lifted)", a, r)}
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>Cumulative profit</h3>
+        <div class="legend"><span style="--c:var(--passive)">No agents</span><span style="--c:var(--agents)">Agents</span><span class="dash" style="--c:var(--nominal)">Nominal</span></div>
+        <div class="chart-box"><canvas id="cumChart" aria-label="Cumulative profit over the scenario window"></canvas></div></div>
+      <div class="panel"><div class="controls"><h3 style="margin-right:auto">Process variable</h3>
+        <label class="small muted" for="varSel">Show</label><select id="varSel">${Object.entries(VARS).map(([k, v]) => `<option value="${k}" ${k === detailVar ? "selected" : ""}>${v.label}</option>`).join("")}</select></div>
+        <div class="legend"><span style="--c:var(--passive)">No agents</span><span style="--c:var(--agents)">Agents</span><span class="dash" style="--c:var(--nominal)">Nominal</span><span style="--c:var(--warn)">alarm</span><span style="--c:var(--bad)">SIF</span></div>
+        <div class="chart-box"><canvas id="varChart" aria-label="Selected process variable"></canvas></div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>Agent timeline</h3><div class="timeline">${events.map((e) =>
+        `<div class="ev"><span class="t">${e.t.toFixed(1)}</span><span class="k ${e.k}">${KL[e.k]}</span><span class="what">${e.html ? e.what : esc(e.what)}</span></div>`).join("")}</div></div>
+      <div class="panel"><h3>Decisions: candidates checked in the digital twin</h3>
+        ${cycleRows ? `<div class="table-wrap"><table><thead><tr><th class="num">min</th><th>Verdict</th><th>Candidates (✓ restores the plant)</th></tr></thead><tbody>${cycleRows}</tbody></table></div>` : `<p class="muted small">No decisions: the plant never needed one.</p>`}</div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><details><summary>Alarm events, no agents (${pv.alarm_history.length})</summary><div class="timeline">${alarmList(pv)}</div></details></div>
+      <div class="panel"><details><summary>Alarm events, agents (${a.alarm_history.length})</summary><div class="timeline">${alarmList(a)}</div></details></div>
+    </div>`;
+  $("#varSel").addEventListener("change", (e) => { detailVar = e.target.value; drawVar(id); });
+  drawCum(id); drawVar(id);
+}
+function vMarks(id) {
+  const s = D.scenarios[id], a = s.agents, pv = s.passive, out = [];
+  out.push({ x: s.faults[0].at_min, label: "fault", color: css("--muted"), dash: true });
+  const lift = Math.max(...Object.values(a.schedule).map((v) => v.lift_min));
+  out.push({ x: lift, label: "lifted", color: css("--muted"), dash: true });
+  if (pv.trip_min != null) out.push({ x: pv.trip_min, label: "stop (no agents)", color: css("--passive") });
+  if (a.trip_min != null) out.push({ x: a.trip_min, label: "stop (agents)", color: css("--agents") });
+  return out;
+}
+function drawCum(id) {
+  const s = D.scenarios[id], win = byId[id].window_min;
+  const [nx, ny] = cumulative(D.nominal, null, win), [px, py] = cumulative(s.passive.series, s.passive, win), [ax, ay] = cumulative(s.agents.series, s.agents, win);
+  const o = baseOpts("minutes", "USD");
+  o.scales.x.max = win; o.scales.x.min = 0;
+  o.plugins.markers = { v: vMarks(id) };
+  o.plugins.tooltip.callbacks = { label: (c) => `${c.dataset.label}: ${money(c.parsed.y)}` };
+  mk("cumChart", { type: "line", data: { datasets: [line("Nominal", nx, ny, css("--nominal"), true), line("No agents", px, py, css("--passive")), line("Agents", ax, ay, css("--agents"))] }, options: o });
+}
+function drawVar(id) {
+  const s = D.scenarios[id], win = byId[id].window_min, v = VARS[detailVar], k = detailVar;
+  const cut = (ser) => { const xs = [], ys = []; ser.t.forEach((t, i) => { if (t <= win + 1e-6) { xs.push(t); ys.push(ser[k][i]); } }); return [xs, ys]; };
+  const [nx, ny] = cut(D.nominal), [px, py] = cut(s.passive.series), [ax, ay] = cut(s.agents.series);
+  const all = [...ny, ...py, ...ay].filter((x) => x != null);
+  let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.08 || Math.abs(hi) * 0.01 || 1;
+  lo -= pad; hi += pad;
+  const near = v.lim.filter(([y]) => y >= lo - (hi - lo) * 0.6 && y <= hi + (hi - lo) * 0.6);
+  for (const [y] of near) { lo = Math.min(lo, y - pad * 0.5); hi = Math.max(hi, y + pad * 0.5); }
+  const o = baseOpts("minutes", `${v.label} [${v.unit}]`);
+  o.scales.x.max = win; o.scales.x.min = 0; o.scales.y.min = lo; o.scales.y.max = hi;
+  o.plugins.markers = { v: vMarks(id), h: near.map(([y, label, sev]) => ({ y, label, color: css(sev === "bad" ? "--bad" : "--warn") })) };
+  mk("varChart", { type: "line", data: { datasets: [line("Nominal", nx, ny, css("--nominal"), true), line("No agents", px, py, css("--passive")), line("Agents", ax, ay, css("--agents"))] }, options: o });
+}
+
+/* ------------------------------------------------------------ rounds */
+function renderRounds() {
+  const finalR = D.rounds.find((r) => r.round === "final");
+  $("#roundTable").innerHTML = `<thead><tr><th>Round</th><th class="num">Finished</th><th class="num">Stops</th><th>Survived</th><th>Stopped</th><th>Change made for this round</th></tr></thead><tbody>` +
+    D.rounds.map((r) => `<tr><td class="mono"><b>${r.round}</b></td><td class="num">${r.finished}/20</td>
+      <td class="num">${r.stops}</td><td>${r.survived.map((x) => `<span class="chip">${x}</span>`).join("")}</td>
+      <td>${r.stopped.map((x) => `<span class="chip" style="color:var(--bad)">${x}</span>`).join("") || "—"}</td>
+      <td class="small">${esc(r.note)}</td></tr>`).join("") + "</tbody>";
+}
+
+/* ------------------------------------------------------------ checks */
+function renderChecks() {
+  const L = D.loops;
+  if (L.setpoint_steps) {
+    $("#loopTable").innerHTML = `<thead><tr><th>Loop</th><th>PV</th><th>Output</th><th class="num">SP step</th><th class="num">PV at 40 min</th><th class="num">Overshoot</th><th class="num">Settled</th><th>Result</th></tr></thead><tbody>` +
+      L.setpoint_steps.map((r) => `<tr><td class="mono"><b>${r.loop}</b></td><td class="small">${r.pv}</td><td class="small">${r.mv}</td>
+        <td class="num">${r.sp0.toFixed(3)} → ${r.sp1.toFixed(3)}</td><td class="num">${r.pv_end.toFixed(3)}</td><td class="num">${r.overshoot_pct.toFixed(0)} %</td>
+        <td class="num">${r.settling_min == null ? "not yet" : r.settling_min.toFixed(1) + " min"}</td>
+        <td>${r.pass ? `<span class="pill ok">pass</span>` : `<span class="pill warn">stable, slow / underdamped</span>`}</td></tr>`).join("") + "</tbody>";
+    $("#distTable").innerHTML = `<thead><tr><th>Disturbance</th><th>Loop</th><th class="num">Setpoint</th><th class="num">Max deviation</th><th class="num">Output start → end</th><th>Result</th></tr></thead><tbody>` +
+      L.disturbances.map((r) => `<tr><td>${esc(r.disturbance.replace(/_/g, " "))}</td><td class="mono">${r.loop}</td><td class="num">${r.sp.toFixed(3)}</td>
+        <td class="num">${r.max_deviation.toFixed(3)}</td><td class="num">${r.mv_start.toFixed(3)} → ${r.mv_end.toFixed(3)}</td>
+        <td>${r.pass ? `<span class="pill ok">pass</span>` : `<span class="pill bad">fail</span>`}</td></tr>`).join("") + "</tbody>";
+  }
+  $("#physics").innerHTML = [
+    "SIF thresholds match the README table exactly (R_T_HH 348 K … COL_P_HH 1.35 bar); plant-trip latches are R_P_HHH, RB_L_HH, DR_L_LL, DR_L_HH, COL_P_HH.",
+    "Every SIF has an operator alarm on the same tag inside its limit, so operators and agents get a response window.",
+    "Reactor P-HH keeps feed (endothermic reaction) and opens PCV + BDV; P-HHH cuts feed to 40 %. Column P-HH forces the CW valve to 100 % but cannot restore lost cooling.",
+    "Design point holds: 100 kmol/h IPA, conversion 0.700, reactor 3.000 bar, column 1.000 bar, CW valve 60 %.",
+    "Component balance closes at steady state: reaction 70.0 kmol/h = H2 vented 70.0 = acetone out 69.99 (distillate + bottoms).",
+    "SIFs act on true states, alarms on BPCS measurements; pump and actuator faults act after the SIF layer, as specified.",
+    "Normal disturbances are physical steps (±3 K cooling water / ambient, ±5 K feed / heating utility, ±10 % steam); README updated to match.",
+    "Note: the live console keeps running after a plant trip (campaigns reset SIFs); the benchmark stops the plant at a trip, as the README describes.",
+  ].map((t) => `<li>${esc(t)}</li>`).join("");
+  const p = D.prices;
+  $("#prices").innerHTML = [
+    ["Acetone (on-spec only)", `$${p.acetone_usd_t}/t while distillate ≥ ${p.spec} mol frac`], ["IPA feed", `$${p.ipa_usd_t}/t`],
+    ["Recycled IPA in bottoms", `${Math.round(p.recycle * 100)} % of the IPA price`], ["Hydrogen to fuel", `$${p.h2_usd_kg}/kg`],
+    ["Steam and reactor heating", `$${p.steam_usd_GJ}/GJ`], ["Shutdown + startup per stop", `${money(p.shutdown)} + ${money(p.startup)}`],
+    ["Nominal margin", "about $727/h"],
+  ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+}
+
+/* ------------------------------------------------------------ boot */
+try { const s = localStorage.getItem("fc-scen"); if (s && D.scenarios[s]) selected = s; } catch (e) {}
+renderGroups(); renderScenTable(); renderRounds(); renderChecks();
+function renderCharts() { renderOverview(); if (charts.detailBuilt) { drawCum(selected); drawVar(selected); } }
+let start = location.hash.slice(1);
+if (!TABS.includes(start)) { try { start = localStorage.getItem("fc-tab") || "overview"; } catch (e) { start = "overview"; } }
+showTab(start);
+renderCharts();
+renderDetail(selected);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCharts);
+new MutationObserver(renderCharts).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+</script>

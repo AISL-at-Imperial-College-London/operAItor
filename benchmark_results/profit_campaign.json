@@ -1,0 +1,2065 @@
+{
+ "prices": {
+  "acetone_usd_t": 1300.0,
+  "ipa_usd_t": 1000.0,
+  "h2_fuel_usd_kg": 1.0,
+  "steam_usd_GJ": 8.0,
+  "hot_utility_usd_GJ": 8.0,
+  "recycle_credit": 0.95,
+  "product_spec_x": 0.9,
+  "shutdown_cost_usd": 5000.0,
+  "startup_cost_usd": 15000.0,
+  "trip_penalty_usd": 20000.0
+ },
+ "protocol": {
+  "onset_min": 10.0,
+  "lift_after_trip_min": 10.0,
+  "lift_no_trip_min": 30.0,
+  "probe_window_min": 240.0,
+  "min_window_min": 120.0,
+  "tail_min": 60.0,
+  "agent_preset": "rule_twin"
+ },
+ "single_fault_footprints": {
+  "reflux_pump_trip": [
+   "bottoms_x_acetone",
+   "distillate_x_acetone",
+   "drum_holdup_kmol",
+   "reboiler_holdup_kmol",
+   "top_temperature_K"
+  ],
+  "bottoms_pump_trip": [
+   "reboiler_holdup_kmol"
+  ],
+  "distillate_pump_trip": [
+   "drum_holdup_kmol"
+  ],
+  "feed_pump_trip": [
+   "bottoms_x_acetone",
+   "cstr_holdup_kmol",
+   "cstr_pressure_bar",
+   "cstr_temperature_K",
+   "reboiler_holdup_kmol"
+  ],
+  "cstr_outlet_capacity_loss": [
+   "bottoms_x_acetone",
+   "cstr_holdup_kmol",
+   "cstr_pressure_bar",
+   "cstr_temperature_K",
+   "distillate_x_acetone",
+   "drum_holdup_kmol",
+   "reboiler_holdup_kmol",
+   "top_temperature_K"
+  ],
+  "h2_pcv_capacity_degradation": [
+   "cstr_pressure_bar",
+   "cstr_temperature_K"
+  ],
+  "reactor_heater_stuck_high": [
+   "cstr_pressure_bar",
+   "cstr_temperature_K"
+  ],
+  "condenser_cooling_loss": [
+   "bottom_temperature_K",
+   "bottoms_x_acetone",
+   "column_pressure_bar",
+   "distillate_x_acetone",
+   "drum_holdup_kmol",
+   "reboiler_holdup_kmol",
+   "top_temperature_K"
+  ],
+  "reflux_drum_leak": [
+   "drum_holdup_kmol"
+  ],
+  "reactor_pressure_sensor_low_bias": [
+   "cstr_pressure_bar"
+  ]
+ },
+ "rows": [
+  {
+   "id": "S01",
+   "group": "single",
+   "faults": "reflux_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    34.4
+   ],
+   "probe_trip_min": 24.4,
+   "probe_sifs": [],
+   "passive_trip_min": 24.4,
+   "passive_sifs": [],
+   "passive_status": "MODEL_LIMIT",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -20186.0,
+   "agents_profit": 1489.0,
+   "saving": 21674.0,
+   "agents_loss_vs_nominal": -44.0,
+   "passive_off_spec_min": 7.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 12.500000000000021,
+   "agent_actions": [
+    [
+     12.500000000000021,
+     "restoring",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "REFLUX"
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 0,
+   "agent_fallbacks": 0,
+   "agent_alarm_acks": 1,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "DIST_X_L",
+    "P201_TRIP"
+   ],
+   "footprint_overlap": [],
+   "interaction": null
+  },
+  {
+   "id": "S02",
+   "group": "single",
+   "faults": "bottoms_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    58.8
+   ],
+   "probe_trip_min": 48.8,
+   "probe_sifs": [
+    "RB_L_HH"
+   ],
+   "passive_trip_min": 48.8,
+   "passive_sifs": [
+    "RB_L_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -20312.0,
+   "agents_profit": 1441.0,
+   "saving": 21753.0,
+   "agents_loss_vs_nominal": 4.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 15.000000000000037,
+   "agent_actions": [
+    [
+     15.000000000000037,
+     "restoring",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "BOTTOMS"
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 0,
+   "agent_fallbacks": 0,
+   "agent_alarm_acks": 1,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "RB_L_HH",
+    "P203_TRIP"
+   ],
+   "footprint_overlap": [],
+   "interaction": null
+  },
+  {
+   "id": "S03",
+   "group": "single",
+   "faults": "distillate_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    32.4
+   ],
+   "probe_trip_min": 22.4,
+   "probe_sifs": [
+    "DR_L_HH"
+   ],
+   "passive_trip_min": 22.4,
+   "passive_sifs": [
+    "DR_L_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -20763.0,
+   "agents_profit": 1435.0,
+   "saving": 22198.0,
+   "agents_loss_vs_nominal": 10.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 13.500000000000028,
+   "agent_actions": [
+    [
+     13.500000000000028,
+     "restoring",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "DISTILLATE"
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 0,
+   "agent_fallbacks": 0,
+   "agent_alarm_acks": 1,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "DR_L_HH",
+    "P202_TRIP"
+   ],
+   "footprint_overlap": [],
+   "interaction": null
+  },
+  {
+   "id": "S04",
+   "group": "single",
+   "faults": "feed_pump_trip",
+   "window_min": 142.1,
+   "lift_min": [
+    82.1
+   ],
+   "probe_trip_min": 72.1,
+   "probe_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_trip_min": 72.1,
+   "passive_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1717.0,
+   "passive_profit": -16920.0,
+   "agents_profit": 1877.0,
+   "saving": 18797.0,
+   "agents_loss_vs_nominal": -160.0,
+   "passive_off_spec_min": 19.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 13.000000000000025,
+   "agent_actions": [
+    [
+     13.000000000000025,
+     "restoring",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "FEED"
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 0,
+   "agent_fallbacks": 0,
+   "agent_alarm_acks": 1,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "R_T_H",
+    "R_L_L",
+    "DR_L_LL",
+    "DIST_X_L",
+    "P101_TRIP"
+   ],
+   "footprint_overlap": [],
+   "interaction": null
+  },
+  {
+   "id": "S05",
+   "group": "single",
+   "faults": "cstr_outlet_capacity_loss",
+   "window_min": 120.0,
+   "lift_min": [
+    40.0
+   ],
+   "probe_trip_min": null,
+   "probe_sifs": [
+    "R_L_HH"
+   ],
+   "passive_trip_min": null,
+   "passive_sifs": [
+    "R_L_HH"
+   ],
+   "passive_status": "RUNNING",
+   "agents_trip_min": null,
+   "agents_sifs": [
+    "R_L_HH"
+   ],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": 1233.0,
+   "agents_profit": 1630.0,
+   "saving": 397.0,
+   "agents_loss_vs_nominal": -185.0,
+   "passive_off_spec_min": 16.0,
+   "agents_off_spec_min": 16.5,
+   "agent_detection_min": 12.500000000000021,
+   "agent_actions": [
+    [
+     23.49999999999995,
+     "mitigation",
+     [
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 35.0
+      }
+     ]
+    ],
+    [
+     49.50000000000033,
+     "mitigation",
+     [
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 42.0
+      }
+     ]
+    ],
+    [
+     79.50000000000102,
+     "mitigation",
+     [
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 50.4
+      }
+     ]
+    ],
+    [
+     89.50000000000125,
+     "mitigation",
+     [
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 60.5
+      }
+     ]
+    ],
+    [
+     114.50000000000183,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 337.7
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 80,
+   "agent_fallbacks": 5,
+   "agent_alarm_acks": 6,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_L_H",
+    "R_L_HH",
+    "RB_L_HH",
+    "DR_L_HH",
+    "DIST_X_L",
+    "BTM_X_H"
+   ],
+   "footprint_overlap": [],
+   "interaction": null
+  },
+  {
+   "id": "S06",
+   "group": "single",
+   "faults": "h2_pcv_capacity_degradation",
+   "window_min": 232.8,
+   "lift_min": [
+    172.8
+   ],
+   "probe_trip_min": 162.8,
+   "probe_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 162.8,
+   "passive_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [
+    "R_P_HH"
+   ],
+   "agents_status": "RUNNING",
+   "nominal_profit": 2799.0,
+   "passive_profit": -21029.0,
+   "agents_profit": 2808.0,
+   "saving": 23836.0,
+   "agents_loss_vs_nominal": -8.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 18.5,
+   "agent_actions": [
+    [
+     19.49999999999999,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ],
+    [
+     29.49999999999989,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.0
+      }
+     ]
+    ],
+    [
+     31.499999999999915,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ],
+    [
+     41.50000000000014,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.0
+      }
+     ]
+    ],
+    [
+     43.50000000000019,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ],
+    [
+     53.500000000000426,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.0
+      }
+     ]
+    ],
+    [
+     55.50000000000047,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ],
+    [
+     65.5000000000007,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.0
+      }
+     ]
+    ],
+    [
+     67.50000000000074,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ],
+    [
+     77.50000000000098,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.0
+      }
+     ]
+    ],
+    [
+     81.50000000000107,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ],
+    [
+     111.50000000000176,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.0
+      }
+     ]
+    ],
+    [
+     115.50000000000185,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 160,
+   "agent_fallbacks": 13,
+   "agent_alarm_acks": 18,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_P_HH",
+    "RB_L_HH"
+   ],
+   "footprint_overlap": [],
+   "interaction": null
+  },
+  {
+   "id": "S07",
+   "group": "single",
+   "faults": "reactor_heater_stuck_high",
+   "window_min": 120.0,
+   "lift_min": [
+    40.0
+   ],
+   "probe_trip_min": null,
+   "probe_sifs": [
+    "R_T_HH"
+   ],
+   "passive_trip_min": null,
+   "passive_sifs": [
+    "R_T_HH"
+   ],
+   "passive_status": "RUNNING",
+   "agents_trip_min": null,
+   "agents_sifs": [
+    "R_T_HH"
+   ],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": 1317.0,
+   "agents_profit": 1341.0,
+   "saving": 24.0,
+   "agents_loss_vs_nominal": 104.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 11.500000000000016,
+   "agent_actions": [],
+   "agent_reprompts": 92,
+   "agent_fallbacks": 0,
+   "agent_alarm_acks": 4,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_P_HH",
+    "R_T_H",
+    "R_T_HH"
+   ],
+   "footprint_overlap": [],
+   "interaction": null
+  },
+  {
+   "id": "S08",
+   "group": "single",
+   "faults": "condenser_cooling_loss",
+   "window_min": 120.0,
+   "lift_min": [
+    31.5
+   ],
+   "probe_trip_min": 21.5,
+   "probe_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_trip_min": 21.5,
+   "passive_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -20253.0,
+   "agents_profit": 372.0,
+   "saving": 20625.0,
+   "agents_loss_vs_nominal": 1073.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 11.500000000000016,
+   "agent_actions": [
+    [
+     11.500000000000016,
+     "mitigation",
+     [
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 50.0
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 345.0
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 335.7
+      }
+     ]
+    ],
+    [
+     47.00000000000027,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 332.7
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 348.0
+      },
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 60.0
+      }
+     ]
+    ],
+    [
+     57.000000000000504,
+     "mitigation",
+     [
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 72.0
+      }
+     ]
+    ],
+    [
+     63.00000000000064,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 351.0
+      }
+     ]
+    ],
+    [
+     73.00000000000087,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 354.0
+      },
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 86.4
+      }
+     ]
+    ],
+    [
+     83.00000000000111,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 354.4223
+      }
+     ]
+    ],
+    [
+     113.00000000000179,
+     "mitigation",
+     [
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 100.0
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 68,
+   "agent_fallbacks": 7,
+   "agent_alarm_acks": 3,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "DR_L_LL",
+    "COL_P_H",
+    "COL_P_HH",
+    "BTM_X_H"
+   ],
+   "footprint_overlap": [],
+   "interaction": null
+  },
+  {
+   "id": "S09",
+   "group": "single",
+   "faults": "reflux_drum_leak",
+   "window_min": 120.0,
+   "lift_min": [
+    48.6
+   ],
+   "probe_trip_min": 38.6,
+   "probe_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_trip_min": 38.6,
+   "passive_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -21502.0,
+   "agents_profit": -5336.0,
+   "saving": 16166.0,
+   "agents_loss_vs_nominal": 6781.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 53.0,
+   "agent_detection_min": 12.500000000000021,
+   "agent_actions": [
+    [
+     23.49999999999995,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 334.7
+      }
+     ]
+    ],
+    [
+     33.49999999999996,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 337.7
+      }
+     ]
+    ],
+    [
+     53.500000000000426,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 334.7
+      }
+     ]
+    ],
+    [
+     63.500000000000654,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      }
+     ]
+    ],
+    [
+     73.50000000000088,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      }
+     ]
+    ],
+    [
+     93.50000000000135,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 64,
+   "agent_fallbacks": 6,
+   "agent_alarm_acks": 2,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "DR_L_LL"
+   ],
+   "footprint_overlap": [],
+   "interaction": null
+  },
+  {
+   "id": "S10",
+   "group": "single",
+   "faults": "reactor_pressure_sensor_low_bias",
+   "window_min": 255.3,
+   "lift_min": [
+    195.3
+   ],
+   "probe_trip_min": 185.3,
+   "probe_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 185.3,
+   "passive_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [
+    "R_P_HH"
+   ],
+   "agents_status": "RUNNING",
+   "nominal_profit": 3068.0,
+   "passive_profit": -20758.0,
+   "agents_profit": 3082.0,
+   "saving": 23840.0,
+   "agents_loss_vs_nominal": -14.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 11.500000000000016,
+   "agent_actions": [
+    [
+     82.5000000000011,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 188,
+   "agent_fallbacks": 1,
+   "agent_alarm_acks": 0,
+   "alarms_listed_at_end_agents": [
+    "R_P_H",
+    "R_P_HH"
+   ],
+   "alarms_listed_at_end_passive": [
+    "RB_L_HH"
+   ],
+   "footprint_overlap": [],
+   "interaction": null
+  },
+  {
+   "id": "D01",
+   "group": "pair_indep",
+   "faults": "reactor_pressure_sensor_low_bias + bottoms_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    60.0,
+    60.0
+   ],
+   "probe_trip_min": 50.0,
+   "probe_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 50.0,
+   "passive_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [
+    "R_P_HH"
+   ],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -20294.0,
+   "agents_profit": 1458.0,
+   "saving": 21752.0,
+   "agents_loss_vs_nominal": -13.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 11.500000000000016,
+   "agent_actions": [
+    [
+     13.500000000000028,
+     "mitigation",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "BOTTOMS"
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 88,
+   "agent_fallbacks": 1,
+   "agent_alarm_acks": 3,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "RB_L_HH",
+    "P203_TRIP"
+   ],
+   "footprint_overlap": [
+    []
+   ],
+   "interaction": "reactor pressure loop vs reboiler level loop: different units, no shared loop or alarm"
+  },
+  {
+   "id": "D02",
+   "group": "pair_indep",
+   "faults": "reactor_heater_stuck_high + distillate_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    31.9,
+    31.9
+   ],
+   "probe_trip_min": 21.9,
+   "probe_sifs": [
+    "DR_L_HH"
+   ],
+   "passive_trip_min": 21.9,
+   "passive_sifs": [
+    "DR_L_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -20721.0,
+   "agents_profit": 1390.0,
+   "saving": 22112.0,
+   "agents_loss_vs_nominal": 55.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 11.500000000000016,
+   "agent_actions": [
+    [
+     11.500000000000016,
+     "mitigation",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "DISTILLATE"
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 40,
+   "agent_fallbacks": 1,
+   "agent_alarm_acks": 5,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_P_HH",
+    "R_T_H",
+    "DR_L_HH",
+    "P202_TRIP"
+   ],
+   "footprint_overlap": [
+    []
+   ],
+   "interaction": "reactor temperature (heater) vs reflux-drum level (distillate pump); simultaneous"
+  },
+  {
+   "id": "D03",
+   "group": "pair_indep",
+   "faults": "h2_pcv_capacity_degradation + reflux_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    39.4,
+    39.4
+   ],
+   "probe_trip_min": 29.4,
+   "probe_sifs": [
+    "R_P_HH"
+   ],
+   "passive_trip_min": 29.4,
+   "passive_sifs": [
+    "R_P_HH"
+   ],
+   "passive_status": "MODEL_LIMIT",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -20068.0,
+   "agents_profit": 1498.0,
+   "saving": 21566.0,
+   "agents_loss_vs_nominal": -53.0,
+   "passive_off_spec_min": 6.5,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 17.000000000000018,
+   "agent_actions": [
+    [
+     17.000000000000018,
+     "mitigation",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "REFLUX"
+      }
+     ]
+    ],
+    [
+     19.49999999999999,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ],
+    [
+     29.49999999999989,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.0
+      }
+     ]
+    ],
+    [
+     31.499999999999915,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ],
+    [
+     41.50000000000014,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.0
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 36,
+   "agent_fallbacks": 5,
+   "agent_alarm_acks": 5,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_P_HH",
+    "DIST_X_L",
+    "P201_TRIP"
+   ],
+   "footprint_overlap": [
+    []
+   ],
+   "interaction": "reactor H2 vent capacity vs column reflux: reactor gas side vs column top"
+  },
+  {
+   "id": "D04",
+   "group": "pair_indep",
+   "faults": "reactor_pressure_sensor_low_bias + reflux_drum_leak",
+   "window_min": 120.0,
+   "lift_min": [
+    50.6,
+    50.6
+   ],
+   "probe_trip_min": 40.6,
+   "probe_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_trip_min": 40.6,
+   "passive_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [
+    "R_P_HH"
+   ],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -21479.0,
+   "agents_profit": -6790.0,
+   "saving": 14690.0,
+   "agents_loss_vs_nominal": 8235.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 61.5,
+   "agent_detection_min": 11.500000000000016,
+   "agent_actions": [
+    [
+     27.499999999999908,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 334.7
+      }
+     ]
+    ],
+    [
+     37.50000000000006,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 337.7
+      }
+     ]
+    ],
+    [
+     47.500000000000284,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 340.0
+      }
+     ]
+    ],
+    [
+     57.50000000000051,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 337.0
+      }
+     ]
+    ],
+    [
+     67.50000000000074,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 334.0
+      }
+     ]
+    ],
+    [
+     77.50000000000098,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      }
+     ]
+    ],
+    [
+     92.50000000000132,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      }
+     ]
+    ],
+    [
+     102.50000000000155,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      }
+     ]
+    ],
+    [
+     112.50000000000179,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 52,
+   "agent_fallbacks": 9,
+   "agent_alarm_acks": 3,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "DR_L_LL"
+   ],
+   "footprint_overlap": [
+    []
+   ],
+   "interaction": "reactor pressure transmitter vs reflux-drum inventory"
+  },
+  {
+   "id": "C01",
+   "group": "pair_coupled",
+   "faults": "condenser_cooling_loss + reflux_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    38.3,
+    38.3
+   ],
+   "probe_trip_min": 28.3,
+   "probe_sifs": [],
+   "passive_trip_min": 28.3,
+   "passive_sifs": [],
+   "passive_status": "MODEL_LIMIT",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -19995.0,
+   "agents_profit": 482.0,
+   "saving": 20478.0,
+   "agents_loss_vs_nominal": 962.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 11.500000000000016,
+   "agent_actions": [
+    [
+     11.500000000000016,
+     "mitigation",
+     [
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 50.0
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 345.0
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 335.7
+      }
+     ]
+    ],
+    [
+     13.500000000000028,
+     "mitigation",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "REFLUX"
+      }
+     ]
+    ],
+    [
+     57.50000000000051,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 332.7
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 348.0
+      },
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 60.0
+      }
+     ]
+    ],
+    [
+     72.50000000000087,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 351.0
+      }
+     ]
+    ],
+    [
+     82.5000000000011,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 354.0
+      },
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 72.0
+      }
+     ]
+    ],
+    [
+     92.50000000000132,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 354.4223
+      },
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 86.4
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 76,
+   "agent_fallbacks": 6,
+   "agent_alarm_acks": 4,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "COL_P_H",
+    "COL_P_HH",
+    "BTM_X_H",
+    "P201_TRIP"
+   ],
+   "footprint_overlap": [
+    [
+     "bottoms_x_acetone",
+     "distillate_x_acetone",
+     "drum_holdup_kmol",
+     "reboiler_holdup_kmol",
+     "top_temperature_K"
+    ]
+   ],
+   "interaction": "both act on the column top: less condensation and no reflux -> column pressure and drum level"
+  },
+  {
+   "id": "C02",
+   "group": "pair_coupled",
+   "faults": "h2_pcv_capacity_degradation + reactor_pressure_sensor_low_bias",
+   "window_min": 231.1,
+   "lift_min": [
+    171.1,
+    171.1
+   ],
+   "probe_trip_min": 161.1,
+   "probe_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 161.1,
+   "passive_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [
+    "R_P_HH"
+   ],
+   "agents_status": "RUNNING",
+   "nominal_profit": 2781.0,
+   "passive_profit": -21040.0,
+   "agents_profit": 2885.0,
+   "saving": 23925.0,
+   "agents_loss_vs_nominal": -103.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 13.500000000000028,
+   "agent_actions": [
+    [
+     95.00000000000138,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 164,
+   "agent_fallbacks": 1,
+   "agent_alarm_acks": 0,
+   "alarms_listed_at_end_agents": [
+    "R_P_H",
+    "R_P_HH"
+   ],
+   "alarms_listed_at_end_passive": [
+    "RB_L_HH"
+   ],
+   "footprint_overlap": [
+    [
+     "cstr_pressure_bar"
+    ]
+   ],
+   "interaction": "both raise reactor pressure: the low-reading transmitter makes R_PIC close the degrading PCV"
+  },
+  {
+   "id": "C03",
+   "group": "pair_coupled",
+   "faults": "reflux_drum_leak + distillate_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    54.6,
+    54.6
+   ],
+   "probe_trip_min": 44.6,
+   "probe_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_trip_min": 44.6,
+   "passive_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -22148.0,
+   "agents_profit": -5718.0,
+   "saving": 16431.0,
+   "agents_loss_vs_nominal": 7163.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 53.0,
+   "agent_detection_min": 12.500000000000021,
+   "agent_actions": [
+    [
+     25.49999999999993,
+     "mitigation",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "DISTILLATE"
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 334.7
+      }
+     ]
+    ],
+    [
+     35.50000000000001,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 337.7
+      }
+     ]
+    ],
+    [
+     55.50000000000047,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 334.7
+      }
+     ]
+    ],
+    [
+     65.5000000000007,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      }
+     ]
+    ],
+    [
+     80.50000000000105,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      }
+     ]
+    ],
+    [
+     90.50000000000128,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      }
+     ]
+    ],
+    [
+     105.50000000000162,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 60,
+   "agent_fallbacks": 7,
+   "agent_alarm_acks": 3,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "DR_L_LL",
+    "P202_TRIP"
+   ],
+   "footprint_overlap": [
+    [
+     "drum_holdup_kmol"
+    ]
+   ],
+   "interaction": "both act on the reflux-drum level in opposite directions (leak drains, lost distillate fills)"
+  },
+  {
+   "id": "T01",
+   "group": "triple_none",
+   "faults": "h2_pcv_capacity_degradation + distillate_pump_trip + bottoms_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    34.9,
+    34.9,
+    34.9
+   ],
+   "probe_trip_min": 24.9,
+   "probe_sifs": [
+    "DR_L_HH",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 24.9,
+   "passive_sifs": [
+    "DR_L_HH",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -21043.0,
+   "agents_profit": 1445.0,
+   "saving": 22488.0,
+   "agents_loss_vs_nominal": 0.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 15.000000000000037,
+   "agent_actions": [
+    [
+     15.000000000000037,
+     "mitigation",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "DISTILLATE"
+      },
+      {
+       "type": "START_SPARE",
+       "target": "BOTTOMS"
+      }
+     ]
+    ],
+    [
+     19.49999999999999,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ],
+    [
+     29.49999999999989,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.0
+      }
+     ]
+    ],
+    [
+     31.499999999999915,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.3
+      }
+     ]
+    ],
+    [
+     41.50000000000014,
+     "mitigation",
+     [
+      {
+       "type": "OPERATE_AUXILIARY",
+       "target": "H2_BDV",
+       "value": 0.0
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 20,
+   "agent_fallbacks": 5,
+   "agent_alarm_acks": 6,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_P_HH",
+    "DR_L_HH",
+    "P202_TRIP",
+    "P203_TRIP"
+   ],
+   "footprint_overlap": [
+    [],
+    [],
+    []
+   ],
+   "interaction": "reactor vent, drum level and reboiler level: three different loops"
+  },
+  {
+   "id": "T02",
+   "group": "triple_2plus1",
+   "faults": "condenser_cooling_loss + reactor_pressure_sensor_low_bias + reflux_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    38.3,
+    38.3,
+    38.3
+   ],
+   "probe_trip_min": 28.3,
+   "probe_sifs": [],
+   "passive_trip_min": 28.3,
+   "passive_sifs": [],
+   "passive_status": "MODEL_LIMIT",
+   "agents_trip_min": null,
+   "agents_sifs": [],
+   "agents_status": "RUNNING",
+   "nominal_profit": 1445.0,
+   "passive_profit": -19997.0,
+   "agents_profit": 482.0,
+   "saving": 20479.0,
+   "agents_loss_vs_nominal": 962.0,
+   "passive_off_spec_min": 0.0,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 11.500000000000016,
+   "agent_actions": [
+    [
+     11.500000000000016,
+     "mitigation",
+     [
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 50.0
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 345.0
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 335.7
+      }
+     ]
+    ],
+    [
+     13.500000000000028,
+     "mitigation",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "REFLUX"
+      }
+     ]
+    ],
+    [
+     57.50000000000051,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 332.7
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 348.0
+      },
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 60.0
+      }
+     ]
+    ],
+    [
+     72.50000000000087,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 351.0
+      }
+     ]
+    ],
+    [
+     82.5000000000011,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 354.0
+      },
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 72.0
+      }
+     ]
+    ],
+    [
+     92.50000000000132,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 331.7216
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 354.4223
+      },
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 86.4
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 76,
+   "agent_fallbacks": 6,
+   "agent_alarm_acks": 4,
+   "alarms_listed_at_end_agents": [],
+   "alarms_listed_at_end_passive": [
+    "COL_P_H",
+    "COL_P_HH",
+    "BTM_X_H",
+    "P201_TRIP"
+   ],
+   "footprint_overlap": [
+    [],
+    [
+     "bottoms_x_acetone",
+     "distillate_x_acetone",
+     "drum_holdup_kmol",
+     "reboiler_holdup_kmol",
+     "top_temperature_K"
+    ],
+    []
+   ],
+   "interaction": "condenser loss + reflux trip interact at the column top; the reactor pressure sensor bias is isolated"
+  },
+  {
+   "id": "T03",
+   "group": "triple_all",
+   "faults": "condenser_cooling_loss + reflux_pump_trip + reflux_drum_leak",
+   "window_min": 120.0,
+   "lift_min": [
+    37.2,
+    37.2,
+    37.2
+   ],
+   "probe_trip_min": 27.2,
+   "probe_sifs": [],
+   "passive_trip_min": 27.2,
+   "passive_sifs": [],
+   "passive_status": "MODEL_LIMIT",
+   "agents_trip_min": 21.9,
+   "agents_sifs": [
+    "DR_L_LL"
+   ],
+   "agents_status": "SAFE_TRIP",
+   "nominal_profit": 1445.0,
+   "passive_profit": -20465.0,
+   "agents_profit": -19684.0,
+   "saving": 781.0,
+   "agents_loss_vs_nominal": 21129.0,
+   "passive_off_spec_min": 2.5,
+   "agents_off_spec_min": 0.0,
+   "agent_detection_min": 11.500000000000016,
+   "agent_actions": [
+    [
+     11.500000000000016,
+     "mitigation",
+     [
+      {
+       "type": "SET_THROUGHPUT",
+       "value": 50.0
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "BOT_TIC",
+       "value": 345.0
+      },
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 335.7
+      }
+     ]
+    ],
+    [
+     12.500000000000021,
+     "mitigation",
+     [
+      {
+       "type": "START_SPARE",
+       "target": "REFLUX"
+      }
+     ]
+    ],
+    [
+     18.999999999999996,
+     "mitigation",
+     [
+      {
+       "type": "SET_SETPOINT",
+       "target": "TOP_TIC",
+       "value": 340.0
+      }
+     ]
+    ]
+   ],
+   "agent_reprompts": 12,
+   "agent_fallbacks": 3,
+   "agent_alarm_acks": 3,
+   "alarms_listed_at_end_agents": [
+    "RB_L_HH",
+    "DR_L_LL",
+    "BTM_X_H"
+   ],
+   "alarms_listed_at_end_passive": [
+    "COL_P_H",
+    "COL_P_HH",
+    "DIST_X_L",
+    "BTM_X_H",
+    "P201_TRIP"
+   ],
+   "footprint_overlap": [
+    [
+     "bottoms_x_acetone",
+     "distillate_x_acetone",
+     "drum_holdup_kmol",
+     "reboiler_holdup_kmol",
+     "top_temperature_K"
+    ],
+    [
+     "drum_holdup_kmol"
+    ],
+    [
+     "drum_holdup_kmol"
+    ]
+   ],
+   "interaction": "condenser, reflux and drum leak all act on the column-top pressure / drum inventory"
+  }
+ ],
+ "totals": {
+  "scenarios": 20,
+  "passive_sif_trips": 13,
+  "passive_dry_outs": 5,
+  "agents_sif_trips": 1,
+  "agents_dry_outs": 0,
+  "probe_trips": 18,
+  "passive_trips": 18,
+  "agents_trips": 1,
+  "nominal_profit": 33485.0,
+  "passive_profit": -366423.0,
+  "agents_profit": -12413.0,
+  "saving": 354010.0
+ },
+ "by_group": {
+  "single": {
+   "n": 10,
+   "passive_trips": 8,
+   "agents_trips": 0,
+   "passive": -159173.0,
+   "agents": 10139.0
+  },
+  "pair_indep": {
+   "n": 4,
+   "passive_trips": 4,
+   "agents_trips": 0,
+   "passive": -82562.0,
+   "agents": -2444.0
+  },
+  "pair_coupled": {
+   "n": 3,
+   "passive_trips": 3,
+   "agents_trips": 0,
+   "passive": -63183.0,
+   "agents": -2351.0
+  },
+  "triple_none": {
+   "n": 1,
+   "passive_trips": 1,
+   "agents_trips": 0,
+   "passive": -21043.0,
+   "agents": 1445.0
+  },
+  "triple_2plus1": {
+   "n": 1,
+   "passive_trips": 1,
+   "agents_trips": 0,
+   "passive": -19997.0,
+   "agents": 482.0
+  },
+  "triple_all": {
+   "n": 1,
+   "passive_trips": 1,
+   "agents_trips": 1,
+   "passive": -20465.0,
+   "agents": -19684.0
+  }
+ }
+}

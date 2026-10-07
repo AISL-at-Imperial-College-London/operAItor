@@ -74,7 +74,12 @@ def diagnose(score: PCAScore | None, rules: Mapping, n_contrib: int = 6) -> dict
     """Rank fault hypotheses from rule evidence and PCA contributions."""
     hypotheses: dict[str, dict] = {}
 
+    failed = {t.lower() for t in rules["failed_trains"]}
+
     def add(name: str, weight: float, evidence: str):
+        # Pump status is directly observable: never hypothesise a trip of a pump that is running.
+        if name.endswith("_pump_trip") and name.removesuffix("_pump_trip") not in failed:
+            return
         h = hypotheses.setdefault(name, {"fault": name, "score": 0.0, "evidence": []})
         h["score"] += weight
         h["evidence"].append(evidence)

@@ -54,7 +54,7 @@ export function Alarms({ compact = false }: { compact?: boolean }) {
                 {snap.alarm_history.map((e, i) => (
                   <tr key={i}>
                     <td className="num">{e.time_min.toFixed(1)}</td>
-                    <td>{e.priority}</td><td>{e.id}</td><td>{e.transition}</td>
+                    <td>{e.priority}</td><td>{e.id}</td><td>{e.transition}{e.by ? ` · ${e.by}` : ""}</td>
                     <td className="num">{e.value?.toFixed(3) ?? "—"}</td>
                     <td className="dim">{e.description}</td>
                   </tr>

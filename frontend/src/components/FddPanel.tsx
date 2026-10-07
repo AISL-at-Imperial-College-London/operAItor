@@ -15,6 +15,7 @@ function describePlan(e: AgentEvent) {
   if (e.stage === "twin_skipped") return <span className="dim">twin skipped: {e.reason}</span>;
   if (e.stage === "twin") return <span className={e.restored ? "" : "alm-ack"}>twin: {e.restored ? `faulty variables back within limits after ${e.time_to_restore_min?.toFixed(1)} min` : e.safe_reached ? "keeps it safe, still faulty" : "does not keep it safe"}</span>;
   if (e.stage === "verification") return <span className="dim">{e.reason}</span>;
+  if (e.stage === "alarm_ack") return <span className="dim">acknowledged {(e.alarms ?? []).join(", ")} — {e.reason}</span>;
   if (e.stage === "llm_error") return <span className="alm-unack">LLM call failed (rule fallback): {e.error}</span>;
   if (e.stage === "validation") { const bad = e.checks?.filter((c) => !c.ok) ?? []; return <span className={e.accepted ? "" : "alm-ack"}>{e.accepted ? "ACCEPT" : `REJECT: ${bad[0]?.check} — ${bad[0]?.detail}`}</span>; }
   if (e.stage === "fallback") return <span className="alm-ack">{e.reason}: {e.plan?.commands.map((c) => Object.values(c).join(" ")).join(", ")}</span>;
@@ -96,8 +97,10 @@ export function FddPanel() {
             <span>Monitoring agent</span><span className="spacer" />
             <AgentModeSwitch />
           </div>
-          <div className={`fault-banner ${last?.fault ? "bad" : "ok"}`}>
-            {last ? (last.fault ? `FAULT · ${last.diagnosis.summary}` : "Normal operation") : "Waiting for first cycle…"}
+          <div className={`fault-banner ${last?.fault ? "bad" : last?.advisory?.length ? "warn" : "ok"}`}>
+            {last ? (last.fault ? `FAULT · ${last.diagnosis.summary}`
+              : last.advisory?.length ? `Quality alarm ${last.advisory.join(", ")} · not acted on (PCA has not confirmed a fault)`
+              : "Normal operation") : "Waiting for first cycle…"}
           </div>
           <div className="detectors">
             {last && Object.entries(last.detectors).map(([n, alarm]) => (

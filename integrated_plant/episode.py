@@ -258,12 +258,13 @@ class EpisodeRunner:
             ok, msg = self.pumps.select_primary(str(train_id).upper(), self.spec.pump_faults, self.t_h)
             (accepted if ok else rejected).append(msg)
 
+        ack_by = "action-agent" if action.note.startswith("agent") else "operator"
         if action.acknowledge_all_alarms:
-            self.alarms.acknowledge_all(60.0 * self.t_h)
+            self.alarms.acknowledge_all(60.0 * self.t_h, ack_by)
             accepted.append("all alarms acknowledged")
         for alarm_id in action.acknowledge_alarm_ids:
             try:
-                self.alarms.acknowledge(alarm_id, 60.0 * self.t_h)
+                self.alarms.acknowledge(alarm_id, 60.0 * self.t_h, ack_by)
                 accepted.append(f"alarm {alarm_id} acknowledged")
             except Exception as exc:
                 rejected.append(f"alarm {alarm_id}: {exc}")

@@ -53,6 +53,7 @@ class AlarmEvent:
     value: float
     limit: float
     description: str
+    by: str = ""  # who acknowledged (operator / action-agent); empty for process transitions
 
 
 class AlarmManager:
@@ -84,7 +85,7 @@ class AlarmManager:
             return value <= (clear_limit if prior_active else d.limit)
         raise ValueError(f"Unsupported alarm direction '{d.direction}'")
 
-    def _event(self, time_min: float, s: AlarmStatus, transition: str) -> None:
+    def _event(self, time_min: float, s: AlarmStatus, transition: str, by: str = "") -> None:
         self.history.append(AlarmEvent(
             time_min=float(time_min),
             alarm_id=s.definition.alarm_id,
@@ -94,6 +95,7 @@ class AlarmManager:
             value=float(s.value),
             limit=float(s.definition.limit),
             description=s.definition.description,
+            by=by,
         ))
 
     def update(self, time_min: float, measurements: dict[str, float]) -> None:
@@ -126,24 +128,24 @@ class AlarmManager:
                     self._event(time_min, s, "CLEARED")
                     s.first_active_min = None
 
-    def acknowledge(self, alarm_id: str, time_min: float) -> None:
+    def acknowledge(self, alarm_id: str, time_min: float, by: str = "operator") -> None:
         s = self.status.get(alarm_id)
         if s is None:
             raise KeyError(alarm_id)
         if s.state == AlarmState.ACTIVE_UNACK:
             s.state = AlarmState.ACTIVE_ACK
             s.last_change_min = float(time_min)
-            self._event(time_min, s, "ACKNOWLEDGED")
+            self._event(time_min, s, "ACKNOWLEDGED", by)
         elif s.state == AlarmState.RTN_UNACK:
             s.state = AlarmState.NORMAL
             s.last_change_min = float(time_min)
-            self._event(time_min, s, "ACKNOWLEDGED_AND_CLEARED")
+            self._event(time_min, s, "ACKNOWLEDGED_AND_CLEARED", by)
             s.first_active_min = None
 
-    def acknowledge_all(self, time_min: float) -> None:
+    def acknowledge_all(self, time_min: float, by: str = "operator") -> None:
         for alarm_id in list(self.status):
             if self.status[alarm_id].unacknowledged:
-                self.acknowledge(alarm_id, time_min)
+                self.acknowledge(alarm_id, time_min, by)
 
     def active(self) -> list[AlarmStatus]:
         return sorted(

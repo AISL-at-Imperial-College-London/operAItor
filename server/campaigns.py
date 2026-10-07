@@ -47,7 +47,7 @@ FAULT_LIBRARY: dict[str, dict] = {
     "reboiler_liquid_leak":        {"kind": "process", "fault": "reboiler_liquid_leak", "severity": 30,
                                     "vary": {"severity": (20, 45)}},
     # Normal disturbance (not a fault): the agents should NOT act on this.
-    "cooling_water_warm":          {"kind": "disturbance", "target": "cooling_water_temperature_K", "multiplier": 1.1},
+    "cooling_water_warm":          {"kind": "disturbance", "target": "cooling_water_temperature_K", "direction": 1},  # +3 K
 }
 
 CAMPAIGNS: dict[str, dict] = {

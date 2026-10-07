@@ -32,6 +32,7 @@ from integrated_plant import (
     PUMP_IDS, PUMP_TRAINS, PumpFault, RuntimeInputEvent, SensorFault, SupervisoryAction,
     curated_episode, nominal_episode, normal_variability_episode, surprise_episode,
 )
+from integrated_plant.scenario import disturbance_step
 
 SCENARIOS = ["nominal", "variability", "surprise", *CURATED_EPISODES]
 DISTURBANCES = {
@@ -87,7 +88,10 @@ class PlantService:
         # Hold the plant while the agents are mid-decision (KG → plan → act → twin → reprompt),
         # so their action lands on the state they analysed. Released by the supervisor or a timeout.
         self.hold_for_agents = True
-        self.hold_timeout_s = 180.0
+        # LLM calls + several 30-min twin rollouts can take minutes; release the plant only
+        # after this long (and say so), so a stuck decision never freezes it forever.
+        self.hold_timeout_s = 600.0
+        self._hold_timeout_reported = False
         self._agent_hold_since: float | None = None
         self.config = {"scenario": "nominal", "horizon_min": 360.0, "seed": 20261004, "stop_on_trip": False}
         self.trend: deque = deque(maxlen=history_len)
@@ -240,6 +244,10 @@ class PlantService:
             if self.held:
                 await asyncio.sleep(0.1)
                 continue
+            if self._agent_hold_since is not None and self.hold_for_agents and not self._hold_timeout_reported:
+                self._hold_timeout_reported = True
+                await self.notify(f"Agents still deciding after {self.hold_timeout_s:.0f} s: plant released; "
+                                  "it runs on while the decision finishes", "warn")
             t0 = loop.time()
             await self._tick()
             self._iterations += 1
@@ -257,6 +265,7 @@ class PlantService:
     async def set_agent_hold(self, on: bool) -> None:
         was = self.held
         self._agent_hold_since = time.monotonic() if on else None
+        self._hold_timeout_reported = False
         if self.held != was:
             await self.broadcast({"type": "status", **self.status()})
 
@@ -354,13 +363,17 @@ class PlantService:
             end = None if float(m.get("duration_min", 0)) <= 0 else t + float(m["duration_min"]) / 60.0
             kind, stamp = m["kind"], f"{60 * t:.1f}min"
             if kind == "disturbance":
-                target, mult = m["target"], float(m.get("multiplier", 1.1))
+                target = m["target"]
                 if target not in DISTURBANCES:
                     raise ValueError(target)
+                if "multiplier" in m:  # explicit custom scaling (legacy)
+                    mode, value, label = "multiply", float(m["multiplier"]), f"×{float(m['multiplier']):g}"
+                else:  # standard normal-disturbance step (+3 K cooling water, +10 % steam pressure, ...)
+                    mode, value, label = disturbance_step(target, 1.0 if float(m.get("direction", 1)) >= 0 else -1.0)
                 env.runtime_inputs.add(RuntimeInputEvent(
-                    f"manual_{target}_x{mult:g}_{stamp}", "disturbance", target, t,
-                    end if end is not None else t + 0.25, "multiply", mult))
-                text = f"{DISTURBANCES[target]} ×{mult:g}"
+                    f"manual_{target}_{label}_{stamp}", "disturbance", target, t,
+                    end if end is not None else t + 0.25, mode, value))
+                text = f"{DISTURBANCES[target]} {label}"
             elif kind == "actuator":
                 # The console sends severity_pct; campaigns may give absolute values instead.
                 target, mode, frac = m["target"], m.get("mode", "freeze"), float(m.get("severity_pct", 50)) / 100
@@ -612,7 +625,7 @@ class PlantService:
                            "limit": d.limit, "unit": d.unit, "priority": d.priority,
                            "description": d.description})
         history = [{"time_min": e.time_min, "id": e.alarm_id, "transition": e.transition,
-                    "priority": e.priority, "value": e.value, "description": e.description}
+                    "priority": e.priority, "value": e.value, "description": e.description, "by": e.by}
                    for e in env.alarms.history[-60:][::-1]]
         return {
             **self.status(),
@@ -639,7 +652,10 @@ class PlantService:
                 "pump_trains": {k: {"primary": v.primary_id, "spare": v.spare_id, "description": v.description}
                                 for k, v in PUMP_TRAINS.items()},
                 "pump_ids": list(PUMP_IDS),
-                "injections": {"disturbances": DISTURBANCES, "actuator_targets": ACTUATOR_TARGETS,
+                "injections": {"disturbances": DISTURBANCES,
+                               "disturbance_steps": {k: disturbance_step(k, 1.0)[2].lstrip("+")
+                                                     for k in DISTURBANCES},
+                               "actuator_targets": ACTUATOR_TARGETS,
                                "actuator_modes": ["freeze", "capacity", "fixed", "stiction"],
                                "sensor_targets": SENSOR_TARGETS, "process_faults": PROCESS_FAULTS}}
 

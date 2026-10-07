@@ -49,11 +49,17 @@ class V05Tests(unittest.TestCase):
         r = self.plant.scaled_residual(0.0, self.y0, np.zeros_like(self.y0), self.nominal)
         self.assertLess(np.linalg.norm(r), 1e-9)
 
-    def test_random_disturbances_are_15_min_and_10_percent(self):
+    def test_random_disturbances_are_15_min_physical_steps(self):
+        from integrated_plant.scenario import DISTURBANCE_STEPS
         s = randomized_step_disturbance_scenario(duration_min=180, seed=20261004)
         self.assertGreaterEqual(len(s.events), 1)
         for e in s.events:
             self.assertAlmostEqual((e.end_h - e.start_h) * 60.0, 15.0, places=10)
+            self.assertAlmostEqual(abs(e.magnitude), DISTURBANCE_STEPS[e.target][1], places=10)
+
+    def test_legacy_ten_percent_disturbances_still_available(self):
+        s = randomized_step_disturbance_scenario(duration_min=180, seed=20261004, magnitude_fraction=0.10)
+        for e in s.events:
             self.assertAlmostEqual(abs(e.magnitude), 0.10, places=10)
 
     def test_passive_actor_no_action(self):

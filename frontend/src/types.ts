@@ -43,6 +43,7 @@ export interface AlarmEvent {
   priority: number;
   value: Num;
   description: string;
+  by?: string;
 }
 
 export type TrendPoint = Record<string, Num> & { t: number };
@@ -89,6 +90,7 @@ export interface Meta {
   pump_ids: string[];
   injections: {
     disturbances: Record<string, string>;
+    disturbance_steps?: Record<string, string>;
     actuator_targets: string[];
     actuator_modes: string[];
     sensor_targets: string[];
@@ -109,6 +111,8 @@ export interface MonitorEvent {
   };
   pca_persistent: boolean;
   consecutive_pca: number;
+  advisory?: string[];
+  verifying_until?: number | null;
   rules: { failed_trains: string[]; active_alarms: string[]; saturated_loops: string[]; sif_latched: string[]; plant_trip: boolean };
   detectors: Record<string, boolean>;
   diagnosis: {
@@ -136,7 +140,9 @@ export interface Brief {
 export interface AgentEvent {
   type: "agent";
   stage: "node" | "kg" | "plan" | "proposal" | "invalid" | "twin" | "twin_skipped" | "validation" | "llm_error" | "verification"
-    | "reprompt" | "fallback" | "rejected" | "applied" | "pending" | "advisory" | "approved" | "dismissed";
+    | "reprompt" | "fallback" | "rejected" | "applied" | "pending" | "advisory" | "approved" | "dismissed"
+    | "alarm_ack";
+  alarms?: string[];
   safe_reached?: boolean;
   restored?: boolean;
   time_to_restore_min?: number | null;
