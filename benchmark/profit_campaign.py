@@ -262,6 +262,11 @@ async def run_scenario(scn: dict, mode: str, sched: dict, window: float, verbose
                        "confidence": e.get("confidence"), "reason": e.get("reason"),
                        "commands": (e.get("plan") or {}).get("commands")} for e in log if e.get("stage") == "judge"],
             "proposals": sum(1 for e in log if e.get("stage") == "proposal"),
+            "diagnoses": [{"t": round(e["time_min"], 2), "cycle": e.get("cycle"), "ok": e.get("ok"),
+                           "most_likely": e.get("most_likely"), "fault_class": e.get("fault_class"),
+                           "hypotheses": [(h["fault"], h["probability"]) for h in e.get("hypotheses") or []],
+                           "summary": e.get("summary"), "latency_s": e.get("latency_s"), "tokens": e.get("tokens")}
+                          for e in log if e.get("stage") == "llm_diagnosis"],
             "timing": _timing(log),
             "first_detection_min": mon[0]["time_min"] if mon else None,
             "fault_cycles": len(mon),
@@ -302,9 +307,10 @@ def sr_trip(env) -> bool:
 def _timing(log: list[dict]) -> dict:
     """Wall-clock overheads of the agents (the plant is held while they decide, so these add to
     the run time but not to the simulated time): each LLM call, each twin rollout, each decision."""
-    calls = [{"t": round(e["time_min"], 2), "cycle": e.get("cycle"), "agent": "judge" if e["stage"] == "judge" else "action",
+    agent_of = {"judge": "judge", "proposal": "action", "llm_diagnosis": "diagnosis"}
+    calls = [{"t": round(e["time_min"], 2), "cycle": e.get("cycle"), "agent": agent_of[e["stage"]],
               "latency_s": round(e["latency_s"], 3), "tokens": e.get("tokens")}
-             for e in log if e.get("stage") in ("proposal", "judge") and e.get("latency_s") is not None]
+             for e in log if e.get("stage") in agent_of and e.get("latency_s") is not None]
     twins = [{"t": round(e["time_min"], 2), "cycle": e.get("cycle"), "wall_s": e["wall_s"],
               "counterfactual": bool(e.get("counterfactual"))}
              for e in log if e.get("stage") == "twin" and e.get("wall_s") is not None]

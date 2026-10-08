@@ -265,3 +265,45 @@ Five minutes after confirmation: 15 / 16 / 17 correct (top-1).
 - **Pipeline:** `AgentConfig.diagnoser="llm"`, the server's default when the LLM is on.
 - **Console:** the Fault-detection tab shows the latest LLM diagnosis, and **Ask the LLM now**
   (`diagnose_now`) runs one on demand.
+
+## Fresh campaign on the retuned plant (8 Oct)
+**Setup:**
+- retuned controllers, PCA retrained on the retuned plant;
+- **LLM diagnosis agent on** (`PLANT_DIAGNOSER=llm`);
+- gpt-5-nano, original action prompt (`base` context);
+- new probe runs, so the fault-lift times are recomputed for the retuned plant;
+- previous results archived in `runs_old_tuning/`.
+
+**Probe runs.** 18/20 scenarios still trip if nobody acts. Several trip later than before, because
+the retuned loops buy time:
+
+| Scenario | Trip time now | Before retune |
+|---|---|---|
+| S09 drum leak | 46.2 min | 38.6 min |
+| D04 | 46.7 min | 40.6 min |
+| S04 feed-pump trip | 81 min | 72 min |
+| S06 | 178 min | 163 min |
+
+| Configuration | Plant stops | Profit | Saving vs no agents | LLM calls | LLM cost | Mean time per decision | Old tuning (stops / saving) |
+|---|---:|---:|---:|---:|---:|---:|---|
+| No agents | 18 | −$366,610 | — | — | — | — | 18 |
+| LLM, feeling lucky | 7 | −$155,076 | $211,534 | 734 | $0.53 | 44 s | 12 / $122,207 |
+| LLM + LLM judge | 8 | −$159,462 | $207,148 | 1,448 | $1.09 | 48 s | 9 / $192,841 |
+| LLM + digital twin | **4** | −$82,042 | **$284,568** | 1,290 | $0.99 | 275 s | 7 / $230,809 |
+
+Nominal reference over the same windows: $34,202. Total LLM cost: $2.62.
+
+**Findings:**
+- **LLM + twin is now clearly best.** Its only stops are the three condenser-cooling-loss cases
+  (S08, C01, T02) and the unrecoverable T03. It saved both drum-leak cases (S09, C03) that every LLM
+  configuration lost on the old tuning.
+- **Every LLM configuration improved** on the old tuning (lucky 12 → 7 stops). The cause is the
+  retune, which gives more time before a trip, plus the LLM diagnosis agent. This run does not
+  separate the two effects.
+- **The condenser-loss cases still fail in every configuration.** These are the reflux / boil-up
+  reasoning cases from the ablation.
+- **LLM diagnosis.** The first diagnosis in each run names a true fault in 46 of 60 runs. Later in a
+  run the label can drift after the agents act: in S01 the post-action transient was relabelled as
+  condenser loss.
+- **Decisions are slower** than in the old campaign, because of the extra diagnosis call per
+  decision and many runs sharing the CPU. Mean LLM latency was 8–9 s per call.
