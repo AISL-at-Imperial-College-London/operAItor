@@ -1,0 +1,13 @@
+# Render.com blueprint (free web service; alternative to the Hugging Face Space).
+# New -> Blueprint -> pick this repository. Free instances sleep after 15 min without traffic.
+services:
+  - type: web
+    name: acetone-plant
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: PLANT_HOSTED
+        value: "1"
+      - key: PLANT_MAX_SESSIONS
+        value: "2"

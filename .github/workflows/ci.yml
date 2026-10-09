@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  push:
+    branches: [main, ship]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -e ".[dev,admit]"
+      - run: acetone-plant doctor || true
+      - run: pytest -q
+
+  console:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [tests, console]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t acetone-plant .
+      - name: smoke test
+        run: |
+          docker run -d --name plant -p 7860:7860 acetone-plant
+          for i in $(seq 1 60); do curl -fs http://127.0.0.1:7860/api/health && break; sleep 2; done
+          curl -fs http://127.0.0.1:7860/ | grep -q "<div id=\"root\">"
+          docker logs plant

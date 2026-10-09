@@ -1,0 +1,36 @@
+name: deploy to Hugging Face Space
+
+# Pushes this repository to a Hugging Face Docker Space, which builds the Dockerfile and serves
+# the console at https://<owner>-<space>.hf.space. One-time setup (docs/deployment.md):
+#   1. Create a Space (SDK: Docker, hardware: CPU basic, free) at https://huggingface.co/new-space
+#   2. Repository secret  HF_TOKEN  = a Hugging Face access token with write access
+#   3. Repository variable HF_SPACE = <owner>/<space>, e.g. jvyas/acetone-plant
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    if: ${{ vars.HF_SPACE != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push a snapshot to the Space
+        # Only what the image needs (no history, no benchmark results); the Hub API stores binaries correctly.
+        # A Space reads its settings from the front matter of README.md.
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          mkdir /tmp/space
+          cp -r Dockerfile .dockerignore pyproject.toml acetone_plant frontend /tmp/space/
+          cp deploy/huggingface/README.md /tmp/space/README.md
+          pip install -q "huggingface_hub>=0.26"
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          HfApi(token=os.environ["HF_TOKEN"]).upload_folder(
+              folder_path="/tmp/space", repo_id=os.environ["HF_SPACE"], repo_type="space",
+              commit_message=f"Deploy {os.environ['GITHUB_SHA'][:7]}", delete_patterns="*")
+          PY

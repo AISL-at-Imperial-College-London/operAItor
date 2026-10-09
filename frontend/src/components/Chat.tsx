@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ask, usePlant } from "../store";
+import { LlmKeyCard } from "./LlmKey";
 
 const SUGGESTIONS = [
   "status",
@@ -41,6 +42,7 @@ export function ChatPanel() {
 
   return (
     <div className="panel-body chat">
+      <LlmKeyCard />
       <p className="hint">
         Ask what things are (knowledge graph) and how the plant is moving (live data).{" "}
         <span className={`pill ${mode === "llm" ? "pill-ok" : ""}`} title={mode === "llm" ? "LLM with tools" : "deterministic intent router; set OPENAI_API_KEY (and install langchain-openai) for LLM chat"}>

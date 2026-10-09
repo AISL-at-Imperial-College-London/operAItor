@@ -23,6 +23,7 @@ from datetime import datetime
 from enum import Enum
 import json
 import math
+import os
 from pathlib import Path
 import time
 from typing import Any, Awaitable, Callable
@@ -71,7 +72,7 @@ def jsonable(obj: Any) -> Any:
 
 
 # Bump when the WebSocket messages change; the console warns if the backend is older.
-API_VERSION = 6
+API_VERSION = 7
 
 
 class PlantService:
@@ -98,7 +99,9 @@ class PlantService:
         self.history: deque = deque(maxlen=history_len)   # measurements + loop OP/SP (chat agent trends)
         self.monitor: deque = deque(maxlen=history_len)
         self.campaign: dict | None = None
-        self.campaign_dir = Path(__file__).resolve().parent.parent / "campaign_results"
+        # Campaign reports are written here (None: not written, e.g. on the hosted app).
+        _dir = os.environ.get("PLANT_CAMPAIGN_DIR", "campaign_results")
+        self.campaign_dir: Path | None = Path(_dir) if _dir else None
         self.agent_log: deque = deque(maxlen=600)
         self.messages: deque = deque(maxlen=50)
         self._subscribers: set[asyncio.Queue] = set()
@@ -526,15 +529,18 @@ class PlantService:
             return {"ok": False, "summary": "no campaign running"}
         c["state"] = reason
         report = self.campaign_report()
-        self.campaign_dir.mkdir(exist_ok=True)
-        path = self.campaign_dir / f"{c['name']}_{datetime.now():%Y%m%d_%H%M%S}.json"
-        path.write_text(json.dumps(jsonable({"campaign": c, "report": report, "agent_log": list(self.agent_log),
-                                             "messages": list(self.messages)}), indent=1), encoding="utf-8")
-        c["report_path"] = str(path)
+        saved = ""
+        if self.campaign_dir is not None:
+            self.campaign_dir.mkdir(parents=True, exist_ok=True)
+            path = self.campaign_dir / f"{c['name']}_{datetime.now():%Y%m%d_%H%M%S}.json"
+            path.write_text(json.dumps(jsonable({"campaign": c, "report": report, "agent_log": list(self.agent_log),
+                                                 "messages": list(self.messages)}), indent=1), encoding="utf-8")
+            c["report_path"] = str(path)
+            saved = f"; report saved to {path.name}"
         if reason == "complete":
             self.set_running(False)
         await self.broadcast({"type": "campaign", **self.campaign_status()})
-        await self.notify(f"[campaign] {c['name']} {reason}; report saved to {path.name}", "warn")
+        await self.notify(f"[campaign] {c['name']} {reason}{saved}", "warn")
         return {"ok": True, "summary": f"campaign {reason}", "report": report}
 
     def campaign_report(self) -> list[dict]:

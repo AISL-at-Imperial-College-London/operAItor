@@ -235,4 +235,12 @@ export interface Hello {
   agent?: AgentInfo;
   campaign?: Campaign | null;
   chat?: { mode: string; model?: string | null };
+  session?: SessionInfo;
+}
+
+export interface SessionInfo {
+  id: string;
+  hosted: boolean;
+  models: string[];
+  llm: { model: string; key_source: "visitor" | "server" | null; active: boolean; reason: string };
 }

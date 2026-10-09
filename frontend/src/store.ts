@@ -1,12 +1,20 @@
 import { useSyncExternalStore } from "react";
-import type { AgentEvent, AgentInfo, Brief, Campaign, ChatMessage, Hello, LlmUsage, Message, Meta, MonitorEvent, Num, Snapshot, TrendPoint } from "./types";
+import type { AgentEvent, AgentInfo, Brief, Campaign, ChatMessage, Hello, LlmUsage, Message, Meta, MonitorEvent, Num, SessionInfo, Snapshot, TrendPoint } from "./types";
 
 const MAX_POINTS = 1440;
 
 export type Columns = Record<string, Num[]>;
 
 // Must match API_VERSION in server/plant_service.py.
-export const API_VERSION = 6;
+export const API_VERSION = 7;
+
+const SESSION_KEY = "plant-session";
+function storedSession(): string {
+  try { return sessionStorage.getItem(SESSION_KEY) ?? ""; } catch { return ""; }
+}
+function storeSession(id: string) {
+  try { if (id) sessionStorage.setItem(SESSION_KEY, id); else sessionStorage.removeItem(SESSION_KEY); } catch { /* unavailable */ }
+}
 
 export interface PlantState {
   connected: boolean;
@@ -29,6 +37,9 @@ export interface PlantState {
   chatModel: string | null;
   llmUsage: LlmUsage | null;
   pipeline: Pipeline;
+  session: SessionInfo | null;
+  notice: { kind: "busy" | "expired"; text: string } | null;
+  keyBusy: boolean;
 }
 
 export type NodeStatus = "idle" | "running" | "ok" | "warn" | "fail" | "skip";
@@ -103,8 +114,11 @@ class PlantStore {
     connected: false, backendVersion: null, meta: null, snap: null, trend: {}, trendVersion: 0,
     monitor: emptyMonitor(), lastMonitor: null, agentLog: [], agent: null, pending: {},
     messages: [], toast: null, brief: null, campaign: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
-    pipeline: idlePipeline(),
+    pipeline: idlePipeline(), session: null, notice: null, keyBusy: false,
   };
+  // The visitor's OpenAI key lives only in this page's memory (never in browser storage), so a
+  // new session (after a server restart or session expiry) can be re-keyed without retyping.
+  private apiKey: { key: string; model: string } | null = null;
   private chatId = 0;
   private listeners = new Set<() => void>();
   private ws: WebSocket | null = null;
@@ -122,12 +136,14 @@ class PlantStore {
 
   connect() {
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(`${proto}://${location.host}/ws`);
+    const sid = storedSession();
+    const ws = new WebSocket(`${proto}://${location.host}/ws${sid ? `?session=${encodeURIComponent(sid)}` : ""}`);
     this.ws = ws;
     ws.onopen = () => { this.retry = 500; this.set({ connected: true }); };
     ws.onclose = () => {
       this.set({ connected: false });
-      setTimeout(() => this.connect(), this.retry);
+      const wait = this.state.notice?.kind === "busy" ? 30000 : this.retry;
+      setTimeout(() => this.connect(), wait);
       this.retry = Math.min(this.retry * 2, 8000);
     };
     ws.onmessage = (e) => this.handle(JSON.parse(e.data));
@@ -154,13 +170,38 @@ class PlantStore {
       agent: h.agent ?? this.state.agent, pending, messages: h.messages, brief, pipeline,
       campaign: h.campaign ?? null, chatMode: h.chat?.mode ?? this.state.chatMode,
       chatModel: h.chat?.model ?? null, llmUsage: h.agent?.llm_usage ?? this.state.llmUsage,
+      session: h.session ?? null, notice: null,
     });
+    if (h.session) {
+      const fresh = h.session.id !== storedSession();
+      storeSession(h.session.id);
+      // A new session on a server that needs visitor keys: re-send the key this page already has.
+      if (fresh && this.apiKey && h.session.llm.key_source !== "visitor") this.useKey(this.apiKey.key, this.apiKey.model);
+    }
+  }
+
+  useKey(key: string, model: string) {
+    this.apiKey = { key, model };
+    this.set({ keyBusy: true });
+    this.send({ type: "set_api_key", key, model });
+  }
+
+  forgetKey() {
+    this.apiKey = null;
+    this.send({ type: "clear_api_key" });
   }
 
   private handle(msg: any) {
     switch (msg.type) {
       case "hello":
         this.applyHello(msg);
+        break;
+      case "busy":
+        this.set({ notice: { kind: "busy", text: msg.text } });
+        break;
+      case "expired":
+        storeSession("");
+        this.set({ notice: { kind: "expired", text: msg.text } });
         break;
       case "reset":
         this.applyHello(msg.hello);
@@ -206,7 +247,11 @@ class PlantStore {
         this.set({ messages: [...this.state.messages, msg].slice(-50) });
         break;
       case "ack":
-        if (!msg.ok || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop"].includes(msg.request))
+        if (msg.request === "set_api_key") {
+          if (!msg.ok) this.apiKey = null;
+          this.set({ keyBusy: false });
+        }
+        if (!msg.ok || msg.request === "set_api_key" || msg.request === "clear_api_key" || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop"].includes(msg.request))
           this.set({ toast: { ok: msg.ok, text: msg.summary, at: Date.now() } });
         break;
     }
@@ -227,3 +272,5 @@ export function usePlant<T>(select: (s: PlantState) => T): T {
 
 export const send = (msg: Record<string, unknown>) => store.send(msg);
 export const ask = (text: string) => store.ask(text);
+export const useKey = (key: string, model: string) => store.useKey(key, model);
+export const forgetKey = () => store.forgetKey();

@@ -4,6 +4,7 @@ import { ChatPanel } from "./components/Chat";
 import { MasterPanel, OperatorPanel } from "./components/ControlPanels";
 import { Faceplates } from "./components/Faceplates";
 import { FddPanel } from "./components/FddPanel";
+import { SessionNotice } from "./components/LlmKey";
 import { Overview } from "./components/Overview";
 import { TopBar } from "./components/TopBar";
 import { Trends } from "./components/Trends";
@@ -61,6 +62,7 @@ export default function App() {
   const snap = usePlant((s) => s.snap);
   const connected = usePlant((s) => s.connected);
   const backendVersion = usePlant((s) => s.backendVersion);
+  const notice = usePlant((s) => s.notice);
 
   useEffect(() => save("tab", tab), [tab]);
   useEffect(() => save("side", side), [side]);
@@ -71,11 +73,12 @@ export default function App() {
       {connected && backendVersion !== null && backendVersion < API_VERSION && (
         <div className="offline outdated">
           The plant server is running older code than this console (API v{backendVersion}, console needs v{API_VERSION}).
-          Stop it with Ctrl+C and start it again: <code>py -3 run_server.py</code>. Until then the agent pipeline will not update.
+          Restart it (<code>acetone-plant serve</code>) and reload this page.
         </div>
       )}
-      {!connected && (
-        <div className="offline">Connecting to the plant server… start it with <code>python run_server.py</code></div>
+      <SessionNotice />
+      {!connected && !notice && (
+        <div className="offline">Connecting to the plant server…</div>
       )}
       <div className="layout">
         <main>

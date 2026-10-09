@@ -34,10 +34,13 @@ function describePlan(e: AgentEvent) {
 
 function LlmBadge({ model }: { model: string | null }) {
   const usage = usePlant((s) => s.llmUsage);
-  if (!model) return <div className="dim small">No LLM connected: the agents monitor and diagnose only, they take no actions. Start the server with an OpenAI key (gpt-5-nano) or a local model.</div>;
+  const session = usePlant((s) => s.session);
+  if (!model) return <div className="dim small">No LLM connected: the agents monitor and diagnose only, they take no actions.{" "}
+    {session?.hosted ? "Add your OpenAI key in the Assistant panel to turn them on." : "Start the server with an OpenAI key (gpt-5-nano) or a local model, or add a key in the Assistant panel."}</div>;
   return (
     <div className="small llm-badge">
       <span className="pill pill-ok">OpenAI {model}</span>{" "}
+      {session?.llm.key_source === "visitor" && <span className="dim">(your key) </span>}
       {usage ? <span className="dim">{usage.calls} calls · {(usage.input_tokens + usage.output_tokens).toLocaleString()} tokens · ≈ ${usage.cost_usd.toFixed(4)}</span>
              : <span className="dim">no calls yet</span>}
     </div>

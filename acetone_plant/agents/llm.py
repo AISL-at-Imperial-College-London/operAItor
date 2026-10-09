@@ -5,6 +5,12 @@ use langchain-openai (key from OPENAI_API_KEY, or a ``.env`` file in the repo
 root); any other name is served by a local Ollama instance (langchain-ollama),
 the same convention as ctrl-alt-recover's cstr_case.py.
 
+Per-session credentials (hosted web app): ``use_session_llm(api_key, usage)`` sets context
+variables that ``make_llm`` / ``llm_status`` / ``USAGE`` read, so each visitor's agents use the
+key that visitor supplied and their calls are metered separately. Agents created and tasks
+started inside that context keep it (asyncio tasks and ``to_thread`` copy the context).
+``PLANT_HOSTED=1`` stops the server's own OPENAI_API_KEY from ever being used for visitors.
+
 Local models (environment variables, read at call time):
   PLANT_LLM_BASE_URL   any OpenAI-compatible server for ANY model name, e.g.
                        http://localhost:1234/v1 (LM Studio), http://localhost:8000/v1 (vLLM),
@@ -23,6 +29,7 @@ down; override with PLANT_REASONING_EFFORT).
 """
 from __future__ import annotations
 
+import contextvars
 import json
 import os
 from pathlib import Path
@@ -64,6 +71,28 @@ def load_env() -> None:
         load_dotenv(path, override=False)
 
 
+_SESSION_KEY: contextvars.ContextVar[str | None] = contextvars.ContextVar("plant_llm_key", default=None)
+_SESSION_USAGE: contextvars.ContextVar["UsageMeter | None"] = contextvars.ContextVar("plant_llm_usage", default=None)
+
+
+def hosted() -> bool:
+    """Public deployment: only visitor-supplied keys are used, never the server's own."""
+    return os.environ.get("PLANT_HOSTED", "0") == "1"
+
+
+def use_session_llm(api_key: str | None, usage: "UsageMeter | None") -> None:
+    """Bind an API key and a usage meter to the current context (one visitor session)."""
+    _SESSION_KEY.set(api_key)
+    _SESSION_USAGE.set(usage)
+
+
+def _openai_key() -> str | None:
+    key = _SESSION_KEY.get()
+    if key:
+        return key
+    return None if hosted() else os.environ.get("OPENAI_API_KEY")
+
+
 def is_openai_model(model: str) -> bool:
     return model.startswith("gpt") or bool(re.match(r"o\d", model))
 
@@ -75,7 +104,7 @@ def is_reasoning_model(model: str) -> bool:
 def llm_status(model: str = DEFAULT_MODEL) -> tuple[bool, str]:
     """Can ``model`` be used right now? Returns (ok, human-readable reason)."""
     load_env()
-    if os.environ.get("PLANT_LLM_BASE_URL"):
+    if os.environ.get("PLANT_LLM_BASE_URL") and not hosted():
         try:
             import langchain_openai  # noqa: F401
         except ImportError:
@@ -86,8 +115,9 @@ def llm_status(model: str = DEFAULT_MODEL) -> tuple[bool, str]:
             import langchain_openai  # noqa: F401
         except ImportError:
             return False, "langchain-openai is not installed (py -3 -m pip install langchain-openai)"
-        if not os.environ.get("OPENAI_API_KEY"):
-            return False, "OPENAI_API_KEY is not set (put OPENAI_API_KEY=... in .env in the repo root)"
+        if not _openai_key():
+            return False, ("no OpenAI API key for this session (add yours in the console)" if hosted()
+                           else "OPENAI_API_KEY is not set (put OPENAI_API_KEY=... in .env in the working directory)")
         return True, f"OpenAI {model}"
     try:
         import langchain_ollama  # noqa: F401
@@ -102,7 +132,7 @@ def make_llm(model: str = DEFAULT_MODEL, timeout: float = 120.0, temperature: fl
     load_env()
     retries = int(os.environ.get("PLANT_LLM_MAX_RETRIES", "2"))
     try:
-        base_url = os.environ.get("PLANT_LLM_BASE_URL")
+        base_url = None if hosted() else os.environ.get("PLANT_LLM_BASE_URL")
         if base_url:  # local OpenAI-compatible server (LM Studio, vLLM, llama.cpp, Ollama /v1)
             from langchain_openai import ChatOpenAI
             llm = ChatOpenAI(model=model, base_url=base_url, api_key=os.environ.get("PLANT_LLM_API_KEY", "local"),
@@ -111,7 +141,7 @@ def make_llm(model: str = DEFAULT_MODEL, timeout: float = 120.0, temperature: fl
             return llm.bind(response_format={"type": "json_object"}) if use_json else llm
         if is_openai_model(model):
             from langchain_openai import ChatOpenAI
-            kw: dict[str, Any] = dict(model=model, timeout=timeout, max_retries=retries, **extra)
+            kw: dict[str, Any] = dict(model=model, timeout=timeout, max_retries=retries, api_key=_openai_key(), **extra)
             if is_reasoning_model(model):
                 # GPT-5 / o-series accept only the default temperature (1). Older langchain-openai
                 # releases (e.g. 0.2.x) send 0.7 unless told otherwise, which the API rejects.
@@ -121,6 +151,8 @@ def make_llm(model: str = DEFAULT_MODEL, timeout: float = 120.0, temperature: fl
                 kw["temperature"] = temperature
             llm = ChatOpenAI(**kw)
             return llm.bind(response_format={"type": "json_object"}) if json_mode else llm
+        if hosted():
+            raise RuntimeError(f"model {model!r} is not an OpenAI model; the hosted app only supports OpenAI")
         from langchain_ollama import ChatOllama
         return ChatOllama(model=model, temperature=temperature, timeout=timeout,
                           base_url=os.environ.get("PLANT_OLLAMA_URL", "http://localhost:11434"),
@@ -158,7 +190,23 @@ class UsageMeter:
             return {"total": total, "by_agent": {k: dict(v) for k, v in self.by_agent.items()}}
 
 
-USAGE = UsageMeter()
+class _UsageProxy:
+    """``USAGE`` resolves to the current session's meter, or the process-wide one."""
+
+    def __init__(self):
+        self.default = UsageMeter()
+
+    def _meter(self) -> UsageMeter:
+        return _SESSION_USAGE.get() or self.default
+
+    def record(self, agent: str, model: str, msg: Any) -> dict:
+        return self._meter().record(agent, model, msg)
+
+    def summary(self) -> dict:
+        return self._meter().summary()
+
+
+USAGE = _UsageProxy()
 
 
 def message_text(msg: Any) -> str:

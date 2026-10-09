@@ -52,6 +52,7 @@ class AsyncSupervisor:
         self.planner = planner or make_planner(self.cfg)
         self.pending: dict[int, dict] = {}
         self._ids = itertools.count(1)
+        self._usage = USAGE._meter()  # this session's meter (resolved now, inside the session's context)
         self.ctx = RunContext(self.cfg, self.monitor, self.kg if self.cfg.use_kg else None, self.planner,
                               self.action_agent, self._snapshot_env, self._dispatch, self._emit,
                               on_decision_start=lambda: service.set_agent_hold(True),
@@ -72,6 +73,23 @@ class AsyncSupervisor:
     # ------------------------------------------------------------ loop
     def start(self) -> None:
         self._task = asyncio.create_task(self.run(), name="agent-supervisor")
+
+    async def stop(self) -> None:
+        """Stop the loop and detach from the plant service (e.g. to rebuild with a new LLM key)."""
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+            self._task = None
+        for name in ("agent_mode", "agent_approve", "agent_dismiss", "diagnose_now"):
+            self.service.command_handlers.pop(name, None)
+        if self._on_load in self.service.on_load:
+            self.service.on_load.remove(self._on_load)
+        if self._hello in self.service.hello_extras:
+            self.service.hello_extras.remove(self._hello)
+        await self.service.set_agent_hold(False)
 
     async def run(self) -> None:
         last_t = None
@@ -154,7 +172,7 @@ class AsyncSupervisor:
         body["wall"] = time.time()  # wall-clock stamp: decision / LLM / twin overheads
         await self.service.broadcast({"type": "agent", "stage": _STAGE.get(kind, kind), "time_min": event["t"], **body})
         if kind in ("plan", "proposal") and (self.cfg.proposer == "llm" or self.cfg.planner == "llm"):
-            await self.service.broadcast({"type": "llm_usage", **USAGE.summary()})
+            await self.service.broadcast({"type": "llm_usage", **self._usage.summary()})
 
     async def _snapshot_env(self):
         async with self.service.lock:
@@ -207,7 +225,7 @@ class AsyncSupervisor:
         verdict = await self._diagnoser.diagnose(det, diag.get("heuristic") or diag, self._last_obs)
         await self.service.broadcast({"type": "agent", "stage": "llm_diagnosis", "time_min": det["time_min"],
                                       "on_demand": True, "cycle": self.ctx.cycle, **verdict})
-        await self.service.broadcast({"type": "llm_usage", **USAGE.summary()})
+        await self.service.broadcast({"type": "llm_usage", **self._usage.summary()})
         return {"ok": verdict.get("ok", False),
                 "summary": verdict.get("summary") or verdict.get("error") or "diagnosis done"}
 
@@ -237,7 +255,7 @@ class AsyncSupervisor:
     def info(self) -> dict:
         uses_llm = self.cfg.proposer == "llm" or self.cfg.planner == "llm"
         return {"mode": self.mode, "preset": self.cfg.name, "planner": type(self.planner).__name__,
-                "llm_model": self.cfg.llm_model if uses_llm else None, "llm_usage": USAGE.summary()["total"],
+                "llm_model": self.cfg.llm_model if uses_llm else None, "llm_usage": self._usage.summary()["total"],
                 "actor": type(self.action_agent).__name__ if self.action_agent else None,
                 "twin": self.cfg.twin, "twin_horizon_min": self.cfg.twin_horizon_min,
                 "reprompt_max": self.cfg.reprompt_max, "kg": self.cfg.use_kg,
