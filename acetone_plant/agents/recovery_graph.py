@@ -458,6 +458,10 @@ def build_recovery_graph(ctx: RunContext):
         det, diag = out["detection"], out["diagnosis"]
         if ctx.action_agent is None or ctx.actions_taken >= cfg.max_actions:
             det = {**det, "should_act": False}
+        if det["should_act"] and ctx.on_decision_start:
+            # Hold the plant from the moment the agents engage (before the LLM diagnosis call), so the
+            # action is decided and applied on the state it was decided for.
+            await ctx.on_decision_start()
         if det["should_act"] and diagnoser is not None:
             from .diagnosis_llm import as_diagnosis
             verdict = await diagnoser.diagnose(det, diag, state["observation"])
@@ -468,9 +472,7 @@ def build_recovery_graph(ctx: RunContext):
                 "safe_candidates": [], "tried": []}
 
     async def kg_retrieval(state: RecoveryState) -> dict:
-        ctx.cycle += 1  # a new decision cycle starts here (fault confirmed, agents engaged)
-        if ctx.on_decision_start:
-            await ctx.on_decision_start()
+        ctx.cycle += 1  # a new decision cycle starts here (fault confirmed, agents engaged; plant already held)
         await node("kg_retrieval", state, diagnosis=state["diagnosis"]["summary"],
                    reprompt_max=cfg.reprompt_max, twin=cfg.twin, acceptance=cfg.acceptance)
         if ctx.kg is None or not cfg.use_kg:
