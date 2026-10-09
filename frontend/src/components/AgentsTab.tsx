@@ -54,6 +54,26 @@ function Section({ title, hint, open = false, children, aside }:
   );
 }
 
+/** Which agent configuration this session runs (validator after the action agent). */
+function ConfigSelect() {
+  const session = usePlant((s) => s.session);
+  const agent = usePlant((s) => s.agent);
+  const presets = session?.llm.presets;
+  if (!presets) return null;
+  const on = session.llm.active;
+  return (
+    <label className="inline-field" onClick={(e) => e.stopPropagation()}
+      title={on ? "Validation step after the action agent" : "Needs an LLM: add an OpenAI key in the Assistant panel"}>
+      <span className="dim small">Validation</span>
+      <select value={on ? (agent?.preset ?? session.llm.preset) : ""} disabled={!on}
+        onChange={(e) => send({ type: "set_agent_preset", preset: e.target.value })}>
+        {!on && <option value="">no LLM</option>}
+        {Object.entries(presets).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+      </select>
+    </label>
+  );
+}
+
 function ModeSwitch() {
   const agent = usePlant((s) => s.agent);
   if (!agent) return null;
@@ -87,7 +107,7 @@ function CurrentDecision() {
     <section className="card decision">
       <h3>Current decision
         <span className="dim small">{p.cycle ? ` #${p.cycle} at ${p.t?.toFixed(1)} min${p.attempts > 1 ? ` · ${p.attempts} proposals` : ""}` : ""}</span>
-        <span className="spacer" /><ModeSwitch /></h3>
+        <span className="spacer" /><ConfigSelect /><ModeSwitch /></h3>
       <div className={`banner-inline ${last?.fault ? "bad" : last?.advisory?.length ? "warn" : "ok"}`}>
         {last ? (last.fault ? `Fault confirmed by PCA · ${last.diagnosis.summary}`
           : last.advisory?.length ? `Quality alarm ${last.advisory.join(", ")} (not acted on: PCA has not confirmed a fault)`
@@ -96,7 +116,9 @@ function CurrentDecision() {
       </div>
       {!p.cycle ? (
         <p className="dim small">When PCA confirms a fault the agents diagnose it, plan, propose an action and validate it before it
-          reaches the plant. {llm ? `LLM: ${llm}` : session?.hosted ? "Add your OpenAI key in the Assistant panel to let them act." : "No LLM: the agents only monitor."}</p>
+          reaches the plant. {llm ? `LLM: ${llm}.` : session?.llm.reason
+            ? <span className="warn-text">Agents cannot act: {session.llm.reason}.</span>
+            : "Add an OpenAI key in the Assistant panel to let them act."}</p>
       ) : (
         <ol className="steps">
           <li><span>Diagnosis</span>{diag ? <><b>{diag.most_likely ?? "unclear"}</b><small>{diag.summary}</small></> : <small className="dim">{last?.diagnosis.summary ?? "—"}</small>}</li>
@@ -230,7 +252,7 @@ function Timeline() {
         <li key={i}>
           <span className="num dim">{e.time_min?.toFixed(1)}</span>
           <span className={`stage stage-${e.stage}`}>{e.stage.replace(/_/g, " ")}</span>
-          <span className="body">{describeEvent(e)}{e.latency_s != null && <span className="dim"> · {e.latency_s}s</span>}</span>
+          <span className="body">{describeEvent(e)}{e.latency_s != null && <span className="dim"> · {Number(e.latency_s).toFixed(1)} s</span>}</span>
         </li>
       ))}
     </ul>

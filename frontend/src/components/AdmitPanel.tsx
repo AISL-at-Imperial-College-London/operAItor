@@ -101,17 +101,17 @@ export function AdmitCard() {
   const ledgerIds = new Set((e?.ledger ?? []).map((x) => x.id));
   const ctx = e?.context;
   return (
-    <div className="card admit-card">
-      <div className="card-title row">
-        <span>ADMIT gate <span className="dim">— what each proposed action is checked on before it reaches the plant</span></span>
-        <span className="spacer" />
-        {events.length > 0 && (
-          <select aria-label="ADMIT decision" value={pick < 0 ? events.length - 1 : pick} onChange={(x) => setPick(+x.target.value)}>
+    <details className="section card admit-card" id="admit-card" open>
+      <summary><span className="section-name">ADMIT gate</span>
+        <span className="dim small"> what each proposed action is checked on before it reaches the plant</span></summary>
+      <div className="section-body">
+      {events.length > 0 && (
+        <label className="field narrow"><span>Check</span>
+          <select aria-label="ADMIT check" value={pick < 0 ? events.length - 1 : pick} onChange={(x) => setPick(+x.target.value)}>
             {events.map((v, i) => <option key={i} value={i}>
-              t={v.time_min.toFixed(1)} · decision {v.cycle} · try {(v.attempt ?? 0) + 1} · {v.admissible ? "admitted" : "blocked"}</option>)}
-          </select>
-        )}
-      </div>
+              {v.time_min.toFixed(1)} min · decision {v.cycle} · try {(v.attempt ?? 0) + 1} · {v.admissible ? "admitted" : "blocked"}</option>)}
+          </select></label>
+      )}
       {!e ? <div className="empty">No proposal checked yet. When a fault is confirmed and the agent proposes an action,
         its record, the rule and every gate result appear here.</div> : (
         <>
@@ -146,6 +146,7 @@ export function AdmitCard() {
           </details>
         </>
       )}
-    </div>
+      </div>
+    </details>
   );
 }

@@ -366,3 +366,17 @@ table.data { font-size: 12.5px; }
 @media (prefers-reduced-motion: reduce) {
   .alm-unack, .ov-lamp, .ov-sif i, .ov-pump, .count.bad, .kpi.unack, .node.running { animation: none !important; }
 }
+
+/* pipeline: ADMIT block and inline fields */
+.node.admit-node { cursor: pointer; border-color: #3a5fb0; background: #17223a; }
+.node.admit-node.fail { border-color: var(--bad); }
+.node.admit-node.ok { border-color: var(--ok); }
+.node .link { color: var(--accent); font-size: 10.5px; }
+.gate-lamps { display: flex; gap: 3px; margin: 2px 0; }
+.gate-lamps i { font: 600 9.5px var(--mono); font-style: normal; padding: 1px 4px; border-radius: 3px; border: 1px solid var(--border); color: var(--text-dim); }
+.gate-lamps i.pass { background: #143a26; border-color: var(--ok); color: #9be7bd; }
+.gate-lamps i.fail { background: #4a1818; border-color: var(--bad); color: #ffc2c2; }
+.gate-lamps i.skip { border-style: dashed; }
+.inline-field { display: inline-flex; gap: 6px; align-items: center; font-weight: 400; }
+.inline-field select { padding: 3px 6px; font-size: 12px; }
+.field.narrow { max-width: 420px; }
