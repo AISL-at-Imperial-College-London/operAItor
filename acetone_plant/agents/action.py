@@ -142,6 +142,41 @@ def _context_level() -> str:
     return level if level in ("base", "loops", "manual", "dynamics") else "base"
 
 
+ADMIT_ADDENDUM = """
+# ADMIT: every command needs an action record (MANDATORY)
+Your proposal is executed only if ADMIT admits it. ADMIT judges the RECORD you file with each
+command, not just the command. `admit` in the input gives you the evidence ledger (ids, channel,
+trust), your authority scope, the operating mode, the active hazard and the action grammar (each
+catalog command maps to one grammar action: `command_mapping`; its class, reversibility, required
+evidence tags, required SOP steps, confidence floor and allowed modes are in `grammar`).
+
+Add a "record" object to EVERY command:
+  {"type": "START_SPARE", "target": "REFLUX",
+   "record": {"cited_evidence": ["ev_pumps", "ev_pca"],          // ids from admit.evidence
+              "checks_performed": ["verify_pump_failed"],      // the grammar's required_steps, in order
+              "confidence": 0.85,                               // >= the action's confidence_floor
+              "reversibility": "undoable",                      // exactly the grammar's value
+              "recovery_plan": "switch back to the duty pump once repaired",  // required if costly/permanent
+              "hazard_id": "H-COLUMN-DRY",                      // admit.active_hazard if you respond to it
+              "diagnosis": "reflux pump trip: trays drain",    // one sentence
+              "rationale": "..."}}
+Five questions decide admissibility:
+1. Is it on the record? (a record for every command)
+2. Within authority? (required_authority must be inside authority_scope; mode must be allowed)
+3. Required steps followed, in order? (checks_performed; for steps with step_evidence_tags, cite
+   evidence with that tag)
+4. Does the evidence hold up? Cite TRUSTED evidence covering every required_evidence_tag. The LLM
+   diagnosis (ev_diagnosis) is an untrusted channel: it never counts as evidence for a commit.
+5. Could it be undone, and is it safe? When admit.consequence_projection is "on", ADMIT projects
+   your whole plan on the plant: it is rejected if the projection crosses a SIF limit, or erodes
+   the safety margin compared with doing nothing. When "off", nothing simulates your plan: the
+   record (evidence, authority, steps, reversibility) is all that is checked, so judge the
+   consequences yourself.
+If a proposal is rejected, `evaluation_feedback.admit_violations` lists the violation codes and
+`admit_remedies` says how to fix each; fix the record or choose a different action.
+"""
+
+
 def action_system_prompt(level: str) -> str:
     if level == "base":
         return ACTION_SYSTEM_PROMPT
@@ -193,8 +228,12 @@ class LLMActionAgent:
                                        **({"principles": OPERATING_MANUAL} if level in ("manual", "dynamics") else {})}
         if level == "dynamics":
             user["dynamics"] = context["detection"].get("trends") or {}
+        system = action_system_prompt(level)
+        if context.get("admit"):
+            user["admit"] = context["admit"]
+            system += ADMIT_ADDENDUM
         t0 = time.perf_counter()
-        msg = await self.llm.ainvoke([("system", action_system_prompt(level)), ("human", json.dumps(user, default=str))])
+        msg = await self.llm.ainvoke([("system", system), ("human", json.dumps(user, default=str))])
         text = message_text(msg)
         self.last_usage = {**USAGE.record("action", self.model, msg),
                            "latency_s": time.perf_counter() - t0, "raw": text[:4000]}

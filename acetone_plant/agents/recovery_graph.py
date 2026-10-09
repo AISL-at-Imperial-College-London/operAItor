@@ -60,6 +60,8 @@ class AgentConfig:
     use_kg: bool = True
     twin: bool = False
     judge: bool = False               # without the twin: an LLM judge validates each proposal
+    admit: bool = False               # ADMIT hard gates validate the agent's action records
+    admit_sim: bool = True            # True: T0-T4 (T4 projected on the plant); False: T0-T3 only, no simulation
     diagnoser: Literal["heuristic", "llm"] = "heuristic"  # "llm": agents/diagnosis_llm.py explains the PCA/rule evidence
     llm_model: str = DEFAULT_MODEL
     llm_timeout_s: float = 120.0
@@ -102,6 +104,12 @@ PRESETS: dict[str, dict] = {
     "llm_lucky":  dict(proposer="llm", use_kg=True, twin=False),
     # LLM as judge: no simulator; a second LLM accepts / rejects each proposal (rejections reprompt)
     "llm_judge":  dict(proposer="llm", use_kg=True, twin=False, judge=True, reprompt_max=3),
+    # ADMIT: the agent files an action record per command; ADMIT's gates (evidence, hazard, authority /
+    # SOP steps, consequence projected on the plant) decide admissibility (needs acetone-plant[admit])
+    "llm_admit":  dict(proposer="llm", planner="llm", use_kg=True, twin=False, admit=True, reprompt_max=3),
+    # ADMIT without the simulation layer: record, evidence, hazard, authority / mode / SOP steps (T0-T3)
+    "llm_admit_nosim": dict(proposer="llm", planner="llm", use_kg=True, twin=False, admit=True, admit_sim=False,
+                            reprompt_max=3),
 }
 
 
@@ -344,6 +352,35 @@ def validate_outcome(m: dict, cfg: AgentConfig) -> dict:
 # Graph
 # =============================================================================
 
+def split_records(raw_plan: Any) -> tuple[Any, list[dict]]:
+    """Take the ADMIT action records (``"record"`` per command) out of an LLM plan."""
+    if not isinstance(raw_plan, dict) or not isinstance(raw_plan.get("commands"), list):
+        return raw_plan, []
+    cmds, recs = [], []
+    for c in raw_plan["commands"]:
+        if isinstance(c, dict):
+            c = dict(c)
+            recs.append((c.get("type"), c.get("target"), c.pop("record", None)))
+        cmds.append(c)
+    return {**raw_plan, "commands": cmds}, recs
+
+
+def align_records(plan: dict, recs: list) -> list[dict | None]:
+    """One record per normalised command (normalisation may drop NO_ACTION / rename targets)."""
+    out, used = [], set()
+    for c in plan.get("commands", []):
+        idx = next((i for i, (t, tg, _) in enumerate(recs) if i not in used and str(t).upper() == c.get("type")
+                    and (tg is None or c.get("target") is None or str(tg).upper().endswith(str(c.get("target"))))), None)
+        if idx is None:
+            idx = next((i for i in range(len(recs)) if i not in used), None)
+        if idx is None:
+            out.append(None)
+        else:
+            used.add(idx)
+            out.append(recs[idx][2] if isinstance(recs[idx][2], dict) else None)
+    return out
+
+
 class RecoveryState(TypedDict, total=False):
     observation: dict
     catalog: dict
@@ -353,6 +390,7 @@ class RecoveryState(TypedDict, total=False):
     brief: dict
     plan: dict
     kg_citations: list[str]
+    records: list            # ADMIT action records filed with the plan (llm_admit)
     action: SupervisoryAction
     errors: list[str]
     twin: dict
@@ -395,6 +433,10 @@ def build_recovery_graph(ctx: RunContext):
     if cfg.judge and not cfg.twin:
         from .judge import LLMJudge
         judge = LLMJudge(cfg.llm_model, cfg.llm_timeout_s)
+    gate = None
+    if cfg.admit:
+        from acetone_plant.admit.gate import AdmitGate
+        gate = AdmitGate(simulate=cfg.admit_sim)
 
     async def emit(event: dict) -> None:
         if event["event"] != "monitor":
@@ -456,6 +498,9 @@ def build_recovery_graph(ctx: RunContext):
     async def action_propose(state: RecoveryState) -> dict:
         await node("action_propose", state, attempt=state["attempts"])
         context = {**state, "previous_plan": state.get("plan") if state["attempts"] else None}
+        if gate is not None:
+            context["admit"] = gate.brief(state["observation"], state["detection"], state["diagnosis"],
+                                          state.get("knowledge"))
         t0 = time.perf_counter()
         try:
             raw_plan = await ctx.action_agent.propose(context)
@@ -468,7 +513,9 @@ def build_recovery_graph(ctx: RunContext):
             await emit({"event": "llm_error", "t": state["detection"]["time_min"], "error": usage["error"][:400]})
         usage.setdefault("latency_s", time.perf_counter() - t0)
         ctx.llm_usage.append(usage)
+        raw_plan, records = split_records(raw_plan)
         plan, cites = normalise_plan(raw_plan)
+        records = align_records(plan, records)
         # Turn the plan into a plant command (catalog names, bounds). Not a pipeline step:
         # a plan that cannot be executed is rejected by the validate agent and reprompted.
         errors = explain_plan_errors(plan, state["catalog"])
@@ -480,7 +527,7 @@ def build_recovery_graph(ctx: RunContext):
         if errors:
             await emit({"event": "invalid", "t": state["detection"]["time_min"], "errors": errors})
         return {"plan": plan, "kg_citations": cites, "attempts": state["attempts"] + 1,
-                "action": action, "errors": errors}
+                "action": action, "errors": errors, "records": records}
 
     async def twin_evaluate(state: RecoveryState) -> dict:
         if state["plan"]["commands"] in (state.get("tried") or []):
@@ -497,6 +544,18 @@ def build_recovery_graph(ctx: RunContext):
             verdict = await judge.judge(context, state["plan"])
             await emit({"event": "judge", "t": state["detection"]["time_min"], "plan": state["plan"], **verdict})
             return {"twin": {"rollout": "judged", **verdict}}
+        if gate is not None:
+            await node("twin_evaluate", state, validator="admit" if gate.simulate else "admit_nosim",
+                       horizon_min=gate.horizon_s / 60 if gate.simulate else 0)
+            twin = await ctx.snapshot_env()
+            w0 = time.perf_counter()
+            verdict = await asyncio.to_thread(gate.evaluate, twin, state["action"], state["plan"]["commands"],
+                                              state.get("records") or [], state["observation"], state["detection"],
+                                              state["diagnosis"], state.get("knowledge"))
+            verdict["wall_s"] = round(time.perf_counter() - w0, 3)
+            await emit({"event": "admit", "t": state["detection"]["time_min"], "plan": state["plan"],
+                        **{k: verdict[k] for k in ("admissible", "mode", "hazard_id", "records", "wall_s", "simulate")}})
+            return {"twin": {"rollout": "admit", **verdict}}
         if not cfg.twin:
             reason = "twin disabled in this preset"
             await emit({"event": "twin_skipped", "t": state["detection"]["time_min"], "reason": reason})
@@ -529,6 +588,13 @@ def build_recovery_graph(ctx: RunContext):
             v = {"accepted": bool(m.get("accept")), "fail_reason": "" if m.get("accept") else "LLM judge rejected",
                  "criterion": "llm_judge", "safe_ok": bool(m.get("accept")),
                  "checks": [{"check": "LLM judge", "ok": bool(m.get("accept")), "detail": detail[:900]}]}
+        elif m.get("rollout") == "admit":
+            checks = [{"check": f"ADMIT {r['action']}", "ok": r["admissible"],
+                       "detail": "; ".join(f"{v['code']}: {v['message']}" for v in r["violations"])[:900] or "all hard gates pass"}
+                      for r in m["records"]]
+            first = next((r["aas_code"] for r in m["records"] if not r["admissible"]), "")
+            v = {"accepted": bool(m["admissible"]), "fail_reason": "" if m["admissible"] else f"ADMIT gate: {first}",
+                 "criterion": "admit", "safe_ok": bool(m["admissible"]), "checks": checks}
         elif m.get("rollout") == "skipped":
             v = {"accepted": True, "fail_reason": "", "criterion": "none", "safe_ok": True,
                  "checks": [{"check": "digital twin", "ok": True, "detail": m["reason"]}]}
@@ -556,6 +622,10 @@ def build_recovery_graph(ctx: RunContext):
               **{k: m.get(k) for k in ("time_to_safe_min", "time_to_restore_min", "unsafe_fraction",
                                        "terminal_status") if k in m},
               "twin_final_state": m.get("final")}
+        if m.get("rollout") == "admit":
+            fb["admit_violations"] = [{"command": r["command"], "action": r["action"], "violations": r["violations"]}
+                                      for r in m["records"] if not r["admissible"]]
+            fb["admit_remedies"] = m.get("remedies")
         await emit({"event": "reprompt", "t": state["detection"]["time_min"], "attempt": state["attempts"],
                     "reprompt_max": cfg.reprompt_max, "feedback": fb, "rejected_plan": state["plan"]})
         return {"feedback": json.dumps(fb, default=str)}

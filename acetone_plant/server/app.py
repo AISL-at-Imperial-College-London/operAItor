@@ -19,6 +19,7 @@ WebSocket ``/ws?session=<id>`` (JSON). Reconnecting with the same id reattaches 
                      "agent_dismiss"|"diagnose_now"|"campaign_start"|"campaign_stop"|"chat", ...}
                     {"type": "set_api_key", "key": "sk-...", "model": "gpt-5-nano"}
                     {"type": "clear_api_key"}
+                    {"type": "set_agent_preset", "preset": "llm" | "llm_admit" | "llm_judge" | "llm_lucky"}
 """
 from __future__ import annotations
 
@@ -38,7 +39,7 @@ from acetone_plant import __version__
 from acetone_plant.agents.llm import is_openai_model
 
 from .plant_service import jsonable
-from .sessions import Session, SessionManager, check_openai_key
+from .sessions import VISITOR_PRESETS, Session, SessionManager, check_openai_key
 
 
 def _frontend_dist() -> Path:
@@ -90,6 +91,20 @@ async def _set_key(session: Session, msg: dict) -> dict:
     warning = await session.configure_agents(api_key=key, model=model)
     await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
     return {"ok": not warning, "summary": warning or f"LLM agents on ({model}, your key)"}
+
+
+async def _set_preset(session: Session, msg: dict) -> dict:
+    preset = str(msg.get("preset") or "")
+    if preset not in VISITOR_PRESETS:
+        return {"ok": False, "summary": f"unknown agent configuration {preset!r}"}
+    if preset.startswith("llm_admit"):
+        from acetone_plant.admit import available
+        ok, reason = available()
+        if not ok:
+            return {"ok": False, "summary": reason}
+    warning = await session.configure_agents(preset=preset)
+    await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
+    return {"ok": not warning, "summary": warning or f"agents: {VISITOR_PRESETS[preset]}"}
 
 
 async def _clear_key(session: Session) -> dict:
@@ -148,6 +163,8 @@ async def ws(websocket: WebSocket):
                 ack = await _set_key(session, msg)
             elif kind == "clear_api_key":
                 ack = await _clear_key(session)
+            elif kind == "set_agent_preset":
+                ack = await _set_preset(session, msg)
             else:
                 ack = await service.handle_command(msg)
             push({"type": "ack", "request": kind, **ack})

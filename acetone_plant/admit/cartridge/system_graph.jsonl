@@ -1,0 +1,54 @@
+{"kind": "asset", "id": "R-101", "type": "reactor", "name": "CSTR, IPA -> acetone + H2 (endothermic)"}
+{"kind": "asset", "id": "PCV-101", "type": "valve", "name": "H2 vent pressure control valve", "serves": "R-101"}
+{"kind": "asset", "id": "BDV-101", "type": "valve", "name": "H2 blowdown valve to flare", "serves": "R-101"}
+{"kind": "asset", "id": "E-102", "type": "cooler", "name": "reactor emergency cooling", "serves": "R-101"}
+{"kind": "asset", "id": "T-201", "type": "column", "name": "10-tray distillation column"}
+{"kind": "asset", "id": "E-201", "type": "condenser", "name": "overhead condenser", "serves": "T-201"}
+{"kind": "asset", "id": "V-201", "type": "drum", "name": "reflux drum", "serves": "T-201"}
+{"kind": "asset", "id": "E-202", "type": "reboiler", "name": "steam reboiler", "serves": "T-201"}
+{"kind": "asset", "id": "P-101A", "type": "pump", "name": "Fresh IPA feed pump (duty)", "train": "FEED"}
+{"kind": "asset", "id": "P-101B", "type": "pump", "name": "Fresh IPA feed pump (standby)", "train": "FEED"}
+{"kind": "asset", "id": "P-102A", "type": "pump", "name": "CSTR outlet / column feed pump (duty)", "train": "CSTR_OUTLET"}
+{"kind": "asset", "id": "P-102B", "type": "pump", "name": "CSTR outlet / column feed pump (standby)", "train": "CSTR_OUTLET"}
+{"kind": "asset", "id": "P-201A", "type": "pump", "name": "Reflux pump (duty)", "train": "REFLUX"}
+{"kind": "asset", "id": "P-201B", "type": "pump", "name": "Reflux pump (standby)", "train": "REFLUX"}
+{"kind": "asset", "id": "P-202A", "type": "pump", "name": "Distillate product pump (duty)", "train": "DISTILLATE"}
+{"kind": "asset", "id": "P-202B", "type": "pump", "name": "Distillate product pump (standby)", "train": "DISTILLATE"}
+{"kind": "asset", "id": "P-203A", "type": "pump", "name": "Bottoms product pump (duty)", "train": "BOTTOMS"}
+{"kind": "asset", "id": "P-203B", "type": "pump", "name": "Bottoms product pump (standby)", "train": "BOTTOMS"}
+{"kind": "tag", "id": "cstr_pressure_bar", "asset": "R-101", "unit": "bar", "alarm_hi": 3.8, "trip_hi": 4.35}
+{"kind": "tag", "id": "cstr_temperature_K", "asset": "R-101", "unit": "K", "alarm_hi": 346.0, "trip_hi": 348.0}
+{"kind": "tag", "id": "cstr_holdup_kmol", "asset": "R-101", "unit": "kmol", "alarm_hi": 68.0, "alarm_lo": 25.0, "trip_hi": 72.0, "trip_lo": 20.0}
+{"kind": "tag", "id": "reboiler_holdup_kmol", "asset": "E-202", "unit": "kmol", "alarm_hi": 48.0, "alarm_lo": 16.0, "trip_hi": 51.76, "trip_lo": 12.08}
+{"kind": "tag", "id": "drum_holdup_kmol", "asset": "V-201", "unit": "kmol", "alarm_hi": 42.0, "alarm_lo": 14.0, "trip_hi": 45.37, "trip_lo": 10.59}
+{"kind": "tag", "id": "column_pressure_bar", "asset": "T-201", "unit": "bar", "alarm_hi": 1.28, "trip_hi": 1.35}
+{"kind": "tag", "id": "column_min_tray_holdup_kmol", "asset": "T-201", "unit": "kmol", "alarm_lo": 1.0, "trip_lo": 0.3}
+{"kind": "tag", "id": "distillate_x_acetone", "asset": "V-201", "unit": "mol frac", "alarm_lo": 0.9}
+{"kind": "tag", "id": "bottoms_x_acetone", "asset": "E-202", "unit": "mol frac", "alarm_hi": 0.08}
+{"kind": "tag", "id": "R_LIC", "asset": "R-101", "measures": "PI controller", "pv": "cstr_holdup_kmol"}
+{"kind": "tag", "id": "R_TIC", "asset": "R-101", "measures": "PI controller", "pv": "cstr_temperature_K"}
+{"kind": "tag", "id": "R_PIC", "asset": "R-101", "measures": "PI controller", "pv": "cstr_pressure_bar"}
+{"kind": "tag", "id": "RB_LIC", "asset": "E-202", "measures": "PI controller", "pv": "reboiler_holdup_kmol"}
+{"kind": "tag", "id": "DR_LIC", "asset": "V-201", "measures": "PI controller", "pv": "drum_holdup_kmol"}
+{"kind": "tag", "id": "COL_PIC", "asset": "T-201", "measures": "PI controller", "pv": "column_pressure_bar"}
+{"kind": "tag", "id": "top_temperature_K", "asset": "T-201"}
+{"kind": "tag", "id": "TOP_TIC", "asset": "T-201", "measures": "PI controller", "pv": "top_temperature_K"}
+{"kind": "tag", "id": "bottom_temperature_K", "asset": "E-202"}
+{"kind": "tag", "id": "BOT_TIC", "asset": "E-202", "measures": "PI controller", "pv": "bottom_temperature_K"}
+{"kind": "tag", "id": "FEED", "asset": "P-101A", "measures": "pump train"}
+{"kind": "tag", "id": "CSTR_OUTLET", "asset": "P-102A", "measures": "pump train"}
+{"kind": "tag", "id": "REFLUX", "asset": "P-201A", "measures": "pump train"}
+{"kind": "tag", "id": "DISTILLATE", "asset": "P-202A", "measures": "pump train"}
+{"kind": "tag", "id": "BOTTOMS", "asset": "P-203A", "measures": "pump train"}
+{"kind": "tag", "id": "FDD-PCA", "asset": "plant", "measures": "PCA fault detection: Hotelling T², SPE and top contributing variables"}
+{"kind": "tag", "id": "ALARMS", "asset": "plant", "measures": "active ISA-18.2 alarms"}
+{"kind": "tag", "id": "PUMP-STATUS", "asset": "plant", "measures": "duty / standby status of the five pump trains"}
+{"kind": "tag", "id": "TRENDS", "asset": "plant", "measures": "rate of change and minutes to the next alarm / SIF limit"}
+{"kind": "tag", "id": "DIAGNOSIS", "asset": "plant", "measures": "LLM diagnosis agent's ranked hypotheses (model output)"}
+{"kind": "tag", "id": "KG", "asset": "plant", "measures": "knowledge-graph evidence for the diagnosed fault"}
+{"kind": "link", "from": "R-101", "to": "T-201", "carries": "reactor liquid (column feed)"}
+{"kind": "link", "from": "T-201", "to": "E-201", "carries": "overhead vapour"}
+{"kind": "link", "from": "E-201", "to": "V-201", "carries": "condensate"}
+{"kind": "link", "from": "V-201", "to": "T-201", "carries": "reflux"}
+{"kind": "link", "from": "E-202", "to": "T-201", "carries": "boil-up"}
+{"kind": "link", "from": "R-101", "to": "PCV-101", "carries": "H2"}

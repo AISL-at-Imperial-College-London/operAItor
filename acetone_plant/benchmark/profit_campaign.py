@@ -50,9 +50,12 @@ MIN_WINDOW = 120.0       # scenario window [min]
 TAIL = 60.0              # run at least this long after the last lift
 # run mode -> agent preset. Every action comes from the LLM (PLANT_LLM_MODEL, default
 # gpt-5-nano; --model / --base-url select a local model).
-AGENT_MODES = {"lucky": "llm_lucky", "judge": "llm_judge", "llmtwin": "llm"}
+AGENT_MODES = {"lucky": "llm_lucky", "judge": "llm_judge", "llmtwin": "llm", "admit": "llm_admit",
+               "admit_nosim": "llm_admit_nosim"}
 MODE_LABEL = {"passive": "No agents", "lucky": "LLM, no validation (feeling lucky)", "judge": "LLM + LLM judge",
-              "llmtwin": "LLM + digital twin"}
+              "llmtwin": "LLM + digital twin",
+              "admit": "LLM planning + ADMIT gates (T0-T4, simulated)",
+              "admit_nosim": "LLM planning + ADMIT gates (T0-T3, no simulation)"}
 
 
 def F(fault: str, at: float = ONSET, **kw) -> dict:
@@ -261,6 +264,11 @@ async def run_scenario(scn: dict, mode: str, sched: dict, window: float, verbose
             "judge": [{"t": e["time_min"], "cycle": e.get("cycle"), "accept": e.get("accept"),
                        "confidence": e.get("confidence"), "reason": e.get("reason"),
                        "commands": (e.get("plan") or {}).get("commands")} for e in log if e.get("stage") == "judge"],
+            "admit": [{"t": e["time_min"], "cycle": e.get("cycle"), "admissible": e.get("admissible"),
+                       "hazard_id": e.get("hazard_id"), "wall_s": e.get("wall_s"),
+                       "codes": [v["code"] for r in e.get("records") or [] for v in r.get("violations") or []],
+                       "violations": [v["message"][:200] for r in e.get("records") or [] for v in r.get("violations") or []],
+                       "commands": (e.get("plan") or {}).get("commands")} for e in log if e.get("stage") == "admit"],
             "proposals": sum(1 for e in log if e.get("stage") == "proposal"),
             "diagnoses": [{"t": round(e["time_min"], 2), "cycle": e.get("cycle"), "ok": e.get("ok"),
                            "most_likely": e.get("most_likely"), "fault_class": e.get("fault_class"),
@@ -311,9 +319,10 @@ def _timing(log: list[dict]) -> dict:
     calls = [{"t": round(e["time_min"], 2), "cycle": e.get("cycle"), "agent": agent_of[e["stage"]],
               "latency_s": round(e["latency_s"], 3), "tokens": e.get("tokens")}
              for e in log if e.get("stage") in agent_of and e.get("latency_s") is not None]
+    # plant projections: twin rollouts, and ADMIT's T4 (null + plan) on the llm_admit runs
     twins = [{"t": round(e["time_min"], 2), "cycle": e.get("cycle"), "wall_s": e["wall_s"],
-              "counterfactual": bool(e.get("counterfactual"))}
-             for e in log if e.get("stage") == "twin" and e.get("wall_s") is not None]
+              "counterfactual": bool(e.get("counterfactual")), "admit": e.get("stage") == "admit"}
+             for e in log if e.get("stage") in ("twin", "admit") and e.get("wall_s") is not None]
     spans: dict = {}
     for e in log:  # a decision runs from its first to its last graph event (later acks / resets excluded)
         c, w = e.get("cycle"), e.get("wall")
@@ -448,6 +457,8 @@ def report() -> dict:
                             "reprompts": ag.get("reprompts"), "llm_usage": ag.get("llm_usage"),
                             "judge_rejections": sum(1 for j in ag.get("judge", []) if not j.get("accept")),
                             "judge_calls": len(ag.get("judge", [])), "llm_errors": len(ag.get("llm_errors", [])),
+                            "admit_calls": len(ag.get("admit", [])),
+                            "admit_rejections": sum(1 for j in ag.get("admit", []) if not j.get("admissible")),
                             "alarms_listed_at_end": [x["id"] for x in run["alarms_listed_at_end"]],
                             "timing": {k: v for k, v in (ag.get("timing") or {}).items()
                                        if k in ("llm_s", "twin_s", "decision_s", "n_llm_calls", "n_twin_rollouts", "n_decisions")},

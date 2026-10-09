@@ -141,8 +141,13 @@ export interface AgentEvent {
   type: "agent";
   stage: "node" | "kg" | "plan" | "proposal" | "invalid" | "twin" | "twin_skipped" | "validation" | "llm_error" | "verification"
     | "reprompt" | "fallback" | "rejected" | "applied" | "pending" | "advisory" | "approved" | "dismissed"
-    | "alarm_ack" | "llm_diagnosis" | "judge" | "sif_reset";
+    | "alarm_ack" | "llm_diagnosis" | "judge" | "sif_reset" | "admit";
   alarms?: string[];
+  // admit (ADMIT gate verdict)
+  admissible?: boolean;
+  hazard_id?: string | null;
+  records?: { action: string; admissible: boolean; aas_code: string | null;
+              violations: { code: string; gate: string; message: string }[] }[];
   // llm_diagnosis
   ok?: boolean;
   summary?: string;
@@ -242,5 +247,6 @@ export interface SessionInfo {
   id: string;
   hosted: boolean;
   models: string[];
-  llm: { model: string; key_source: "visitor" | "server" | null; active: boolean; reason: string };
+  llm: { model: string; key_source: "visitor" | "server" | null; active: boolean; reason: string;
+         preset: string; presets: Record<string, string> };
 }

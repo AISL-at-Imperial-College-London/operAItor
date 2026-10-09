@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { forgetKey, usePlant, useKey } from "../store";
+import { forgetKey, send, usePlant, useKey } from "../store";
+
+function PresetSelect({ value, presets }: { value: string; presets: Record<string, string> }) {
+  return (
+    <label className="key-row small">Validation:
+      <select aria-label="Agent configuration" value={value}
+        onChange={(e) => send({ type: "set_agent_preset", preset: e.target.value })}>
+        {Object.entries(presets).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+      </select>
+    </label>
+  );
+}
 
 // Where the visitor turns the LLM agents on for their own session.
 export function LlmKeyCard() {
@@ -19,6 +30,7 @@ export function LlmKeyCard() {
         <div className="key-head"><span className="pill pill-ok">LLM agents on</span> <b>{llm.model}</b>
           <span className="dim"> · {llm.key_source === "visitor" ? "your key" : "server key"}</span></div>
         {usage && <div className="dim small">{usage.calls} calls · {(usage.input_tokens + usage.output_tokens).toLocaleString()} tokens · ≈ ${usage.cost_usd.toFixed(4)} this session</div>}
+        {llm.presets && <PresetSelect value={llm.preset} presets={llm.presets} />}
         {llm.key_source === "visitor" && <button className="btn sm" onClick={forgetKey}>Remove my key</button>}
       </div>
     );
@@ -42,7 +54,7 @@ export function LlmKeyCard() {
         The key goes only to this server, is held in memory for your session and is never stored or
         shown again. Calls are billed to your OpenAI account; closing the tab ends the session.
       </p>
-      {llm.reason && session.hosted && <p className="small dim">Status: {llm.reason}</p>}
+      {llm.reason && !/API key/.test(llm.reason) && <p className="small dim">Status: {llm.reason}</p>}
     </form>
   );
 }

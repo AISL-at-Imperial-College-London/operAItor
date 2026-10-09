@@ -1,7 +1,7 @@
-"""Physics / specification consistency checks against README.md and V05_IMPLEMENTATION.md,
+"""Physics / specification consistency checks against docs/plant-model.md,
 plus the agents' alarm acknowledgement.
 
-    py -3 -m pytest test_physics_consistency.py -q
+    pytest tests/test_physics_consistency.py -q
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from acetone_plant.plant.scenario import DISTURBANCE_STEPS, disturbance_step
 
 PLANT = IntegratedPlantDAE()
 
-# README "SIF / interrupt layer" table
+# docs/plant-model.md "SIF / interrupt layer" table
 README_SIF = {"R_T_HH": 348.0, "R_P_HH": 4.00, "R_P_HHH": 4.35, "R_L_HH": 72.0, "R_L_LL": 20.0,
               "RB_L_LL": 12.08, "RB_L_HH": 51.76, "DR_L_LL": 10.59, "DR_L_HH": 45.37, "COL_P_HH": 1.35, "COL_L_LL": 0.30}
 README_PLANT_TRIP = {"R_P_HHH", "RB_L_HH", "DR_L_LL", "DR_L_HH", "COL_P_HH", "COL_L_LL"}

@@ -10,7 +10,7 @@
 :root {
   --bg: #f3f5f6; --panel: #ffffff; --ink: #1b2429; --muted: #5c6a72; --line: #d9e0e4; --soft: #e9eef1;
   --accent: #2a6889; --accent-soft: #dcebf3;
-  --passive: #b4573f; --agents: #2a6889; --lucky: #b07d12; --judge: #7a4fa8; --llmtwin: #1f8a7a; --nominal: #8a979e;
+  --passive: #b4573f; --agents: #2a6889; --lucky: #b07d12; --judge: #7a4fa8; --llmtwin: #1f8a7a; --admit: #3a5fb0; --admit_nosim: #b0476e; --nominal: #8a979e;
   --good: #2f7a4c; --good-soft: #dff0e5; --warn: #a86b12; --warn-soft: #f6ebd5; --bad: #b3342e; --bad-soft: #f6dedc;
   --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --f-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -20,13 +20,13 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #12181c; --panel: #192227; --ink: #e3eaee; --muted: #93a3ab; --line: #2b383f; --soft: #212c32;
   --accent: #6fb0d4; --accent-soft: #1f3a49;
-  --passive: #e08a70; --agents: #6fb0d4; --lucky: #e3b54f; --judge: #b48ee0; --llmtwin: #5fcbb8; --nominal: #74838b;
+  --passive: #e08a70; --agents: #6fb0d4; --lucky: #e3b54f; --judge: #b48ee0; --llmtwin: #5fcbb8; --admit: #8fb0f0; --admit_nosim: #e58bb0; --nominal: #74838b;
   --good: #6cc391; --good-soft: #1d3527; --warn: #e0a64a; --warn-soft: #3a2e17; --bad: #ef7d74; --bad-soft: #43221f;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #12181c; --panel: #192227; --ink: #e3eaee; --muted: #93a3ab; --line: #2b383f; --soft: #212c32;
   --accent: #6fb0d4; --accent-soft: #1f3a49;
-  --passive: #e08a70; --agents: #6fb0d4; --lucky: #e3b54f; --judge: #b48ee0; --llmtwin: #5fcbb8; --nominal: #74838b;
+  --passive: #e08a70; --agents: #6fb0d4; --lucky: #e3b54f; --judge: #b48ee0; --llmtwin: #5fcbb8; --admit: #8fb0f0; --admit_nosim: #e58bb0; --nominal: #74838b;
   --good: #6cc391; --good-soft: #1d3527; --warn: #e0a64a; --warn-soft: #3a2e17; --bad: #ef7d74; --bad-soft: #43221f;
   color-scheme: dark; }
 
@@ -212,11 +212,11 @@ const GROUP_LABEL = { single: "Single fault", pair_indep: "Two faults, independe
   triple_none: "Three faults, none interact", triple_2plus1: "Three faults, two interact", triple_all: "Three faults, all interact" };
 const FAULT_LABEL = (f) => f.replace(/_/g, " ");
 // every configuration that has at least one run, in a fixed order
-const ALL_MODES = ["passive", "lucky", "judge", "llmtwin"];
+const ALL_MODES = ["passive", "lucky", "judge", "llmtwin", "admit", "admit_nosim"];
 const MODES = ALL_MODES.filter((m) => m === "passive" || CFG[m]);
 const AGENT_MODES = MODES.filter((m) => m !== "passive");
 const LABEL = { passive: "No agents", ...D.mode_labels };
-const SHORT = { passive: "No agents", lucky: "LLM lucky", judge: "LLM + judge", llmtwin: "LLM + twin" };
+const SHORT = { passive: "No agents", lucky: "LLM lucky", judge: "LLM + judge", llmtwin: "LLM + twin", admit: "LLM + ADMIT (sim)", admit_nosim: "LLM + ADMIT (no sim)" };
 const color = (m) => css("--" + m);
 const runOf = (id, m) => D.scenarios[id].runs[m];
 const profitOf = (id, m) => m === "passive" ? byId[id].passive_profit : byId[id].configs?.[m]?.profit;
@@ -322,7 +322,9 @@ function renderConfigTable() {
     <th class="num">Profit</th><th class="num">Saving vs no agents</th><th class="num">LLM calls</th><th class="num">LLM cost</th>
     <th class="num">Decisions</th><th class="num">Mean / decision</th><th class="num">Mean LLM latency</th><th class="num">Twin time</th></tr></thead>`;
   const how = { lucky: "none: first proposal applied", judge: "second LLM accepts / rejects, no simulator",
-    llmtwin: "digital twin rollout, retries, best-vs-doing-nothing fallback" };
+    llmtwin: "digital twin rollout, retries, best-vs-doing-nothing fallback",
+    admit: "ADMIT hard gates T0–T4 on the agent's action records (T4 projected on the plant)",
+    admit_nosim: "ADMIT hard gates T0–T3 only: record, evidence, hazard, authority / SOP (no simulation)" };
   const body = [`<tr><td><span class="swatch" style="--c:var(--passive)"></span>No agents</td><td class="small muted">BPCS + SIFs only</td>
       <td class="num">${T.scenarios}</td><td class="num">${T.passive_trips}</td><td class="num">${money(T.passive_profit)}</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
       <td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>`,
@@ -523,7 +525,8 @@ function renderAgent(id) {
     return `<tr><td class="num">${v.t.toFixed(1)}</td><td>${verdict}</td><td>${cands}</td></tr>`;
   }).join("");
   const how = { lucky: "✓ = executable (no validation)", judge: "✓ = the LLM judge accepted",
-    llmtwin: "✓ = the twin shows the plant restored" }[detailMode];
+    llmtwin: "✓ = the twin shows the plant restored", admit: "✓ = ADMIT admitted every record",
+    admit_nosim: "✓ = ADMIT (no simulation) admitted every record" }[detailMode];
   el.innerHTML = `<div><h3>Timeline</h3><div class="timeline">${events.map((e) =>
       `<div class="ev"><span class="t">${e.t.toFixed(1)}</span><span class="k ${e.k}">${KL[e.k]}</span><span class="what">${e.html ? e.what : esc(e.what)}</span></div>`).join("")}</div></div>
     <div><h3>Decisions <span class="muted" style="text-transform:none;letter-spacing:0">(${how})</span></h3>

@@ -17,6 +17,12 @@ function describePlan(e: AgentEvent) {
   if (e.stage === "twin") return <span className={e.restored ? "" : "alm-ack"}>twin: {e.restored ? `faulty variables back within limits after ${e.time_to_restore_min?.toFixed(1)} min` : e.safe_reached ? "keeps it safe, still faulty" : "does not keep it safe"}</span>;
   if (e.stage === "verification") return <span className="dim">{e.reason}</span>;
   if (e.stage === "llm_diagnosis") return <span>LLM diagnosis: <b>{e.most_likely ?? "unclear"}</b> <span className="dim">— {e.summary ?? e.error}</span></span>;
+  if (e.stage === "admit") {
+    const bad = (e.records ?? []).filter((r) => !r.admissible);
+    return <span className={e.admissible ? "" : "alm-ack"}>ADMIT: {e.admissible ? "admissible" : "inadmissible"}
+      {e.hazard_id ? ` · hazard ${e.hazard_id}` : ""}
+      {bad.map((r) => ` · ${r.action}: ${r.violations.map((v) => v.code).join(", ")}`).join("")}</span>;
+  }
   if (e.stage === "alarm_ack") return <span className="dim">acknowledged {(e.alarms ?? []).join(", ")} — {e.reason}</span>;
   if (e.stage === "llm_error") return <span className="alm-unack">LLM call failed, nothing applied: {e.error}</span>;
   if (e.stage === "validation") { const bad = e.checks?.filter((c) => !c.ok) ?? []; return <span className={e.accepted ? "" : "alm-ack"}>{e.accepted ? "ACCEPT" : `REJECT: ${bad[0]?.check} — ${bad[0]?.detail}`}</span>; }

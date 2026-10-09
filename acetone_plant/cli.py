@@ -8,6 +8,7 @@
     acetone-plant train-pca                     # retrain the PCA fault-detection model
     acetone-plant benchmark probe|compare|report # 20-scenario fault campaign (see docs/benchmark.md)
     acetone-plant dashboard                     # build the campaign dashboard HTML
+    acetone-plant admit build|validate|run      # the plant as an ADMIT cartridge (needs [admit])
 
 LLM: OpenAI gpt-5-nano by default, when langchain-openai is installed and OPENAI_API_KEY is set
 (environment or a .env file in the working directory). Other model names use a local Ollama, or
@@ -110,7 +111,8 @@ def main(argv: list[str] | None = None) -> int:
     for name, module, help_ in [("train-pca", "acetone_plant.fdd.train", "retrain the PCA fault-detection model"),
                                 ("benchmark", "acetone_plant.benchmark.profit_campaign", "20-scenario fault campaign"),
                                 ("dashboard", "acetone_plant.benchmark.build_dashboard", "build the campaign dashboard"),
-                                ("loop-tests", "acetone_plant.benchmark.loop_tests", "controller setpoint tests")]:
+                                ("loop-tests", "acetone_plant.benchmark.loop_tests", "controller setpoint tests"),
+                                ("admit", "acetone_plant.admit.build", "ADMIT cartridge: build | validate | run")]:
         p = sub.add_parser(name, help=help_, add_help=False)
         p.add_argument("rest", nargs=argparse.REMAINDER)
         p.set_defaults(func=_passthrough(module))

@@ -72,6 +72,7 @@ function advance(p: Pipeline, ev: AgentEvent): Pipeline {
     case "invalid": set("action_propose", "warn"); break;
     case "twin": set("twin_evaluate", ev.restored ? "ok" : ev.safe_reached ? "warn" : "fail"); break;
     case "twin_skipped": set("twin_evaluate", "skip"); break;
+    case "admit": set("twin_evaluate", ev.admissible ? "ok" : "fail"); break;
     case "validation": set("validate", ev.accepted ? "ok" : "fail"); break;
     case "reprompt": set("reprompt", "running"); break;
     case "fallback": set("validate", "warn"); next.outcome = "mitigation"; break;
@@ -251,7 +252,7 @@ class PlantStore {
           if (!msg.ok) this.apiKey = null;
           this.set({ keyBusy: false });
         }
-        if (!msg.ok || msg.request === "set_api_key" || msg.request === "clear_api_key" || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop"].includes(msg.request))
+        if (!msg.ok || ["set_api_key", "clear_api_key", "set_agent_preset"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop"].includes(msg.request))
           this.set({ toast: { ok: msg.ok, text: msg.summary, at: Date.now() } });
         break;
     }

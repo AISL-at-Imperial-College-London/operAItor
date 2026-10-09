@@ -1,13 +1,13 @@
 # Agents, fault campaigns and web console
 
 ```
- React console (frontend/) ──WebSocket /ws──► FastAPI (server/app.py)
+ React console (frontend/) ──WebSocket /ws──► FastAPI (acetone_plant/server/app.py)
                                                    │
-                                  PlantService (server/plant_service.py)
+                                  PlantService (acetone_plant/server/plant_service.py)
                        owns EpisodeRunner · steps it on a worker thread · campaign scheduler
                          │ latest observation                       ▲ apply_action (locked)
                          ▼                                          │
-            AsyncSupervisor (agents/supervisor.py) runs the recovery LangGraph:
+            AsyncSupervisor (acetone_plant/agents/supervisor.py) runs the recovery LangGraph:
 
    START → monitoring ──no persistent PCA fault / cooldown──────────────► END
               │  trigger: PCA only (T² or SPE over its limit for 3 samples)
@@ -18,7 +18,7 @@
                                         └──── reprompt ◄──────────────────────────────────┘
                      retries exhausted → best candidate that was at least safe → dispatch (mitigation)
 
-            ChatAgent (agents/chat.py): LangGraph tool loop over live data + KG
+            ChatAgent (acetone_plant/agents/chat.py): LangGraph tool loop over live data + KG
 ```
 
 The plant loop and the agents are separate asyncio tasks. A slow decision (an
@@ -26,15 +26,15 @@ LLM call or twin rollout) never pauses the simulation, and the agents always
 take the newest observation. Plant steps, operator actions, agent actions and
 injections all go through one `asyncio.Lock`.
 
-## Quick start (PowerShell, repo root, system Python)
+## Quick start (repo root)
 
 ```powershell
-py -3 -m pip install -r requirements-server.txt       # fastapi, uvicorn, langgraph, langchain-openai
+pip install -e ".[llm]"                               # or ".[llm,admit,dev]"
 copy .env.example .env                                 # then put your OPENAI_API_KEY in .env (git-ignored)
-py -3 train_pca.py --evaluate                          # once: fdd_results/pca_model.json (~3 min)
+acetone-plant train-pca --evaluate                    # only after simulator changes (~3 min)
 cd frontend; npm install; npm run build; cd ..         # once
 
-py -3 run_server.py                                    # http://localhost:8001
+acetone-plant serve                                    # http://localhost:8001
 ```
 
 In the console:
@@ -108,14 +108,14 @@ OpenAI text model ($0.05 / $0.40 per 1M input / output tokens on
 
 It does this whenever `langchain-openai` is installed and `OPENAI_API_KEY` is
 set, either in the environment or in `.env` in the repo root. This repo already
-has a `.env` containing a key, so `py -3 run_server.py` makes real
+has a `.env` containing a key, so `acetone-plant serve` makes real
 (cheap) API calls; use `--llm off` for none. If the package or key is missing,
 the agents only monitor (no actions), the chat is offline, and the server prints why.
 
 Startup prints, e.g.: `Agents: preset llm, planning/action model gpt-5-nano, chat llm gpt-5-nano`.
 The FDD & Agents tab shows the model and the running token count and cost.
 
-Settings for GPT-5 / o-series reasoning models (`agents/llm.py`):
+Settings for GPT-5 / o-series reasoning models (`acetone_plant/agents/llm.py`):
 
 - no `temperature` (the API rejects it);
 - `reasoning_effort=low` (override with `PLANT_REASONING_EFFORT`);
@@ -127,31 +127,26 @@ prices.
 Server options:
 
 ```powershell
-py -3 run_server.py --llm off                         # no API calls at all
-py -3 run_server.py --llm on                          # fail at startup if OpenAI is not usable
-py -3 run_server.py --agent llm_plan                  # LLM planning agent as well (2 calls per decision)
-py -3 run_server.py --llm-model gpt-5-mini            # stronger, ~5x the price
-py -3 run_server.py --agent llm_judge                 # LLM proposes, a second LLM validates (no twin)
-py -3 run_server.py --diagnoser heuristic             # rule-based diagnosis instead of the LLM diagnosis agent
-py -3 run_server.py --port 9000
+acetone-plant serve --llm off                         # no API calls at all
+acetone-plant serve --llm on                          # fail at startup if OpenAI is not usable
+acetone-plant serve --agent llm_plan                  # LLM planning agent as well (2 calls per decision)
+acetone-plant serve --llm-model gpt-5-mini            # stronger, ~5x the price
+acetone-plant serve --agent llm_judge                 # LLM proposes, a second LLM validates (no twin)
+acetone-plant serve --diagnoser heuristic             # rule-based diagnosis instead of the LLM diagnosis agent
+acetone-plant serve --port 9000
 ```
 
-- **Agent presets:** `passive` (monitor only), `llm` (LLM + digital twin), `llm_judge` (LLM + LLM judge),
-  `llm_lucky` (LLM, no validation), `llm_plan` (LLM planning agent too), `llm_nokg`, `llm_notwin`.
+- **Agent presets:** `passive` (monitor only), `llm` (LLM + digital twin), `llm_admit` (LLM + ADMIT gates,
+  see [admit.md](admit.md)), `llm_judge` (LLM + LLM judge), `llm_lucky` (LLM, no validation), `llm_plan`
+  (LLM planning agent too), `llm_nokg`, `llm_notwin`.
 - **Models:** `gpt*` / `o*` names use langchain-openai; any other name uses a local Ollama.
 
 ## Fault campaigns (automated injection)
 
-```powershell
-py -3 fault_campaign.py list                                  # presets + fault library
-py -3 fault_campaign.py run --campaign demo                    # against the running server (watch the console)
-py -3 fault_campaign.py run --campaign random --seed 3 --n 5   # seeded random sequence
-py -3 fault_campaign.py run --campaign demo --headless         # no server, plant + agents in-process
-py -3 fault_campaign.py run --campaign reprompt_demo           # one severe condenser loss: watch twin rejections + retries
-py -3 fault_campaign.py run --campaign my_campaign.json        # custom: {"items": [{"at_min": 5, "fault": "...", "duration_min": 10}]}
-```
+Start a campaign from the console (**Master / faults** → Fault campaign); presets: `demo`, `random`,
+`reprompt_demo`, and more in `acetone_plant/server/campaigns.py`.
 
-A campaign is a timed list of injections from `server/campaigns.py`
+A campaign is a timed list of injections from `acetone_plant/server/campaigns.py`
 (`FAULT_LIBRARY`). Its fault names are the KG fault-mode names, so each run can
 be scored. By default:
 
@@ -176,21 +171,21 @@ condenser fault started while it was still abnormal.
 
 | Module | Role |
 |---|---|
-| `fdd/pca.py`, `fdd/diagnosis.py` | PCA T²/SPE limits and contributions; rule checks; hypotheses from contributions, alarms, pumps and saturated loops |
-| `agents/monitoring.py` | Monitoring agent: PCA is the only trigger (3-sample persistence, 5-min cooldown); alarm / pump / loop rules only feed the diagnosis. `AgentConfig(rules_trigger=True)` restores rule triggering; rules also trigger if no PCA model is loaded |
-| `agents/kg.py` | KG retrieval seeded by the hypotheses (fault → symptoms → loops/actuators → allowed operator actions) and free-text search |
-| `agents/planning.py` | Planning agent: target fault, objective, KG-grounded candidate levers, constraints (`KGPlanner`, or `LLMPlanner`) |
-| `agents/action.py` | Action agent: `LLMActionAgent` (context levels `PLANT_ACTION_CONTEXT`: base / loops / manual / dynamics) |
-| `agents/diagnosis_llm.py` | LLM diagnosis agent: reads T² / SPE, contributions, rule evidence, trends and the fault catalogue; ranked hypotheses with evidence for / against |
-| `agents/judge.py` | LLM judge (validator without a simulator) |
-| `agents/recovery_graph.py` | The LangGraph, presets, oracle-twin rollout. Shared by the server and `recovery_agents_langgraph.py` |
-| `agents/supervisor.py` | Runs the graph next to the live plant. Modes: off / advisory (approve in UI) / autonomous |
-| `agents/chat.py` | Chat agent: tools `plant_status`, `current_values`, `trend`, `fault_diagnosis`, `agent_activity`, `knowledge_graph`, `list_variables`; per-session memory |
+| `acetone_plant/fdd/pca.py`, `acetone_plant/fdd/diagnosis.py` | PCA T²/SPE limits and contributions; rule checks; hypotheses from contributions, alarms, pumps and saturated loops |
+| `acetone_plant/agents/monitoring.py` | Monitoring agent: PCA is the only trigger (3-sample persistence, 5-min cooldown); alarm / pump / loop rules only feed the diagnosis. `AgentConfig(rules_trigger=True)` restores rule triggering; rules also trigger if no PCA model is loaded |
+| `acetone_plant/agents/kg.py` | KG retrieval seeded by the hypotheses (fault → symptoms → loops/actuators → allowed operator actions) and free-text search |
+| `acetone_plant/agents/planning.py` | Planning agent: target fault, objective, KG-grounded candidate levers, constraints (`KGPlanner`, or `LLMPlanner`) |
+| `acetone_plant/agents/action.py` | Action agent: `LLMActionAgent` (context levels `PLANT_ACTION_CONTEXT`: base / loops / manual / dynamics) |
+| `acetone_plant/agents/diagnosis_llm.py` | LLM diagnosis agent: reads T² / SPE, contributions, rule evidence, trends and the fault catalogue; ranked hypotheses with evidence for / against |
+| `acetone_plant/agents/judge.py` | LLM judge (validator without a simulator) |
+| `acetone_plant/agents/recovery_graph.py` | The LangGraph, presets, oracle-twin rollout. Shared by the server, the benchmark and the tests |
+| `acetone_plant/agents/supervisor.py` | Runs the graph next to the live plant. Modes: off / advisory (approve in UI) / autonomous |
+| `acetone_plant/agents/chat.py` | Chat agent: tools `plant_status`, `current_values`, `trend`, `fault_diagnosis`, `agent_activity`, `knowledge_graph`, `list_variables`; per-session memory |
 
 ### LLM diagnosis agent
 
 When a fault is confirmed (and on demand: **Ask the LLM now** in the Fault-detection tab, or the
-`diagnose_now` command), `agents/diagnosis_llm.py` gets:
+`diagnose_now` command), `acetone_plant/agents/diagnosis_llm.py` gets:
 - Hotelling T² and SPE (Q) against their limits, and the top contributors, split into T² and SPE parts;
 - the rule checks (alarms, failed pumps, saturated loops, SIFs) and the rule-based hypotheses;
 - the trends (rate, minutes to the next alarm / SIF);
@@ -200,7 +195,7 @@ It returns ranked hypotheses (catalogue names only) with evidence for and agains
 (sensor / actuator / equipment / process), what the T² vs SPE pattern says, and checks for the
 operator. With `diagnoser="llm"` (the server's default when the LLM is on) its hypotheses replace
 the heuristic ones in the pipeline (the heuristic result is kept). Evaluation on the 20 scenarios,
-at PCA confirmation (`py -3 -m benchmark.diagnosis_eval`, `benchmark_results/DIAGNOSIS_EVAL.md`):
+at PCA confirmation (`acetone-plant python -m acetone_plant.benchmark.diagnosis_eval`, `benchmark_results/DIAGNOSIS_EVAL.md`):
 
 | | heuristic | gpt-5-nano | gpt-5-mini |
 |---|---:|---:|---:|
@@ -223,7 +218,7 @@ at PCA confirmation (`py -3 -m benchmark.diagnosis_eval`, `benchmark_results/DIA
 - **The twin knows only the present.** `clone_env(present_only=True)` keeps the faults active now
   persistent and removes future injections. The twin cannot "know" when a fault will clear.
 - **SIF reset** (`sif_reset=True`): the agents request a reset while non-trip SIFs are latched. The
-  README lists SIF reset as an operator/agent action. The SIF logic resets only latches whose variable
+  The plant model (docs/plant-model.md) lists SIF reset as an operator/agent action. The SIF logic resets only latches whose variable
   is back in the reset band. Plant-trip latches are left for the operator.
 - **Alarm acknowledgement:**
   - When the agents apply an action, they acknowledge the standing alarms. Each alarm then leaves the
@@ -240,7 +235,7 @@ level moving?", "why is there a fault?", "what did the agents do?".
 
 ## KG ↔ simulator translation
 
-[agents/kg_map.py](agents/kg_map.py) maps every KG node to its simulator counterpart. It
+[kg_map.py](../acetone_plant/agents/kg_map.py) maps every KG node to its simulator counterpart. It
 is built from the KG and the simulator's own catalogs, so it stays in sync:
 
 | KG node | Simulator counterpart |
@@ -262,12 +257,12 @@ It is used in three places:
   `R_PIC`; `P-201A` → `REFLUX`).
 - **Chat.** KG answers include "In the simulation: …".
 
-Regenerate the table and coverage report with `py -3 -m agents.kg_map`. It writes
-`knowledge_graph/kg_sim_mapping.json`.
+Regenerate the table and coverage report with `python -m acetone_plant.agents.kg_map`. It writes
+`acetone_plant/data/knowledge_graph/kg_sim_mapping.json`.
 
 ## Normal disturbances
 
-Disturbances are physical steps (`DISTURBANCE_STEPS` in `integrated_plant/scenario.py`).
+Disturbances are physical steps (`DISTURBANCE_STEPS` in `acetone_plant/plant/scenario.py`).
 The console, the campaigns and the random scenario generator all use them:
 
 | Variable | Step |
@@ -302,25 +297,21 @@ before onset in the fault tests. Detection delays at a 15-min onset (3-sample pe
 | Drum leak | 1.5 |
 | PCV degradation | 7.5 |
 
-Retrain after simulator changes with `py -3 train_pca.py --evaluate` (about 4 min).
+Retrain after simulator changes with `acetone-plant train-pca --evaluate` (about 4 min).
 
 ## Benchmark
 
-`recovery_agents_langgraph.py` runs the same graph on reproducible episodes,
-with frozen, async or delay clocks, and sweeps faults × seeds × presets. See
-[RECOVERY_BENCHMARK.md](RECOVERY_BENCHMARK.md).
-
-**20-scenario profit campaign** (`benchmark/profit_campaign.py`, economics in `benchmark/economics.py`).
+**20-scenario profit campaign** (`acetone_plant/benchmark/profit_campaign.py`, economics in `acetone_plant/benchmark/economics.py`).
 There are 10 single-fault, 7 two-fault and 3 three-fault scenarios. Each runs without agents and with
 agents, against a nominal reference, and faults are lifted 10 min after the time the plant would have
 tripped. Results are in `benchmark_results/PROFIT_CAMPAIGN.md`.
 
 ```powershell
-py -3 -m benchmark.profit_campaign probe --jobs 21     # when would each scenario trip?
-py -3 -m benchmark.profit_campaign compare --jobs 20   # agents + passive with the lift schedule
-py -3 -m benchmark.profit_campaign report
-py -3 -m benchmark.loop_tests                          # PI loop setpoint tests + plots (benchmark_results/loop_plots/)
-py -3 -m benchmark.build_dashboard                     # benchmark_results/fault_campaign_dashboard.html
+acetone-plant benchmark probe --jobs 21     # when would each scenario trip?
+acetone-plant benchmark compare --jobs 20   # agents + passive with the lift schedule
+acetone-plant benchmark report
+acetone-plant loop-tests                        # PI loop setpoint tests + plots (benchmark_results/loop_plots/)
+acetone-plant dashboard                     # benchmark_results/fault_campaign_dashboard.html
 ```
 
 **Agent configurations in the campaign** (`compare <modes>`; all use the same faults and lift times):
@@ -328,16 +319,16 @@ py -3 -m benchmark.build_dashboard                     # benchmark_results/fault
 | mode | preset | proposer | validation |
 |---|---|---|---|
 | `lucky` | `llm_lucky` | LLM | none: the first executable proposal is applied ("feeling lucky") |
-| `judge` | `llm_judge` | LLM | a second LLM call (`agents/judge.py`) accepts or rejects; rejections reprompt (3 retries); nothing is applied if every proposal is rejected |
+| `judge` | `llm_judge` | LLM | a second LLM call (`acetone_plant/agents/judge.py`) accepts or rejects; rejections reprompt (3 retries); nothing is applied if every proposal is rejected |
 | `llmtwin` | `llm` | LLM | digital twin, counterfactual fallback |
 
 ```powershell
-py -3 -m benchmark.profit_campaign compare lucky judge llmtwin --jobs 12                      # gpt-5-nano (OpenAI key in .env)
-py -3 -m benchmark.profit_campaign compare lucky --model llama3.1:8b                           # native Ollama
-py -3 -m benchmark.profit_campaign compare judge --model qwen2.5-7b --base-url http://localhost:1234/v1   # LM Studio / vLLM / llama.cpp
+acetone-plant benchmark compare lucky judge llmtwin --jobs 12                      # gpt-5-nano (OpenAI key in .env)
+acetone-plant benchmark compare lucky --model llama3.1:8b                           # native Ollama
+acetone-plant benchmark compare judge --model qwen2.5-7b --base-url http://localhost:1234/v1   # LM Studio / vLLM / llama.cpp
 ```
 
-Local-model environment variables (also used by `run_server.py`): `PLANT_LLM_BASE_URL` (any
+Local-model environment variables (also used by `acetone-plant serve`): `PLANT_LLM_BASE_URL` (any
 OpenAI-compatible server, any model name), `PLANT_LLM_API_KEY`, `PLANT_LLM_JSON_MODE=0` (if the
 server rejects JSON mode), `PLANT_OLLAMA_URL`, `PLANT_LLM_MAX_RETRIES`.
 

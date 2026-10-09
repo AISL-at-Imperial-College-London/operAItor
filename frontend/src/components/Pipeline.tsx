@@ -21,6 +21,15 @@ export function PipelineCard() {
   const held = usePlant((s) => s.snap?.held);
   const status = { ...p.status };
   const mainFlow = PIPELINE_NODES.filter((n) => n !== "reprompt");
+  // The validation step depends on the agent configuration.
+  const label = (n: string): [string, string] => {
+    if (n !== "twin_evaluate") return LABEL[n];
+    if (agent?.preset === "llm_admit") return ["ADMIT gate", "record, evidence, authority, consequence (T0–T4)"];
+    if (agent?.preset === "llm_admit_nosim") return ["ADMIT gate", "record, evidence, authority (T0–T3, no simulation)"];
+    if (agent?.preset === "llm_judge") return ["LLM judge", "a second LLM reviews the action"];
+    return LABEL[n];
+  };
+  const validatorOff = agent && !agent.twin && !["llm_admit", "llm_admit_nosim", "llm_judge"].includes(agent.preset ?? "");
   return (
     <div className="card pipeline-card">
       <div className="card-title row">
@@ -37,10 +46,10 @@ export function PipelineCard() {
         {mainFlow.map((n, i) => (
           <Fragment key={n}>
             {i > 0 && <span className="arrow" aria-hidden>→</span>}
-            <div role="listitem" className={`node ${status[n]} ${n === "twin_evaluate" && agent && !agent.twin ? "off" : ""}`}
-              title={LABEL[n][1]}>
-              <b>{LABEL[n][0]}</b>
-              <span className="sub">{LABEL[n][1]}</span>
+            <div role="listitem" className={`node ${status[n]} ${n === "twin_evaluate" && validatorOff ? "off" : ""}`}
+              title={label(n)[1]}>
+              <b>{label(n)[0]}</b>
+              <span className="sub">{label(n)[1]}</span>
               <span className="state">{STATUS_TEXT[status[n]]}</span>
             </div>
           </Fragment>

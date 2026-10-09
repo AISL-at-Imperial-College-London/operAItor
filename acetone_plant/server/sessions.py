@@ -69,6 +69,12 @@ async def check_openai_key(key: str) -> tuple[bool, str]:
     return False, f"OpenAI answered {r.status_code}"
 
 
+# Agent configurations a visitor can choose in the console (label shown in the UI).
+VISITOR_PRESETS = {"llm": "LLM + digital twin", "llm_admit": "LLM + ADMIT gates",
+                   "llm_admit_nosim": "LLM + ADMIT (no simulation)", "llm_judge": "LLM + LLM judge",
+                   "llm_lucky": "LLM, no validation"}
+
+
 class Session:
     def __init__(self, sid: str, settings: Settings, kg: KnowledgeGraph, pca: PCAMonitor | None):
         self.id = sid
@@ -80,6 +86,7 @@ class Session:
         self.supervisor = None
         self.chat = None
         self.model = settings.model
+        self.preset = settings.preset
         self._api_key: str | None = None
         self.llm_reason = ""
         self.llm_ctx = contextvars.copy_context()
@@ -111,12 +118,15 @@ class Session:
             return "server"
         return None
 
-    async def configure_agents(self, api_key: str | None = None, model: str | None = None) -> str:
+    async def configure_agents(self, api_key: str | None = None, model: str | None = None,
+                               preset: str | None = None) -> str:
         """(Re)build supervisor + chat with this session's key and model; returns a warning or ''."""
         if api_key is not None:
             self._api_key = api_key or None
         if model:
             self.model = model
+        if preset is not None:
+            self.preset = preset
         if self.supervisor is not None:
             await self.supervisor.stop()
             self.supervisor = None
@@ -139,7 +149,7 @@ class Session:
         else:
             use_llm, reason = llm_status(self.model)
         self.llm_reason = "" if use_llm else reason
-        preset = s.preset or ("llm" if use_llm else "passive")
+        preset = (self.preset or "llm") if use_llm else "passive"
         diag = s.diagnoser or ("llm" if use_llm else "heuristic")
         warning = "" if use_llm else f"no LLM ({reason}); agents monitor only (no actions), chat is offline"
         try:
@@ -167,7 +177,8 @@ class Session:
         return {"session": {"id": self.id, "hosted": self.settings.hosted, "models": list(self.settings.models),
                             "llm": {"model": self.model, "key_source": self.key_source,
                                     "active": bool(self.chat is not None and self.chat.mode == "llm"),
-                                    "reason": self.llm_reason}},
+                                    "reason": self.llm_reason, "preset": self.preset or "llm",
+                                    "presets": VISITOR_PRESETS}},
                 "chat": {"mode": self.chat.mode if self.chat else "offline",
                          "model": getattr(self.chat, "model", None) if self.chat and self.chat.mode == "llm" else None}}
 
