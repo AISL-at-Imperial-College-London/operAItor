@@ -171,6 +171,7 @@ class AdmitGate:
         results, admissible = [], True
         for cmd, rec in zip(commands or [{"type": "NO_ACTION"}], records or [None]):
             name, params = command_to_grammar(cmd)
+            filed = isinstance(rec, dict) and bool(rec)
             rec = rec or {}
             data = {"action": name, "params": params,
                     "output": {"hazard_id": rec.get("hazard_id") or "none", "diagnosis": rec.get("diagnosis") or ""},
@@ -187,13 +188,49 @@ class AdmitGate:
                                           parse_error=record_error, horizon_s=self.horizon_s)
             violations = [{"code": v.code, "gate": v.gate, "message": v.message} for v in report.all_violations()]
             admissible &= not report.hard_failed
-            results.append({"command": cmd, "action": name, "admissible": not report.hard_failed,
+            gates = [{"tier": g.tier, "name": g.name, "passed": g.passed,
+                      "skipped": g.tier == "T4" and not self.simulate,
+                      "violations": [{"code": v.code, "message": v.message} for v in g.violations],
+                      "info": _jsonable(g.info)} for g in report.results]
+            results.append({"command": cmd, "action": name, "params": params, "admissible": not report.hard_failed,
                             "first_failing": report.first_failing, "aas_code": report.aas_code,
-                            "violations": violations, "trajectories": artifacts if self.simulate else {}})
+                            "record": {"filed": filed, **{k: data[k] for k in (
+                                "cited_evidence", "checks_performed", "confidence", "reversibility",
+                                "recovery_plan", "retry_key", "rationale")},
+                                       "hazard_id": data["output"]["hazard_id"], "diagnosis": data["output"]["diagnosis"]},
+                            "rule": self._rule(name), "gates": gates, "violations": violations,
+                            "trajectories": _jsonable(artifacts) if self.simulate else {}})
         remedies = {}
         for r in results:
             for v in r["violations"]:
                 remedies.setdefault(v["code"], explain(v["code"]).split("what to do:", 1)[-1].strip())
+        trust = self.cartridge.manifest["trust_map"]
+        ledger = [{"id": e.id, "tag": e.tag, "source": e.source, "trust": trust.get(e.source, "untrusted"),
+                   "quality": e.quality, "content": e.content} for e in log.entries()]
+        context = {"decided_at_min": observation["time_min"], "mode": mode, "authority_scope": ctx.authority_scope,
+                   "hazard_id": hid, "diagnosis_accept": accept, "response_time_s": ctx.response_time_s,
+                   "horizon_min": self.horizon_s / 60.0 if self.simulate else None, "simulate": self.simulate}
         return {"admissible": admissible, "mode": mode, "hazard_id": hid, "records": results, "remedies": remedies,
-                "simulate": self.simulate,
+                "simulate": self.simulate, "context": context, "ledger": ledger,
                 "ledger_head": log.ledger_head}
+
+    def _rule(self, name: str) -> dict:
+        r = self.rulebook.get(name)
+        if r is None:
+            return {}
+        return {"class": r.action_class, "reversibility": r.reversibility, "required_authority": r.required_authority,
+                "required_evidence_tags": r.required_evidence_tags, "required_steps": r.required_steps,
+                "step_evidence_tags": r.step_evidence_tags, "confidence_floor": r.confidence_floor,
+                "allowed_modes": r.allowed_modes, "forbidden": r.forbidden, "description": r.description}
+
+
+def _jsonable(x):
+    if isinstance(x, dict):
+        return {str(k): _jsonable(v) for k, v in x.items() if k != "samples"}
+    if isinstance(x, (list, tuple)):
+        return [_jsonable(v) for v in x]
+    if isinstance(x, float):
+        return round(x, 4)
+    if isinstance(x, (str, int, bool)) or x is None:
+        return x
+    return str(x)

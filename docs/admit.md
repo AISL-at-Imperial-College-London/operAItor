@@ -10,11 +10,17 @@ This repository uses ADMIT in two ways. Install with `pip install -e ".[admit]"`
 ## 1. ADMIT as the agents' validator (`llm_admit`)
 
 ```bash
-acetone-plant serve --agent llm_admit       # or pick "LLM + ADMIT gates" in the console
-acetone-plant benchmark compare admit       # the 20-scenario campaign with ADMIT validation
+acetone-plant serve --agent llm_admit           # or pick "LLM + ADMIT gates" in the console
+acetone-plant serve --agent llm_admit_nosim     # ADMIT without the simulation layer (T0-T3)
+acetone-plant benchmark compare admit admit_nosim   # the 20-scenario campaign, both variants
 ```
 
-It replaces the validation step of the recovery graph. The steps are:
+Both `llm_admit` configurations use the LLM planning agent as well as the LLM action agent.
+`llm_admit_nosim` is the ablation without the simulation layer. It runs T0–T3 only: record,
+evidence, hazard, and authority / mode / SOP steps / reversibility. T4 is skipped, so an action
+with a correct record is admitted even if it would make the plant worse.
+
+ADMIT replaces the validation step of the recovery graph. The steps are:
 
 1. **The platform builds the evidence ledger** from the live plant at the decision point
    (`acetone_plant/admit/gate.py: evidence_entries`). The ledger is hash-chained. Each entry's
@@ -82,6 +88,33 @@ It replaces the validation step of the recovery graph. The steps are:
   plant trip counts as a crossing.
 - **Operating mode:** `upset` once PCA confirms a fault or a SIF is latched, and `emergency` after
   a plant trip. Setpoint changes are not allowed in `emergency`.
+
+### What ADMIT checks, and where to see it
+
+Every time the action agent proposes a plan, the gate records a full trace. It holds:
+- **context:** decision time, operating mode, the agent's authority scope, the active hazard and
+  the phrases that count as naming it, and whether consequence projection is on;
+- **ledger:** every evidence entry the agent was shown, with its channel, trust, quality and
+  content, plus the hash-chain head;
+- **one entry per command:**
+  - the record the agent filed: cited evidence, steps performed, confidence, reversibility,
+    recovery plan, hazard, diagnosis and rationale;
+  - the cartridge rule it is checked against: class, required authority, required evidence tags,
+    SOP steps, confidence floor and allowed modes;
+  - every gate's result with its violation codes and messages;
+  - for T4, the projected "do nothing" and plan trajectories (crossed or not, which SIF variable,
+    when, and the minimum margin);
+- **remedies:** ADMIT's fix for each violation code, which is what the agent is told on the retry.
+
+The trace is shown and saved in four places:
+
+| Where | What |
+|---|---|
+| Console → **FDD & Agents** → **ADMIT gate** card | the trace of every attempt (pick one in the selector): record next to rule, gate table, remedies, and the ledger with cited entries highlighted |
+| Console → agent timeline | one line per attempt: admitted / blocked and the violation codes |
+| `admit_audit/<start time>_<preset>.jsonl` (local server) | one JSON line per attempt with the full trace. Off on the hosted app; set `PLANT_ADMIT_LOG=<dir>` to choose the folder, or `PLANT_ADMIT_LOG=` to switch it off |
+| Benchmark runs: `benchmark_results/runs/<id>_admit*.json` → `agent.admit[]` | the full trace of every attempt in the run |
+| Campaign dashboard → scenario → *ADMIT checks* | every attempt, expandable to the record, rule, gates and ledger |
 
 ## 2. The plant as an ADMIT cartridge
 

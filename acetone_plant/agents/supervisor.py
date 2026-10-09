@@ -15,6 +15,9 @@ Modes
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
+import json
+import os
 import time
 from dataclasses import asdict, replace
 import itertools
@@ -52,7 +55,8 @@ class AsyncSupervisor:
         self.planner = planner or make_planner(self.cfg)
         self.pending: dict[int, dict] = {}
         self._ids = itertools.count(1)
-        self._usage = USAGE._meter()  # this session's meter (resolved now, inside the session's context)
+        self._usage = USAGE._meter()
+        self._audit_path = None  # ADMIT audit log file (created on the first verdict)  # this session's meter (resolved now, inside the session's context)
         self.ctx = RunContext(self.cfg, self.monitor, self.kg if self.cfg.use_kg else None, self.planner,
                               self.action_agent, self._snapshot_env, self._dispatch, self._emit,
                               on_decision_start=lambda: service.set_agent_hold(True),
@@ -171,8 +175,25 @@ class AsyncSupervisor:
         body = {k: v for k, v in event.items() if k not in ("event", "t")}
         body["wall"] = time.time()  # wall-clock stamp: decision / LLM / twin overheads
         await self.service.broadcast({"type": "agent", "stage": _STAGE.get(kind, kind), "time_min": event["t"], **body})
+        if kind == "admit":
+            self._audit(body, event["t"])
         if kind in ("plan", "proposal") and (self.cfg.proposer == "llm" or self.cfg.planner == "llm"):
             await self.service.broadcast({"type": "llm_usage", **self._usage.summary()})
+
+    def _audit(self, body: dict, t_min: float) -> None:
+        """ADMIT audit trail: one JSON line per gate verdict (context, ledger, records, gates).
+        Written to $PLANT_ADMIT_LOG (default ./admit_audit); off on the hosted app."""
+        if self._audit_path is None:
+            folder = os.environ.get("PLANT_ADMIT_LOG", "" if os.environ.get("PLANT_HOSTED") == "1" else "admit_audit")
+            if not folder:
+                self._audit_path = False
+                return
+            Path(folder).mkdir(parents=True, exist_ok=True)
+            self._audit_path = Path(folder) / f"{datetime.now():%Y%m%d_%H%M%S}_{self.cfg.name}.jsonl"
+        if self._audit_path:
+            row = {"time_min": t_min, **{k: v for k, v in body.items() if k != "wall"}}
+            with open(self._audit_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(row, default=str) + "\n")
 
     async def _snapshot_env(self):
         async with self.service.lock:

@@ -554,7 +554,9 @@ def build_recovery_graph(ctx: RunContext):
                                               state["diagnosis"], state.get("knowledge"))
             verdict["wall_s"] = round(time.perf_counter() - w0, 3)
             await emit({"event": "admit", "t": state["detection"]["time_min"], "plan": state["plan"],
-                        **{k: verdict[k] for k in ("admissible", "mode", "hazard_id", "records", "wall_s", "simulate")}})
+                        "attempt": state["attempts"] - 1,
+                        **{k: verdict[k] for k in ("admissible", "mode", "hazard_id", "records", "wall_s", "simulate",
+                                                   "context", "ledger", "ledger_head", "remedies")}})
             return {"twin": {"rollout": "admit", **verdict}}
         if not cfg.twin:
             reason = "twin disabled in this preset"

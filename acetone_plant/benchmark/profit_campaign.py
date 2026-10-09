@@ -264,10 +264,13 @@ async def run_scenario(scn: dict, mode: str, sched: dict, window: float, verbose
             "judge": [{"t": e["time_min"], "cycle": e.get("cycle"), "accept": e.get("accept"),
                        "confidence": e.get("confidence"), "reason": e.get("reason"),
                        "commands": (e.get("plan") or {}).get("commands")} for e in log if e.get("stage") == "judge"],
-            "admit": [{"t": e["time_min"], "cycle": e.get("cycle"), "admissible": e.get("admissible"),
-                       "hazard_id": e.get("hazard_id"), "wall_s": e.get("wall_s"),
+            # Full ADMIT audit trail: per decision attempt the context, the evidence ledger the agent was
+            # shown, and per command the record it filed, the rule it was checked against and each gate.
+            "admit": [{"t": e["time_min"], "cycle": e.get("cycle"), "attempt": e.get("attempt"),
+                       "admissible": e.get("admissible"), "hazard_id": e.get("hazard_id"), "wall_s": e.get("wall_s"),
+                       "simulate": e.get("simulate"), "context": e.get("context"), "ledger": e.get("ledger"),
+                       "ledger_head": e.get("ledger_head"), "records": e.get("records"),
                        "codes": [v["code"] for r in e.get("records") or [] for v in r.get("violations") or []],
-                       "violations": [v["message"][:200] for r in e.get("records") or [] for v in r.get("violations") or []],
                        "commands": (e.get("plan") or {}).get("commands")} for e in log if e.get("stage") == "admit"],
             "proposals": sum(1 for e in log if e.get("stage") == "proposal"),
             "diagnoses": [{"t": round(e["time_min"], 2), "cycle": e.get("cycle"), "ok": e.get("ok"),

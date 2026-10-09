@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { send, usePlant } from "../store";
 import type { AgentEvent } from "../types";
 import { Chart } from "./Chart";
+import { AdmitCard } from "./AdmitPanel";
 import { PipelineCard } from "./Pipeline";
 import { C } from "./Trends";
 
@@ -187,6 +188,7 @@ export function FddPanel() {
       </div>
 
       <LlmDiagnosisCard />
+      <AdmitCard />
       <PlanningCard />
 
       {pendingList.length > 0 && (

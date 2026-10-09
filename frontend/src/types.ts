@@ -146,8 +146,13 @@ export interface AgentEvent {
   // admit (ADMIT gate verdict)
   admissible?: boolean;
   hazard_id?: string | null;
-  records?: { action: string; admissible: boolean; aas_code: string | null;
-              violations: { code: string; gate: string; message: string }[] }[];
+  simulate?: boolean;
+  wall_s?: number;
+  records?: AdmitRecordResult[];
+  context?: AdmitContext;
+  ledger?: AdmitEvidence[];
+  ledger_head?: string;
+  remedies?: Record<string, string>;
   // llm_diagnosis
   ok?: boolean;
   summary?: string;
@@ -249,4 +254,29 @@ export interface SessionInfo {
   models: string[];
   llm: { model: string; key_source: "visitor" | "server" | null; active: boolean; reason: string;
          preset: string; presets: Record<string, string> };
+}
+
+// ADMIT gate trace (stage "admit"): what each action is checked on
+export interface AdmitEvidence { id: string; tag: string | null; source: string; trust: string; quality: string; content: string }
+export interface AdmitContext {
+  decided_at_min: number; mode: string; authority_scope: string[]; hazard_id: string | null;
+  diagnosis_accept: string[]; response_time_s: number; horizon_min: number | null; simulate: boolean;
+}
+export interface AdmitGateResult {
+  tier: string; name: string; passed: boolean; skipped: boolean;
+  violations: { code: string; message: string }[]; info: Record<string, unknown>;
+}
+export interface AdmitRecordResult {
+  command: Record<string, unknown>; action: string; params: Record<string, unknown>;
+  admissible: boolean; first_failing: string | null; aas_code: string | null;
+  record: { filed: boolean; cited_evidence: string[]; checks_performed: string[]; confidence: number;
+            reversibility: string; recovery_plan: string; retry_key: string | null; rationale: string;
+            hazard_id: string; diagnosis: string };
+  rule: { class?: string; reversibility?: string; required_authority?: string[]; required_evidence_tags?: string[];
+          required_steps?: string[]; step_evidence_tags?: Record<string, string[]>; confidence_floor?: number;
+          allowed_modes?: string[]; forbidden?: boolean; description?: string };
+  gates?: AdmitGateResult[];
+  violations: { code: string; gate: string; message: string }[];
+  trajectories?: Record<string, { crossed?: boolean; crossed_at_s?: number | null; crossed_var?: string | null;
+                                   min_margin?: number; diverging?: boolean; recovered?: boolean; recovery_action?: string | null }>;
 }

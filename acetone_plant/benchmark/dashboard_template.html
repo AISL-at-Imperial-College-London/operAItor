@@ -531,7 +531,47 @@ function renderAgent(id) {
       `<div class="ev"><span class="t">${e.t.toFixed(1)}</span><span class="k ${e.k}">${KL[e.k]}</span><span class="what">${e.html ? e.what : esc(e.what)}</span></div>`).join("")}</div></div>
     <div><h3>Decisions <span class="muted" style="text-transform:none;letter-spacing:0">(${how})</span></h3>
       ${cycleRows ? `<div class="table-wrap"><table><thead><tr><th class="num">min</th><th>Verdict</th><th>Candidates</th></tr></thead><tbody>${cycleRows}</tbody></table></div>` : `<p class="muted small">No decisions in this run.</p>`}
-      ${a.llm_errors?.length ? `<p class="small neg">${a.llm_errors.length} LLM call(s) failed; the rule agent stood in for those attempts.</p>` : ""}</div>`;
+      ${a.llm_errors?.length ? `<p class="small neg">${a.llm_errors.length} LLM call(s) failed; nothing was applied for those attempts.</p>` : ""}</div>
+    ${a.admit?.length ? admitSection(a.admit) : ""}`;
+}
+// ADMIT audit trail: for every decision attempt, the record the agent filed, the rule, each gate.
+function admitSection(evs) {
+  const chips = (xs) => (xs && xs.length) ? xs.map((x) => `<span class="chip">${esc(String(x))}</span>`).join("") : `<span class="muted">none</span>`;
+  const num = (v) => typeof v === "number" ? v.toFixed(3) : esc(String(v ?? "—"));
+  const traj = (t) => !t ? "" : Object.entries(t).map(([k, v]) => `${esc(k.replace("_trajectory", "").replace("_", " "))}: ${v.crossed
+      ? `<span class="neg">crosses ${esc(v.crossed_var)} at ${((v.crossed_at_s ?? 0) / 60).toFixed(1)} min</span>` : `inside, min margin ${num(v.min_margin)}`}`).join("<br>");
+  const rec = (r) => {
+    const R = r.record || {}, U = r.rule || {};
+    const params = Object.entries(r.params || {}).map(([k, v]) => `${k}=${typeof v === "number" ? +v.toFixed(3) : v}`).join(", ");
+    const gates = (r.gates || []).map((g) => `<tr><td><b>${g.tier}</b></td><td>${g.skipped ? `<span class="pill none">skipped</span>` : g.passed ? `<span class="pill ok">pass</span>` : `<span class="pill bad">fail</span>`}</td>
+      <td class="small">${g.violations.length ? g.violations.map(esc).join("<br>") : g.tier === "T4" && !g.skipped ? traj(r.t4) : `<span class="muted">${g.skipped ? "no simulation layer" : "pass"}</span>`}</td></tr>`).join("");
+    return `<div class="panel" style="gap:8px;border-left:3px solid ${r.admissible ? "var(--good)" : "var(--bad)"}">
+      <div><b>${esc(r.action)}</b> <span class="muted">${esc(params)}</span> ${r.admissible ? `<span class="pill ok">admissible</span>` : `<span class="pill bad">blocked at ${esc(r.first_failing)}: ${esc(r.aas_code)}</span>`}</div>
+      <div class="grid2" style="gap:12px">
+        <dl class="kv"><dt>Record filed</dt><dd>${R.filed ? "" : `<span class="neg">none filed</span>`}</dd>
+          <dt>cited evidence</dt><dd>${chips(R.cited_evidence)}</dd><dt>steps performed</dt><dd>${chips(R.checks_performed)}</dd>
+          <dt>confidence</dt><dd>${num(R.confidence)}</dd><dt>reversibility</dt><dd>${esc(R.reversibility || "—")}</dd>
+          <dt>recovery plan</dt><dd>${esc(R.recovery_plan || "—")}</dd><dt>hazard</dt><dd>${esc(R.hazard_id || "—")}</dd>
+          <dt>diagnosis</dt><dd>${esc(R.diagnosis || "—")}</dd></dl>
+        <dl class="kv"><dt>Rule (cartridge)</dt><dd>${esc(U.class || "")} · ${esc(U.reversibility || "")}</dd>
+          <dt>authority needed</dt><dd>${chips(U.required_authority)}</dd><dt>evidence tags</dt><dd>${chips(U.required_evidence_tags)}</dd>
+          <dt>SOP steps</dt><dd>${chips(U.required_steps)}</dd><dt>confidence floor</dt><dd>${num(U.confidence_floor)}</dd>
+          <dt>allowed modes</dt><dd>${chips(U.allowed_modes)}</dd></dl>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Gate</th><th>Result</th><th>Detail</th></tr></thead><tbody>${gates}</tbody></table></div></div>`;
+  };
+  const items = evs.map((e) => {
+    const c = e.context || {};
+    const ledger = e.ledger ? `<details><summary>Evidence ledger at this decision (${e.ledger.length} entries)</summary><div class="table-wrap"><table>
+      <thead><tr><th>id</th><th>channel</th><th>trust</th><th>content</th></tr></thead><tbody>${e.ledger.map((x) =>
+        `<tr><td class="mono">${esc(x.id)}</td><td>${esc(x.source)}</td><td class="${x.trust === "trusted" ? "" : "neg"}">${esc(x.trust)}</td><td class="small">${esc(x.content)}</td></tr>`).join("")}</tbody></table></div></details>` : "";
+    return `<details><summary>${e.t.toFixed(1)} min · decision ${e.cycle} · try ${(e.attempt ?? 0) + 1} · ${e.admissible ? `<span class="pill ok">admitted</span>` : `<span class="pill bad">blocked</span>`}
+        <span class="muted small">${(e.records || []).map((r) => esc(r.action) + (r.admissible ? "" : ` (${esc(r.aas_code)})`)).join(", ")}</span></summary>
+      <p class="small muted">mode ${esc(c.mode || "")} · active hazard ${esc(c.hazard_id || "none")} · authority ${(c.authority_scope || []).map(esc).join(", ")} · ${e.simulate ? "T0–T4 with projection" : "T0–T3, no simulation"}</p>
+      ${ledger}${(e.records || []).map(rec).join("")}</details>`;
+  }).join("");
+  const n = evs.length, ok = evs.filter((e) => e.admissible).length;
+  return `<div style="grid-column:1/-1"><h3>ADMIT checks <span class="muted" style="text-transform:none;letter-spacing:0">(${ok} of ${n} attempts admitted; open one to see the record, the rule and every gate)</span></h3>${items}</div>`;
 }
 function vMarks(id) {
   const s = D.scenarios[id], out = [];

@@ -26,6 +26,32 @@ def _series(run: dict) -> dict:
     return out
 
 
+def _admit(events: list[dict]) -> list[dict]:
+    """ADMIT audit trail for the dashboard: the ledger once per decision point, every attempt's records."""
+    out, seen = [], set()
+    for e in events:
+        key = (e.get("cycle"), round(e.get("t", 0), 2))
+        ledger = None
+        if key not in seen and e.get("ledger"):
+            seen.add(key)
+            ledger = [{"id": x["id"], "source": x["source"], "trust": x["trust"], "content": x["content"][:140]}
+                      for x in e["ledger"]]
+        out.append({"t": round(e["t"], 1), "cycle": e.get("cycle"), "attempt": e.get("attempt"),
+                    "admissible": e.get("admissible"), "simulate": e.get("simulate"), "context": e.get("context"),
+                    "ledger": ledger, "records": [
+                        {"action": r.get("action"), "params": r.get("params"), "admissible": r.get("admissible"),
+                         "first_failing": r.get("first_failing"), "aas_code": r.get("aas_code"),
+                         "record": r.get("record"), "rule": {k: v for k, v in (r.get("rule") or {}).items() if k != "description"},
+                         "gates": [{"tier": g["tier"], "passed": g["passed"], "skipped": g.get("skipped"),
+                                    "violations": [v["message"][:220] for v in g.get("violations") or []]}
+                                   for g in r.get("gates") or []],
+                         "t4": {k: {kk: v.get(kk) for kk in ("crossed", "crossed_var", "crossed_at_s", "min_margin")}
+                                for k, v in (r.get("trajectories") or {}).items()
+                                if isinstance(v, dict) and k.endswith("trajectory")}}
+                        for r in e.get("records") or []]})
+    return out
+
+
 def _run_summary(run: dict) -> dict:
     keep = ("status", "status_reason", "end_min", "tripped", "trip_min", "sifs", "sif_first_min", "profit_usd",
             "on_spec_acetone_kmol", "off_spec_min", "alarms_listed_at_end", "window_min", "schedule", "wall_s")
@@ -46,6 +72,7 @@ def _run_summary(run: dict) -> dict:
             "preset": a.get("preset"), "llm_model": a.get("llm_model"), "llm_usage": a.get("llm_usage"),
             "judge": [{"t": round(j["t"], 1), "cycle": j.get("cycle"), "accept": j.get("accept"),
                        "reason": j.get("reason"), "commands": j.get("commands")} for j in a.get("judge", [])],
+            "admit": _admit(a.get("admit") or []),
             "proposals": a.get("proposals"), "llm_errors": a.get("llm_errors", []),
             "timing": {k: v for k, v in (a.get("timing") or {}).items() if not isinstance(v, list)} or None,
         }
