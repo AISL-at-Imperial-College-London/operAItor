@@ -9,7 +9,7 @@ import { TopBar } from "./components/TopBar";
 import { Trends } from "./components/Trends";
 import { API_VERSION, usePlant } from "./store";
 
-const TABS = ["Overview", "Trends", "FDD & Agents", "Alarms"] as const;
+const TABS = ["Overview", "Trends", "FDD & Agents", "Alarms & events"] as const;
 type Tab = (typeof TABS)[number];
 const SIDES = ["Operator", "Assistant", "Master"] as const;
 type Side = (typeof SIDES)[number];
@@ -86,10 +86,10 @@ export default function App() {
           </nav>
           {snap && (
             <div className="tab-body">
-              {tab === "Overview" && (<><Overview /><Faceplates /><div className="grid two"><Alarms compact /><Messages /></div></>)}
+              {tab === "Overview" && (<><Overview /><Faceplates /><Alarms compact /></>)}
               {tab === "Trends" && <Trends />}
               {tab === "FDD & Agents" && <FddPanel />}
-              {tab === "Alarms" && (<><Alarms /><Messages /></>)}
+              {tab === "Alarms & events" && (<><Alarms /><Messages /></>)}
             </div>
           )}
         </main>

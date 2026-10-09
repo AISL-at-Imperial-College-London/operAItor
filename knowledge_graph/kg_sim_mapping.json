@@ -24,7 +24,7 @@
   "SET_THROUGHPUT": "fresh_ipa_feed"
  },
  "coverage": {
-  "mapped_kg_nodes": 205,
+  "mapped_kg_nodes": 208,
   "simulator_without_kg_node": {
    "measurements": [],
    "inputs": [],
@@ -1096,6 +1096,25 @@
     "type": "SET_SETPOINT",
     "target": "R_TIC"
    }
+  },
+  "obs_param_column_min_tray_holdup_kmol": {
+   "kind": "measurement",
+   "sim": "column_min_tray_holdup_kmol",
+   "alarms": {
+    "COL_TRAY_L": "< 1 kmol"
+   }
+  },
+  "alarm_COL_TRAY_L": {
+   "kind": "alarm",
+   "sim": "COL_TRAY_L",
+   "tag": "column_min_tray_holdup_kmol",
+   "limit": 1.0,
+   "direction": "LOW",
+   "priority": 1
+  },
+  "SIF_COL_L_LL": {
+   "kind": "sif",
+   "sim": "COL_L_LL"
   },
   "PSV-101": {
    "kind": "equipment",

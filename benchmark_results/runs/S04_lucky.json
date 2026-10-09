@@ -63,9 +63,9 @@
   "llm_model": "gpt-5-nano",
   "llm_usage": {
    "calls": 2,
-   "input_tokens": 13173,
-   "output_tokens": 1351,
-   "cost_usd": 0.001199
+   "input_tokens": 13156,
+   "output_tokens": 1074,
+   "cost_usd": 0.001087
   },
   "llm_errors": [],
   "judge": [],
@@ -80,7 +80,7 @@
     "hypotheses": [
      [
       "feed_pump_trip",
-      0.6
+      0.75
      ],
      [
       "cstr_outlet_capacity_loss",
@@ -88,16 +88,12 @@
      ],
      [
       "catalyst_activity_loss",
-      0.15
-     ],
-     [
-      "reactor_heater_stuck_high",
-      0.05
+      0.1
      ]
     ],
-    "summary": "A coherent plant upset with a likely FEED pump trip causing loss of fresh IPA supply to the reactor, with downstream effects on CSTR inventory and temperature control.",
-    "latency_s": 10.1,
-    "tokens": 5011
+    "summary": "PCA flags a large, coherent upset with simultaneous T2 and SPE violations. The fixed-rule evidence points to a failed feed pump (FEED train) as the primary cause, with downstream process pressure/level disturbances amplifying the upset.",
+    "latency_s": 5.49,
+    "tokens": 4870
    }
   ],
   "timing": {
@@ -106,15 +102,15 @@
      "t": 12.5,
      "cycle": 0,
      "agent": "diagnosis",
-     "latency_s": 10.1,
-     "tokens": 5011
+     "latency_s": 5.49,
+     "tokens": 4870
     },
     {
      "t": 12.5,
      "cycle": 1,
      "agent": "action",
-     "latency_s": 4.898,
-     "tokens": 9513
+     "latency_s": 3.456,
+     "tokens": 9360
     }
    ],
    "twin_rollouts": [],
@@ -127,12 +123,12 @@
     {
      "cycle": 1,
      "t": 12.5,
-     "wall_s": 5.358
+     "wall_s": 3.479
     }
    ],
-   "llm_s": 14.998,
+   "llm_s": 8.946,
    "twin_s": 0,
-   "decision_s": 5.358,
+   "decision_s": 3.479,
    "n_llm_calls": 2,
    "n_twin_rollouts": 0,
    "n_decisions": 2
@@ -181,7 +177,7 @@
   "verification": [],
   "errors": []
  },
- "wall_s": 1228.3,
+ "wall_s": 186.7,
  "ticks": [
   {
    "t": 0.5,
@@ -197,6 +193,7 @@
    "bottom_temperature_K": 354.42228,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.23756,
    "sif": [],
    "alarms_listed": 0
   },
@@ -214,6 +211,7 @@
    "bottom_temperature_K": 354.42228,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.23756,
    "sif": [],
    "alarms_listed": 0
   },
@@ -231,6 +229,7 @@
    "bottom_temperature_K": 354.42204,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.23756,
    "sif": [],
    "alarms_listed": 0
   },
@@ -248,6 +247,7 @@
    "bottom_temperature_K": 354.42178,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.23757,
    "sif": [],
    "alarms_listed": 0
   },
@@ -265,6 +265,7 @@
    "bottom_temperature_K": 354.42167,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.2374,
    "sif": [],
    "alarms_listed": 0
   },
@@ -282,6 +283,7 @@
    "bottom_temperature_K": 354.42165,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.236,
    "sif": [],
    "alarms_listed": 0
   },
@@ -299,6 +301,7 @@
    "bottom_temperature_K": 354.43948,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03973,
+   "column_min_tray_holdup_kmol": 2.23302,
    "sif": [],
    "alarms_listed": 0
   },
@@ -316,6 +319,7 @@
    "bottom_temperature_K": 354.46382,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03971,
+   "column_min_tray_holdup_kmol": 2.22973,
    "sif": [],
    "alarms_listed": 0
   },
@@ -333,6 +337,7 @@
    "bottom_temperature_K": 354.47278,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03969,
+   "column_min_tray_holdup_kmol": 2.22759,
    "sif": [],
    "alarms_listed": 0
   },
@@ -350,6 +355,7 @@
    "bottom_temperature_K": 354.47381,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03965,
+   "column_min_tray_holdup_kmol": 2.22723,
    "sif": [],
    "alarms_listed": 0
   },
@@ -367,6 +373,7 @@
    "bottom_temperature_K": 354.47379,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03962,
+   "column_min_tray_holdup_kmol": 2.2283,
    "sif": [],
    "alarms_listed": 0
   },
@@ -384,6 +391,7 @@
    "bottom_temperature_K": 354.47349,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03959,
+   "column_min_tray_holdup_kmol": 2.23008,
    "sif": [],
    "alarms_listed": 0
   },
@@ -401,6 +409,7 @@
    "bottom_temperature_K": 354.47426,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03956,
+   "column_min_tray_holdup_kmol": 2.23201,
    "sif": [],
    "alarms_listed": 0
   },
@@ -418,6 +427,7 @@
    "bottom_temperature_K": 354.47528,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03955,
+   "column_min_tray_holdup_kmol": 2.23372,
    "sif": [],
    "alarms_listed": 0
   },
@@ -435,6 +445,7 @@
    "bottom_temperature_K": 354.47495,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03953,
+   "column_min_tray_holdup_kmol": 2.23507,
    "sif": [],
    "alarms_listed": 0
   },
@@ -452,6 +463,7 @@
    "bottom_temperature_K": 354.47389,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03953,
+   "column_min_tray_holdup_kmol": 2.23605,
    "sif": [],
    "alarms_listed": 0
   },
@@ -469,6 +481,7 @@
    "bottom_temperature_K": 354.47267,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03952,
+   "column_min_tray_holdup_kmol": 2.23672,
    "sif": [],
    "alarms_listed": 0
   },
@@ -486,6 +499,7 @@
    "bottom_temperature_K": 354.4714,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03952,
+   "column_min_tray_holdup_kmol": 2.23716,
    "sif": [],
    "alarms_listed": 0
   },
@@ -503,6 +517,7 @@
    "bottom_temperature_K": 354.47009,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03952,
+   "column_min_tray_holdup_kmol": 2.23744,
    "sif": [],
    "alarms_listed": 0
   },
@@ -520,6 +535,7 @@
    "bottom_temperature_K": 354.46878,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03952,
+   "column_min_tray_holdup_kmol": 2.23761,
    "sif": [],
    "alarms_listed": 0
   },
@@ -537,6 +553,7 @@
    "bottom_temperature_K": 354.47002,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03952,
+   "column_min_tray_holdup_kmol": 2.23773,
    "sif": [],
    "alarms_listed": 1
   },
@@ -554,6 +571,7 @@
    "bottom_temperature_K": 354.47263,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03953,
+   "column_min_tray_holdup_kmol": 2.2377,
    "sif": [],
    "alarms_listed": 1
   },
@@ -571,6 +589,7 @@
    "bottom_temperature_K": 354.47314,
    "distillate_x_acetone": 0.94169,
    "bottoms_x_acetone": 0.03953,
+   "column_min_tray_holdup_kmol": 2.23677,
    "sif": [],
    "alarms_listed": 1
   },
@@ -588,6 +607,7 @@
    "bottom_temperature_K": 354.47431,
    "distillate_x_acetone": 0.94168,
    "bottoms_x_acetone": 0.03953,
+   "column_min_tray_holdup_kmol": 2.23217,
    "sif": [],
    "alarms_listed": 1
   },
@@ -605,6 +625,7 @@
    "bottom_temperature_K": 354.47505,
    "distillate_x_acetone": 0.94168,
    "bottoms_x_acetone": 0.03949,
+   "column_min_tray_holdup_kmol": 2.22154,
    "sif": [],
    "alarms_listed": 1
   },
@@ -622,6 +643,7 @@
    "bottom_temperature_K": 354.47649,
    "distillate_x_acetone": 0.94166,
    "bottoms_x_acetone": 0.0394,
+   "column_min_tray_holdup_kmol": 2.19703,
    "sif": [],
    "alarms_listed": 0
   },
@@ -639,6 +661,7 @@
    "bottom_temperature_K": 354.48386,
    "distillate_x_acetone": 0.94165,
    "bottoms_x_acetone": 0.03923,
+   "column_min_tray_holdup_kmol": 2.15945,
    "sif": [],
    "alarms_listed": 0
   },
@@ -656,6 +679,7 @@
    "bottom_temperature_K": 354.49567,
    "distillate_x_acetone": 0.94164,
    "bottoms_x_acetone": 0.03896,
+   "column_min_tray_holdup_kmol": 2.1265,
    "sif": [],
    "alarms_listed": 0
   },
@@ -673,6 +697,7 @@
    "bottom_temperature_K": 354.50908,
    "distillate_x_acetone": 0.94164,
    "bottoms_x_acetone": 0.03859,
+   "column_min_tray_holdup_kmol": 2.10249,
    "sif": [],
    "alarms_listed": 0
   },
@@ -690,6 +715,7 @@
    "bottom_temperature_K": 354.52474,
    "distillate_x_acetone": 0.94163,
    "bottoms_x_acetone": 0.03812,
+   "column_min_tray_holdup_kmol": 2.08097,
    "sif": [],
    "alarms_listed": 0
   },
@@ -707,6 +733,7 @@
    "bottom_temperature_K": 354.54387,
    "distillate_x_acetone": 0.94162,
    "bottoms_x_acetone": 0.03759,
+   "column_min_tray_holdup_kmol": 2.06807,
    "sif": [],
    "alarms_listed": 0
   },
@@ -724,6 +751,7 @@
    "bottom_temperature_K": 354.56489,
    "distillate_x_acetone": 0.94162,
    "bottoms_x_acetone": 0.037,
+   "column_min_tray_holdup_kmol": 2.06168,
    "sif": [],
    "alarms_listed": 0
   },
@@ -741,6 +769,7 @@
    "bottom_temperature_K": 354.58689,
    "distillate_x_acetone": 0.94161,
    "bottoms_x_acetone": 0.0364,
+   "column_min_tray_holdup_kmol": 2.05585,
    "sif": [],
    "alarms_listed": 0
   },
@@ -758,6 +787,7 @@
    "bottom_temperature_K": 354.60914,
    "distillate_x_acetone": 0.9416,
    "bottoms_x_acetone": 0.03578,
+   "column_min_tray_holdup_kmol": 2.05559,
    "sif": [],
    "alarms_listed": 0
   },
@@ -775,6 +805,7 @@
    "bottom_temperature_K": 354.63127,
    "distillate_x_acetone": 0.9416,
    "bottoms_x_acetone": 0.03517,
+   "column_min_tray_holdup_kmol": 2.059,
    "sif": [],
    "alarms_listed": 0
   },
@@ -792,6 +823,7 @@
    "bottom_temperature_K": 354.65294,
    "distillate_x_acetone": 0.94159,
    "bottoms_x_acetone": 0.03457,
+   "column_min_tray_holdup_kmol": 2.06426,
    "sif": [],
    "alarms_listed": 0
   },
@@ -809,6 +841,7 @@
    "bottom_temperature_K": 354.67445,
    "distillate_x_acetone": 0.94157,
    "bottoms_x_acetone": 0.03399,
+   "column_min_tray_holdup_kmol": 2.06998,
    "sif": [],
    "alarms_listed": 0
   },
@@ -826,6 +859,7 @@
    "bottom_temperature_K": 354.69532,
    "distillate_x_acetone": 0.94155,
    "bottoms_x_acetone": 0.03343,
+   "column_min_tray_holdup_kmol": 2.07512,
    "sif": [],
    "alarms_listed": 0
   },
@@ -843,6 +877,7 @@
    "bottom_temperature_K": 354.71558,
    "distillate_x_acetone": 0.94151,
    "bottoms_x_acetone": 0.03288,
+   "column_min_tray_holdup_kmol": 2.07915,
    "sif": [],
    "alarms_listed": 0
   },
@@ -860,6 +895,7 @@
    "bottom_temperature_K": 354.73524,
    "distillate_x_acetone": 0.94148,
    "bottoms_x_acetone": 0.03235,
+   "column_min_tray_holdup_kmol": 2.08233,
    "sif": [],
    "alarms_listed": 0
   },
@@ -877,6 +913,7 @@
    "bottom_temperature_K": 354.75434,
    "distillate_x_acetone": 0.94144,
    "bottoms_x_acetone": 0.03183,
+   "column_min_tray_holdup_kmol": 2.08528,
    "sif": [],
    "alarms_listed": 0
   },
@@ -894,6 +931,7 @@
    "bottom_temperature_K": 354.77276,
    "distillate_x_acetone": 0.94139,
    "bottoms_x_acetone": 0.03133,
+   "column_min_tray_holdup_kmol": 2.08903,
    "sif": [],
    "alarms_listed": 0
   },
@@ -911,6 +949,7 @@
    "bottom_temperature_K": 354.74037,
    "distillate_x_acetone": 0.94135,
    "bottoms_x_acetone": 0.03088,
+   "column_min_tray_holdup_kmol": 2.09397,
    "sif": [],
    "alarms_listed": 0
   },
@@ -928,6 +967,7 @@
    "bottom_temperature_K": 354.75005,
    "distillate_x_acetone": 0.9413,
    "bottoms_x_acetone": 0.03048,
+   "column_min_tray_holdup_kmol": 2.10054,
    "sif": [],
    "alarms_listed": 0
   },
@@ -945,6 +985,7 @@
    "bottom_temperature_K": 354.74878,
    "distillate_x_acetone": 0.94125,
    "bottoms_x_acetone": 0.03014,
+   "column_min_tray_holdup_kmol": 2.10763,
    "sif": [],
    "alarms_listed": 0
   },
@@ -962,6 +1003,7 @@
    "bottom_temperature_K": 354.75868,
    "distillate_x_acetone": 0.94121,
    "bottoms_x_acetone": 0.02984,
+   "column_min_tray_holdup_kmol": 2.11504,
    "sif": [],
    "alarms_listed": 0
   },
@@ -979,6 +1021,7 @@
    "bottom_temperature_K": 354.78619,
    "distillate_x_acetone": 0.94116,
    "bottoms_x_acetone": 0.02957,
+   "column_min_tray_holdup_kmol": 2.1225,
    "sif": [],
    "alarms_listed": 0
   },
@@ -996,6 +1039,7 @@
    "bottom_temperature_K": 354.79697,
    "distillate_x_acetone": 0.94111,
    "bottoms_x_acetone": 0.02933,
+   "column_min_tray_holdup_kmol": 2.12903,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1013,6 +1057,7 @@
    "bottom_temperature_K": 354.7768,
    "distillate_x_acetone": 0.94106,
    "bottoms_x_acetone": 0.02914,
+   "column_min_tray_holdup_kmol": 2.13405,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1030,6 +1075,7 @@
    "bottom_temperature_K": 354.77944,
    "distillate_x_acetone": 0.941,
    "bottoms_x_acetone": 0.02898,
+   "column_min_tray_holdup_kmol": 2.13817,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1047,6 +1093,7 @@
    "bottom_temperature_K": 354.78967,
    "distillate_x_acetone": 0.94095,
    "bottoms_x_acetone": 0.02886,
+   "column_min_tray_holdup_kmol": 2.14189,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1064,6 +1111,7 @@
    "bottom_temperature_K": 354.79417,
    "distillate_x_acetone": 0.9409,
    "bottoms_x_acetone": 0.02876,
+   "column_min_tray_holdup_kmol": 2.14614,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1081,6 +1129,7 @@
    "bottom_temperature_K": 354.80331,
    "distillate_x_acetone": 0.94084,
    "bottoms_x_acetone": 0.02869,
+   "column_min_tray_holdup_kmol": 2.15147,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1098,6 +1147,7 @@
    "bottom_temperature_K": 354.8053,
    "distillate_x_acetone": 0.94079,
    "bottoms_x_acetone": 0.02864,
+   "column_min_tray_holdup_kmol": 2.15692,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1115,6 +1165,7 @@
    "bottom_temperature_K": 354.80063,
    "distillate_x_acetone": 0.94073,
    "bottoms_x_acetone": 0.02862,
+   "column_min_tray_holdup_kmol": 2.16138,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1132,6 +1183,7 @@
    "bottom_temperature_K": 354.79969,
    "distillate_x_acetone": 0.94067,
    "bottoms_x_acetone": 0.02863,
+   "column_min_tray_holdup_kmol": 2.1647,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1149,6 +1201,7 @@
    "bottom_temperature_K": 354.83272,
    "distillate_x_acetone": 0.94062,
    "bottoms_x_acetone": 0.02863,
+   "column_min_tray_holdup_kmol": 2.16753,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1166,6 +1219,7 @@
    "bottom_temperature_K": 354.83607,
    "distillate_x_acetone": 0.94058,
    "bottoms_x_acetone": 0.02863,
+   "column_min_tray_holdup_kmol": 2.17093,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1183,6 +1237,7 @@
    "bottom_temperature_K": 354.79023,
    "distillate_x_acetone": 0.94053,
    "bottoms_x_acetone": 0.02867,
+   "column_min_tray_holdup_kmol": 2.17611,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1200,6 +1255,7 @@
    "bottom_temperature_K": 354.78146,
    "distillate_x_acetone": 0.94049,
    "bottoms_x_acetone": 0.02877,
+   "column_min_tray_holdup_kmol": 2.18344,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1217,6 +1273,7 @@
    "bottom_temperature_K": 354.81644,
    "distillate_x_acetone": 0.94045,
    "bottoms_x_acetone": 0.02887,
+   "column_min_tray_holdup_kmol": 2.19145,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1234,6 +1291,7 @@
    "bottom_temperature_K": 354.81608,
    "distillate_x_acetone": 0.9404,
    "bottoms_x_acetone": 0.02899,
+   "column_min_tray_holdup_kmol": 2.1974,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1251,6 +1309,7 @@
    "bottom_temperature_K": 354.81085,
    "distillate_x_acetone": 0.94035,
    "bottoms_x_acetone": 0.02912,
+   "column_min_tray_holdup_kmol": 2.20034,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1268,6 +1327,7 @@
    "bottom_temperature_K": 354.80497,
    "distillate_x_acetone": 0.94031,
    "bottoms_x_acetone": 0.02926,
+   "column_min_tray_holdup_kmol": 2.20157,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1285,6 +1345,7 @@
    "bottom_temperature_K": 354.74567,
    "distillate_x_acetone": 0.94026,
    "bottoms_x_acetone": 0.02943,
+   "column_min_tray_holdup_kmol": 2.20283,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1302,6 +1363,7 @@
    "bottom_temperature_K": 354.73134,
    "distillate_x_acetone": 0.94023,
    "bottoms_x_acetone": 0.02965,
+   "column_min_tray_holdup_kmol": 2.20566,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1319,6 +1381,7 @@
    "bottom_temperature_K": 354.7691,
    "distillate_x_acetone": 0.9402,
    "bottoms_x_acetone": 0.02987,
+   "column_min_tray_holdup_kmol": 2.20957,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1336,6 +1399,7 @@
    "bottom_temperature_K": 354.76583,
    "distillate_x_acetone": 0.94017,
    "bottoms_x_acetone": 0.03008,
+   "column_min_tray_holdup_kmol": 2.21327,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1353,6 +1417,7 @@
    "bottom_temperature_K": 354.68203,
    "distillate_x_acetone": 0.94015,
    "bottoms_x_acetone": 0.03037,
+   "column_min_tray_holdup_kmol": 2.21635,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1370,6 +1435,7 @@
    "bottom_temperature_K": 354.66046,
    "distillate_x_acetone": 0.94015,
    "bottoms_x_acetone": 0.0307,
+   "column_min_tray_holdup_kmol": 2.21962,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1387,6 +1453,7 @@
    "bottom_temperature_K": 354.71211,
    "distillate_x_acetone": 0.94015,
    "bottoms_x_acetone": 0.03103,
+   "column_min_tray_holdup_kmol": 2.22261,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1404,6 +1471,7 @@
    "bottom_temperature_K": 354.70719,
    "distillate_x_acetone": 0.94015,
    "bottoms_x_acetone": 0.03134,
+   "column_min_tray_holdup_kmol": 2.22437,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1421,6 +1489,7 @@
    "bottom_temperature_K": 354.69596,
    "distillate_x_acetone": 0.94015,
    "bottoms_x_acetone": 0.03164,
+   "column_min_tray_holdup_kmol": 2.22554,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1438,6 +1507,7 @@
    "bottom_temperature_K": 354.68406,
    "distillate_x_acetone": 0.94015,
    "bottoms_x_acetone": 0.03194,
+   "column_min_tray_holdup_kmol": 2.22631,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1455,6 +1525,7 @@
    "bottom_temperature_K": 354.63086,
    "distillate_x_acetone": 0.94016,
    "bottoms_x_acetone": 0.03227,
+   "column_min_tray_holdup_kmol": 2.22664,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1472,6 +1543,7 @@
    "bottom_temperature_K": 354.61196,
    "distillate_x_acetone": 0.94018,
    "bottoms_x_acetone": 0.03263,
+   "column_min_tray_holdup_kmol": 2.22717,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1489,6 +1561,7 @@
    "bottom_temperature_K": 354.63337,
    "distillate_x_acetone": 0.94021,
    "bottoms_x_acetone": 0.03296,
+   "column_min_tray_holdup_kmol": 2.22773,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1506,6 +1579,7 @@
    "bottom_temperature_K": 354.62422,
    "distillate_x_acetone": 0.94023,
    "bottoms_x_acetone": 0.03329,
+   "column_min_tray_holdup_kmol": 2.22785,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1523,6 +1597,7 @@
    "bottom_temperature_K": 354.61214,
    "distillate_x_acetone": 0.94026,
    "bottoms_x_acetone": 0.0336,
+   "column_min_tray_holdup_kmol": 2.22787,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1540,6 +1615,7 @@
    "bottom_temperature_K": 354.59997,
    "distillate_x_acetone": 0.9403,
    "bottoms_x_acetone": 0.03391,
+   "column_min_tray_holdup_kmol": 2.22787,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1557,6 +1633,7 @@
    "bottom_temperature_K": 354.58806,
    "distillate_x_acetone": 0.94033,
    "bottoms_x_acetone": 0.03421,
+   "column_min_tray_holdup_kmol": 2.22787,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1574,6 +1651,7 @@
    "bottom_temperature_K": 354.57633,
    "distillate_x_acetone": 0.94037,
    "bottoms_x_acetone": 0.03451,
+   "column_min_tray_holdup_kmol": 2.22783,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1591,6 +1669,7 @@
    "bottom_temperature_K": 354.51371,
    "distillate_x_acetone": 0.94042,
    "bottoms_x_acetone": 0.03484,
+   "column_min_tray_holdup_kmol": 2.22759,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1608,6 +1687,7 @@
    "bottom_temperature_K": 354.49319,
    "distillate_x_acetone": 0.94048,
    "bottoms_x_acetone": 0.03521,
+   "column_min_tray_holdup_kmol": 2.22783,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1625,6 +1705,7 @@
    "bottom_temperature_K": 354.5231,
    "distillate_x_acetone": 0.94054,
    "bottoms_x_acetone": 0.03555,
+   "column_min_tray_holdup_kmol": 2.22828,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1642,6 +1723,7 @@
    "bottom_temperature_K": 354.51577,
    "distillate_x_acetone": 0.94061,
    "bottoms_x_acetone": 0.03587,
+   "column_min_tray_holdup_kmol": 2.22831,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1659,6 +1741,7 @@
    "bottom_temperature_K": 354.50406,
    "distillate_x_acetone": 0.94067,
    "bottoms_x_acetone": 0.03618,
+   "column_min_tray_holdup_kmol": 2.22827,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1676,6 +1759,7 @@
    "bottom_temperature_K": 354.49207,
    "distillate_x_acetone": 0.94075,
    "bottoms_x_acetone": 0.03648,
+   "column_min_tray_holdup_kmol": 2.2282,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1693,6 +1777,7 @@
    "bottom_temperature_K": 354.48002,
    "distillate_x_acetone": 0.94082,
    "bottoms_x_acetone": 0.03677,
+   "column_min_tray_holdup_kmol": 2.22811,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1710,6 +1795,7 @@
    "bottom_temperature_K": 354.46825,
    "distillate_x_acetone": 0.94091,
    "bottoms_x_acetone": 0.03706,
+   "column_min_tray_holdup_kmol": 2.22804,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1727,6 +1813,7 @@
    "bottom_temperature_K": 354.45712,
    "distillate_x_acetone": 0.941,
    "bottoms_x_acetone": 0.03734,
+   "column_min_tray_holdup_kmol": 2.22801,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1744,6 +1831,7 @@
    "bottom_temperature_K": 354.44623,
    "distillate_x_acetone": 0.94107,
    "bottoms_x_acetone": 0.03762,
+   "column_min_tray_holdup_kmol": 2.22803,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1761,6 +1849,7 @@
    "bottom_temperature_K": 354.43528,
    "distillate_x_acetone": 0.94115,
    "bottoms_x_acetone": 0.03788,
+   "column_min_tray_holdup_kmol": 2.2281,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1778,6 +1867,7 @@
    "bottom_temperature_K": 354.42451,
    "distillate_x_acetone": 0.94123,
    "bottoms_x_acetone": 0.03815,
+   "column_min_tray_holdup_kmol": 2.22822,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1795,6 +1885,7 @@
    "bottom_temperature_K": 354.41428,
    "distillate_x_acetone": 0.94132,
    "bottoms_x_acetone": 0.03841,
+   "column_min_tray_holdup_kmol": 2.22839,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1812,6 +1903,7 @@
    "bottom_temperature_K": 354.40429,
    "distillate_x_acetone": 0.94141,
    "bottoms_x_acetone": 0.03867,
+   "column_min_tray_holdup_kmol": 2.22861,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1829,6 +1921,7 @@
    "bottom_temperature_K": 354.39439,
    "distillate_x_acetone": 0.9415,
    "bottoms_x_acetone": 0.03892,
+   "column_min_tray_holdup_kmol": 2.22882,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1846,6 +1939,7 @@
    "bottom_temperature_K": 354.38459,
    "distillate_x_acetone": 0.94159,
    "bottoms_x_acetone": 0.03917,
+   "column_min_tray_holdup_kmol": 2.229,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1863,6 +1957,7 @@
    "bottom_temperature_K": 354.37464,
    "distillate_x_acetone": 0.94168,
    "bottoms_x_acetone": 0.03941,
+   "column_min_tray_holdup_kmol": 2.22909,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1880,6 +1975,7 @@
    "bottom_temperature_K": 354.36482,
    "distillate_x_acetone": 0.94178,
    "bottoms_x_acetone": 0.03965,
+   "column_min_tray_holdup_kmol": 2.2291,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1897,6 +1993,7 @@
    "bottom_temperature_K": 354.35568,
    "distillate_x_acetone": 0.94187,
    "bottoms_x_acetone": 0.03989,
+   "column_min_tray_holdup_kmol": 2.22905,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1914,6 +2011,7 @@
    "bottom_temperature_K": 354.3468,
    "distillate_x_acetone": 0.94197,
    "bottoms_x_acetone": 0.04012,
+   "column_min_tray_holdup_kmol": 2.22896,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1931,6 +2029,7 @@
    "bottom_temperature_K": 354.33761,
    "distillate_x_acetone": 0.94207,
    "bottoms_x_acetone": 0.04035,
+   "column_min_tray_holdup_kmol": 2.22882,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1948,6 +2047,7 @@
    "bottom_temperature_K": 354.3285,
    "distillate_x_acetone": 0.94217,
    "bottoms_x_acetone": 0.04057,
+   "column_min_tray_holdup_kmol": 2.22863,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1965,6 +2065,7 @@
    "bottom_temperature_K": 354.31999,
    "distillate_x_acetone": 0.94226,
    "bottoms_x_acetone": 0.04079,
+   "column_min_tray_holdup_kmol": 2.22843,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1982,6 +2083,7 @@
    "bottom_temperature_K": 354.31171,
    "distillate_x_acetone": 0.94235,
    "bottoms_x_acetone": 0.041,
+   "column_min_tray_holdup_kmol": 2.22825,
    "sif": [],
    "alarms_listed": 0
   },
@@ -1999,6 +2101,7 @@
    "bottom_temperature_K": 354.30321,
    "distillate_x_acetone": 0.94244,
    "bottoms_x_acetone": 0.04121,
+   "column_min_tray_holdup_kmol": 2.22809,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2016,6 +2119,7 @@
    "bottom_temperature_K": 354.29485,
    "distillate_x_acetone": 0.94253,
    "bottoms_x_acetone": 0.04142,
+   "column_min_tray_holdup_kmol": 2.22794,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2033,6 +2137,7 @@
    "bottom_temperature_K": 354.28696,
    "distillate_x_acetone": 0.94263,
    "bottoms_x_acetone": 0.04162,
+   "column_min_tray_holdup_kmol": 2.22781,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2050,6 +2155,7 @@
    "bottom_temperature_K": 354.27929,
    "distillate_x_acetone": 0.94272,
    "bottoms_x_acetone": 0.04182,
+   "column_min_tray_holdup_kmol": 2.22769,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2067,6 +2173,7 @@
    "bottom_temperature_K": 354.27152,
    "distillate_x_acetone": 0.94282,
    "bottoms_x_acetone": 0.04201,
+   "column_min_tray_holdup_kmol": 2.22754,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2084,6 +2191,7 @@
    "bottom_temperature_K": 354.26386,
    "distillate_x_acetone": 0.94291,
    "bottoms_x_acetone": 0.0422,
+   "column_min_tray_holdup_kmol": 2.22733,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2101,6 +2209,7 @@
    "bottom_temperature_K": 354.25674,
    "distillate_x_acetone": 0.94301,
    "bottoms_x_acetone": 0.04239,
+   "column_min_tray_holdup_kmol": 2.22727,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2118,6 +2227,7 @@
    "bottom_temperature_K": 354.24981,
    "distillate_x_acetone": 0.94311,
    "bottoms_x_acetone": 0.04257,
+   "column_min_tray_holdup_kmol": 2.22845,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2135,6 +2245,7 @@
    "bottom_temperature_K": 354.24224,
    "distillate_x_acetone": 0.9432,
    "bottoms_x_acetone": 0.04277,
+   "column_min_tray_holdup_kmol": 2.23146,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2152,6 +2263,7 @@
    "bottom_temperature_K": 354.23401,
    "distillate_x_acetone": 0.9433,
    "bottoms_x_acetone": 0.04297,
+   "column_min_tray_holdup_kmol": 2.23483,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2169,6 +2281,7 @@
    "bottom_temperature_K": 354.22541,
    "distillate_x_acetone": 0.9434,
    "bottoms_x_acetone": 0.04319,
+   "column_min_tray_holdup_kmol": 2.2368,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2186,6 +2299,7 @@
    "bottom_temperature_K": 354.21678,
    "distillate_x_acetone": 0.9435,
    "bottoms_x_acetone": 0.04341,
+   "column_min_tray_holdup_kmol": 2.23684,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2203,6 +2317,7 @@
    "bottom_temperature_K": 354.24546,
    "distillate_x_acetone": 0.9436,
    "bottoms_x_acetone": 0.04358,
+   "column_min_tray_holdup_kmol": 2.23555,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2220,6 +2335,7 @@
    "bottom_temperature_K": 354.24475,
    "distillate_x_acetone": 0.94369,
    "bottoms_x_acetone": 0.04372,
+   "column_min_tray_holdup_kmol": 2.23323,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2237,6 +2353,7 @@
    "bottom_temperature_K": 354.20789,
    "distillate_x_acetone": 0.94378,
    "bottoms_x_acetone": 0.04386,
+   "column_min_tray_holdup_kmol": 2.23087,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2254,6 +2371,7 @@
    "bottom_temperature_K": 354.19833,
    "distillate_x_acetone": 0.94387,
    "bottoms_x_acetone": 0.04401,
+   "column_min_tray_holdup_kmol": 2.23023,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2271,6 +2389,7 @@
    "bottom_temperature_K": 354.19189,
    "distillate_x_acetone": 0.94396,
    "bottoms_x_acetone": 0.04416,
+   "column_min_tray_holdup_kmol": 2.23191,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2288,6 +2407,7 @@
    "bottom_temperature_K": 354.18533,
    "distillate_x_acetone": 0.94405,
    "bottoms_x_acetone": 0.04433,
+   "column_min_tray_holdup_kmol": 2.23575,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2305,6 +2425,7 @@
    "bottom_temperature_K": 354.2232,
    "distillate_x_acetone": 0.94414,
    "bottoms_x_acetone": 0.04447,
+   "column_min_tray_holdup_kmol": 2.24084,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2322,6 +2443,7 @@
    "bottom_temperature_K": 354.22346,
    "distillate_x_acetone": 0.94423,
    "bottoms_x_acetone": 0.04461,
+   "column_min_tray_holdup_kmol": 2.24447,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2339,6 +2461,7 @@
    "bottom_temperature_K": 354.21813,
    "distillate_x_acetone": 0.94431,
    "bottoms_x_acetone": 0.04473,
+   "column_min_tray_holdup_kmol": 2.24543,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2356,6 +2479,7 @@
    "bottom_temperature_K": 354.21366,
    "distillate_x_acetone": 0.94439,
    "bottoms_x_acetone": 0.04483,
+   "column_min_tray_holdup_kmol": 2.24384,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2373,6 +2497,7 @@
    "bottom_temperature_K": 354.17424,
    "distillate_x_acetone": 0.94445,
    "bottoms_x_acetone": 0.04494,
+   "column_min_tray_holdup_kmol": 2.24057,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2390,6 +2515,7 @@
    "bottom_temperature_K": 354.16508,
    "distillate_x_acetone": 0.94452,
    "bottoms_x_acetone": 0.04506,
+   "column_min_tray_holdup_kmol": 2.23717,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2407,6 +2533,7 @@
    "bottom_temperature_K": 354.22911,
    "distillate_x_acetone": 0.94458,
    "bottoms_x_acetone": 0.0451,
+   "column_min_tray_holdup_kmol": 2.23424,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2424,6 +2551,7 @@
    "bottom_temperature_K": 354.23799,
    "distillate_x_acetone": 0.94463,
    "bottoms_x_acetone": 0.04508,
+   "column_min_tray_holdup_kmol": 2.23124,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2441,6 +2569,7 @@
    "bottom_temperature_K": 354.17835,
    "distillate_x_acetone": 0.94468,
    "bottoms_x_acetone": 0.04509,
+   "column_min_tray_holdup_kmol": 2.22861,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2458,6 +2587,7 @@
    "bottom_temperature_K": 354.16983,
    "distillate_x_acetone": 0.94473,
    "bottoms_x_acetone": 0.04511,
+   "column_min_tray_holdup_kmol": 2.22714,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2475,6 +2605,7 @@
    "bottom_temperature_K": 354.16813,
    "distillate_x_acetone": 0.94479,
    "bottoms_x_acetone": 0.04513,
+   "column_min_tray_holdup_kmol": 2.22619,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2492,6 +2623,7 @@
    "bottom_temperature_K": 354.16729,
    "distillate_x_acetone": 0.94484,
    "bottoms_x_acetone": 0.04515,
+   "column_min_tray_holdup_kmol": 2.22551,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2509,6 +2641,7 @@
    "bottom_temperature_K": 354.16644,
    "distillate_x_acetone": 0.94489,
    "bottoms_x_acetone": 0.04518,
+   "column_min_tray_holdup_kmol": 2.2251,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2526,6 +2659,7 @@
    "bottom_temperature_K": 354.16544,
    "distillate_x_acetone": 0.94492,
    "bottoms_x_acetone": 0.0452,
+   "column_min_tray_holdup_kmol": 2.22576,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2543,6 +2677,7 @@
    "bottom_temperature_K": 354.23225,
    "distillate_x_acetone": 0.94494,
    "bottoms_x_acetone": 0.04517,
+   "column_min_tray_holdup_kmol": 2.22813,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2560,6 +2695,7 @@
    "bottom_temperature_K": 354.24312,
    "distillate_x_acetone": 0.94494,
    "bottoms_x_acetone": 0.0451,
+   "column_min_tray_holdup_kmol": 2.23018,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2577,6 +2713,7 @@
    "bottom_temperature_K": 354.1856,
    "distillate_x_acetone": 0.94494,
    "bottoms_x_acetone": 0.04507,
+   "column_min_tray_holdup_kmol": 2.23103,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2594,6 +2731,7 @@
    "bottom_temperature_K": 354.17825,
    "distillate_x_acetone": 0.94495,
    "bottoms_x_acetone": 0.04507,
+   "column_min_tray_holdup_kmol": 2.23225,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2611,6 +2749,7 @@
    "bottom_temperature_K": 354.17678,
    "distillate_x_acetone": 0.94495,
    "bottoms_x_acetone": 0.04508,
+   "column_min_tray_holdup_kmol": 2.23429,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2628,6 +2767,7 @@
    "bottom_temperature_K": 354.17548,
    "distillate_x_acetone": 0.94496,
    "bottoms_x_acetone": 0.04511,
+   "column_min_tray_holdup_kmol": 2.23607,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2645,6 +2785,7 @@
    "bottom_temperature_K": 354.17392,
    "distillate_x_acetone": 0.94497,
    "bottoms_x_acetone": 0.04515,
+   "column_min_tray_holdup_kmol": 2.23612,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2662,6 +2803,7 @@
    "bottom_temperature_K": 354.17242,
    "distillate_x_acetone": 0.94498,
    "bottoms_x_acetone": 0.04518,
+   "column_min_tray_holdup_kmol": 2.23413,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2679,6 +2821,7 @@
    "bottom_temperature_K": 354.17144,
    "distillate_x_acetone": 0.94499,
    "bottoms_x_acetone": 0.0452,
+   "column_min_tray_holdup_kmol": 2.23093,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2696,6 +2839,7 @@
    "bottom_temperature_K": 354.17097,
    "distillate_x_acetone": 0.945,
    "bottoms_x_acetone": 0.04522,
+   "column_min_tray_holdup_kmol": 2.22852,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2713,6 +2857,7 @@
    "bottom_temperature_K": 354.17051,
    "distillate_x_acetone": 0.94501,
    "bottoms_x_acetone": 0.04523,
+   "column_min_tray_holdup_kmol": 2.2282,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2730,6 +2875,7 @@
    "bottom_temperature_K": 354.16983,
    "distillate_x_acetone": 0.94502,
    "bottoms_x_acetone": 0.04525,
+   "column_min_tray_holdup_kmol": 2.22878,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2747,6 +2893,7 @@
    "bottom_temperature_K": 354.16905,
    "distillate_x_acetone": 0.94503,
    "bottoms_x_acetone": 0.04526,
+   "column_min_tray_holdup_kmol": 2.22849,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2764,6 +2911,7 @@
    "bottom_temperature_K": 354.16846,
    "distillate_x_acetone": 0.94504,
    "bottoms_x_acetone": 0.04527,
+   "column_min_tray_holdup_kmol": 2.22676,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2781,6 +2929,7 @@
    "bottom_temperature_K": 354.22011,
    "distillate_x_acetone": 0.94504,
    "bottoms_x_acetone": 0.04522,
+   "column_min_tray_holdup_kmol": 2.2244,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2798,6 +2947,7 @@
    "bottom_temperature_K": 354.23016,
    "distillate_x_acetone": 0.94504,
    "bottoms_x_acetone": 0.04513,
+   "column_min_tray_holdup_kmol": 2.2227,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2815,6 +2965,7 @@
    "bottom_temperature_K": 354.18874,
    "distillate_x_acetone": 0.94503,
    "bottoms_x_acetone": 0.04506,
+   "column_min_tray_holdup_kmol": 2.22342,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2832,6 +2983,7 @@
    "bottom_temperature_K": 354.18492,
    "distillate_x_acetone": 0.94503,
    "bottoms_x_acetone": 0.04501,
+   "column_min_tray_holdup_kmol": 2.22723,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2849,6 +3001,7 @@
    "bottom_temperature_K": 354.22723,
    "distillate_x_acetone": 0.94502,
    "bottoms_x_acetone": 0.04496,
+   "column_min_tray_holdup_kmol": 2.23284,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2866,6 +3019,7 @@
    "bottom_temperature_K": 354.23463,
    "distillate_x_acetone": 0.94501,
    "bottoms_x_acetone": 0.04491,
+   "column_min_tray_holdup_kmol": 2.23818,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2883,6 +3037,7 @@
    "bottom_temperature_K": 354.19891,
    "distillate_x_acetone": 0.945,
    "bottoms_x_acetone": 0.04489,
+   "column_min_tray_holdup_kmol": 2.24216,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2900,6 +3055,7 @@
    "bottom_temperature_K": 354.19354,
    "distillate_x_acetone": 0.94498,
    "bottoms_x_acetone": 0.04491,
+   "column_min_tray_holdup_kmol": 2.24396,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2917,6 +3073,7 @@
    "bottom_temperature_K": 354.22928,
    "distillate_x_acetone": 0.94497,
    "bottoms_x_acetone": 0.04489,
+   "column_min_tray_holdup_kmol": 2.24282,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2934,6 +3091,7 @@
    "bottom_temperature_K": 354.23554,
    "distillate_x_acetone": 0.94495,
    "bottoms_x_acetone": 0.04485,
+   "column_min_tray_holdup_kmol": 2.23894,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2951,6 +3109,7 @@
    "bottom_temperature_K": 354.24452,
    "distillate_x_acetone": 0.94493,
    "bottoms_x_acetone": 0.04476,
+   "column_min_tray_holdup_kmol": 2.23391,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2968,6 +3127,7 @@
    "bottom_temperature_K": 354.24926,
    "distillate_x_acetone": 0.9449,
    "bottoms_x_acetone": 0.04465,
+   "column_min_tray_holdup_kmol": 2.22882,
    "sif": [],
    "alarms_listed": 0
   },
@@ -2985,6 +3145,7 @@
    "bottom_temperature_K": 354.21904,
    "distillate_x_acetone": 0.94487,
    "bottoms_x_acetone": 0.04454,
+   "column_min_tray_holdup_kmol": 2.22428,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3002,6 +3163,7 @@
    "bottom_temperature_K": 354.21866,
    "distillate_x_acetone": 0.94484,
    "bottoms_x_acetone": 0.04443,
+   "column_min_tray_holdup_kmol": 2.22104,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3019,6 +3181,7 @@
    "bottom_temperature_K": 354.27313,
    "distillate_x_acetone": 0.94481,
    "bottoms_x_acetone": 0.04427,
+   "column_min_tray_holdup_kmol": 2.21915,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3036,6 +3199,7 @@
    "bottom_temperature_K": 354.28686,
    "distillate_x_acetone": 0.94478,
    "bottoms_x_acetone": 0.04408,
+   "column_min_tray_holdup_kmol": 2.2189,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3053,6 +3217,7 @@
    "bottom_temperature_K": 354.24977,
    "distillate_x_acetone": 0.94474,
    "bottoms_x_acetone": 0.04392,
+   "column_min_tray_holdup_kmol": 2.22114,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3070,6 +3235,7 @@
    "bottom_temperature_K": 354.24925,
    "distillate_x_acetone": 0.9447,
    "bottoms_x_acetone": 0.04379,
+   "column_min_tray_holdup_kmol": 2.2259,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3087,6 +3253,7 @@
    "bottom_temperature_K": 354.25231,
    "distillate_x_acetone": 0.94466,
    "bottoms_x_acetone": 0.0437,
+   "column_min_tray_holdup_kmol": 2.23136,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3104,6 +3271,7 @@
    "bottom_temperature_K": 354.2549,
    "distillate_x_acetone": 0.94463,
    "bottoms_x_acetone": 0.04363,
+   "column_min_tray_holdup_kmol": 2.23534,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3121,6 +3289,7 @@
    "bottom_temperature_K": 354.25696,
    "distillate_x_acetone": 0.94459,
    "bottoms_x_acetone": 0.04357,
+   "column_min_tray_holdup_kmol": 2.23646,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3138,6 +3307,7 @@
    "bottom_temperature_K": 354.25892,
    "distillate_x_acetone": 0.94455,
    "bottoms_x_acetone": 0.04352,
+   "column_min_tray_holdup_kmol": 2.23494,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3155,6 +3325,7 @@
    "bottom_temperature_K": 354.26112,
    "distillate_x_acetone": 0.94452,
    "bottoms_x_acetone": 0.04346,
+   "column_min_tray_holdup_kmol": 2.23184,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3172,6 +3343,7 @@
    "bottom_temperature_K": 354.26373,
    "distillate_x_acetone": 0.94448,
    "bottoms_x_acetone": 0.04339,
+   "column_min_tray_holdup_kmol": 2.22823,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3189,6 +3361,7 @@
    "bottom_temperature_K": 354.26677,
    "distillate_x_acetone": 0.94445,
    "bottoms_x_acetone": 0.04331,
+   "column_min_tray_holdup_kmol": 2.22487,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3206,6 +3379,7 @@
    "bottom_temperature_K": 354.27019,
    "distillate_x_acetone": 0.94441,
    "bottoms_x_acetone": 0.04322,
+   "column_min_tray_holdup_kmol": 2.2221,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3223,6 +3397,7 @@
    "bottom_temperature_K": 354.27406,
    "distillate_x_acetone": 0.94437,
    "bottoms_x_acetone": 0.04312,
+   "column_min_tray_holdup_kmol": 2.22019,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3240,6 +3415,7 @@
    "bottom_temperature_K": 354.2781,
    "distillate_x_acetone": 0.94433,
    "bottoms_x_acetone": 0.04302,
+   "column_min_tray_holdup_kmol": 2.2201,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3257,6 +3433,7 @@
    "bottom_temperature_K": 354.28176,
    "distillate_x_acetone": 0.94429,
    "bottoms_x_acetone": 0.04293,
+   "column_min_tray_holdup_kmol": 2.22225,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3274,6 +3451,7 @@
    "bottom_temperature_K": 354.28483,
    "distillate_x_acetone": 0.94426,
    "bottoms_x_acetone": 0.04285,
+   "column_min_tray_holdup_kmol": 2.22514,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3291,6 +3469,7 @@
    "bottom_temperature_K": 354.28744,
    "distillate_x_acetone": 0.94422,
    "bottoms_x_acetone": 0.04279,
+   "column_min_tray_holdup_kmol": 2.22694,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3308,6 +3487,7 @@
    "bottom_temperature_K": 354.28989,
    "distillate_x_acetone": 0.94418,
    "bottoms_x_acetone": 0.04272,
+   "column_min_tray_holdup_kmol": 2.22705,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3325,6 +3505,7 @@
    "bottom_temperature_K": 354.33979,
    "distillate_x_acetone": 0.94413,
    "bottoms_x_acetone": 0.04261,
+   "column_min_tray_holdup_kmol": 2.22617,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3342,6 +3523,7 @@
    "bottom_temperature_K": 354.3512,
    "distillate_x_acetone": 0.94408,
    "bottoms_x_acetone": 0.04247,
+   "column_min_tray_holdup_kmol": 2.22523,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3359,6 +3541,7 @@
    "bottom_temperature_K": 354.31541,
    "distillate_x_acetone": 0.94403,
    "bottoms_x_acetone": 0.04235,
+   "column_min_tray_holdup_kmol": 2.22573,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3376,6 +3559,7 @@
    "bottom_temperature_K": 354.31412,
    "distillate_x_acetone": 0.94398,
    "bottoms_x_acetone": 0.04225,
+   "column_min_tray_holdup_kmol": 2.22842,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3393,6 +3577,7 @@
    "bottom_temperature_K": 354.31654,
    "distillate_x_acetone": 0.94392,
    "bottoms_x_acetone": 0.04218,
+   "column_min_tray_holdup_kmol": 2.23233,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3410,6 +3595,7 @@
    "bottom_temperature_K": 354.31866,
    "distillate_x_acetone": 0.94387,
    "bottoms_x_acetone": 0.04213,
+   "column_min_tray_holdup_kmol": 2.2366,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3427,6 +3613,7 @@
    "bottom_temperature_K": 354.38336,
    "distillate_x_acetone": 0.94382,
    "bottoms_x_acetone": 0.04204,
+   "column_min_tray_holdup_kmol": 2.24056,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3444,6 +3631,7 @@
    "bottom_temperature_K": 354.39548,
    "distillate_x_acetone": 0.94375,
    "bottoms_x_acetone": 0.04193,
+   "column_min_tray_holdup_kmol": 2.24205,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3461,6 +3649,7 @@
    "bottom_temperature_K": 354.39136,
    "distillate_x_acetone": 0.94368,
    "bottoms_x_acetone": 0.0418,
+   "column_min_tray_holdup_kmol": 2.24074,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3478,6 +3667,7 @@
    "bottom_temperature_K": 354.39539,
    "distillate_x_acetone": 0.9436,
    "bottoms_x_acetone": 0.04165,
+   "column_min_tray_holdup_kmol": 2.23732,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3495,6 +3685,7 @@
    "bottom_temperature_K": 354.35869,
    "distillate_x_acetone": 0.94352,
    "bottoms_x_acetone": 0.04152,
+   "column_min_tray_holdup_kmol": 2.23267,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3512,6 +3703,7 @@
    "bottom_temperature_K": 354.35819,
    "distillate_x_acetone": 0.94345,
    "bottoms_x_acetone": 0.04139,
+   "column_min_tray_holdup_kmol": 2.22835,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3529,6 +3721,7 @@
    "bottom_temperature_K": 354.3626,
    "distillate_x_acetone": 0.94337,
    "bottoms_x_acetone": 0.04126,
+   "column_min_tray_holdup_kmol": 2.22463,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3546,6 +3739,7 @@
    "bottom_temperature_K": 354.36786,
    "distillate_x_acetone": 0.9433,
    "bottoms_x_acetone": 0.04112,
+   "column_min_tray_holdup_kmol": 2.2217,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3563,6 +3757,7 @@
    "bottom_temperature_K": 354.37338,
    "distillate_x_acetone": 0.94323,
    "bottoms_x_acetone": 0.04097,
+   "column_min_tray_holdup_kmol": 2.21953,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3580,6 +3775,7 @@
    "bottom_temperature_K": 354.37905,
    "distillate_x_acetone": 0.94315,
    "bottoms_x_acetone": 0.04083,
+   "column_min_tray_holdup_kmol": 2.21802,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3597,6 +3793,7 @@
    "bottom_temperature_K": 354.3848,
    "distillate_x_acetone": 0.94308,
    "bottoms_x_acetone": 0.04068,
+   "column_min_tray_holdup_kmol": 2.21699,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3614,6 +3811,7 @@
    "bottom_temperature_K": 354.3906,
    "distillate_x_acetone": 0.94301,
    "bottoms_x_acetone": 0.04053,
+   "column_min_tray_holdup_kmol": 2.21631,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3631,6 +3829,7 @@
    "bottom_temperature_K": 354.39654,
    "distillate_x_acetone": 0.94294,
    "bottoms_x_acetone": 0.04038,
+   "column_min_tray_holdup_kmol": 2.21605,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3648,6 +3847,7 @@
    "bottom_temperature_K": 354.40243,
    "distillate_x_acetone": 0.94286,
    "bottoms_x_acetone": 0.04023,
+   "column_min_tray_holdup_kmol": 2.21701,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3665,6 +3865,7 @@
    "bottom_temperature_K": 354.4078,
    "distillate_x_acetone": 0.94279,
    "bottoms_x_acetone": 0.0401,
+   "column_min_tray_holdup_kmol": 2.21964,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3682,6 +3883,7 @@
    "bottom_temperature_K": 354.41253,
    "distillate_x_acetone": 0.94272,
    "bottoms_x_acetone": 0.03998,
+   "column_min_tray_holdup_kmol": 2.22268,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3699,6 +3901,7 @@
    "bottom_temperature_K": 354.41677,
    "distillate_x_acetone": 0.94264,
    "bottoms_x_acetone": 0.03987,
+   "column_min_tray_holdup_kmol": 2.22459,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3716,6 +3919,7 @@
    "bottom_temperature_K": 354.42077,
    "distillate_x_acetone": 0.94257,
    "bottoms_x_acetone": 0.03976,
+   "column_min_tray_holdup_kmol": 2.22488,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3733,6 +3937,7 @@
    "bottom_temperature_K": 354.42473,
    "distillate_x_acetone": 0.9425,
    "bottoms_x_acetone": 0.03966,
+   "column_min_tray_holdup_kmol": 2.22392,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3750,6 +3955,7 @@
    "bottom_temperature_K": 354.42889,
    "distillate_x_acetone": 0.94245,
    "bottoms_x_acetone": 0.03955,
+   "column_min_tray_holdup_kmol": 2.22233,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3767,6 +3973,7 @@
    "bottom_temperature_K": 354.43328,
    "distillate_x_acetone": 0.94241,
    "bottoms_x_acetone": 0.03944,
+   "column_min_tray_holdup_kmol": 2.22063,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3784,6 +3991,7 @@
    "bottom_temperature_K": 354.43775,
    "distillate_x_acetone": 0.94235,
    "bottoms_x_acetone": 0.03932,
+   "column_min_tray_holdup_kmol": 2.21913,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3801,6 +4009,7 @@
    "bottom_temperature_K": 354.44247,
    "distillate_x_acetone": 0.9423,
    "bottoms_x_acetone": 0.03921,
+   "column_min_tray_holdup_kmol": 2.21813,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3818,6 +4027,7 @@
    "bottom_temperature_K": 354.44722,
    "distillate_x_acetone": 0.94224,
    "bottoms_x_acetone": 0.03909,
+   "column_min_tray_holdup_kmol": 2.21857,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3835,6 +4045,7 @@
    "bottom_temperature_K": 354.45166,
    "distillate_x_acetone": 0.94218,
    "bottoms_x_acetone": 0.03899,
+   "column_min_tray_holdup_kmol": 2.22109,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3852,6 +4063,7 @@
    "bottom_temperature_K": 354.45544,
    "distillate_x_acetone": 0.94212,
    "bottoms_x_acetone": 0.0389,
+   "column_min_tray_holdup_kmol": 2.2253,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3869,6 +4081,7 @@
    "bottom_temperature_K": 354.45839,
    "distillate_x_acetone": 0.94206,
    "bottoms_x_acetone": 0.03883,
+   "column_min_tray_holdup_kmol": 2.23032,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3886,6 +4099,7 @@
    "bottom_temperature_K": 354.46045,
    "distillate_x_acetone": 0.942,
    "bottoms_x_acetone": 0.03878,
+   "column_min_tray_holdup_kmol": 2.23538,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3903,6 +4117,7 @@
    "bottom_temperature_K": 354.46164,
    "distillate_x_acetone": 0.94194,
    "bottoms_x_acetone": 0.03876,
+   "column_min_tray_holdup_kmol": 2.24004,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3920,6 +4135,7 @@
    "bottom_temperature_K": 354.462,
    "distillate_x_acetone": 0.94188,
    "bottoms_x_acetone": 0.03876,
+   "column_min_tray_holdup_kmol": 2.24416,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3937,6 +4153,7 @@
    "bottom_temperature_K": 354.46171,
    "distillate_x_acetone": 0.94182,
    "bottoms_x_acetone": 0.03877,
+   "column_min_tray_holdup_kmol": 2.24752,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3954,6 +4171,7 @@
    "bottom_temperature_K": 354.46081,
    "distillate_x_acetone": 0.94176,
    "bottoms_x_acetone": 0.0388,
+   "column_min_tray_holdup_kmol": 2.24909,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3971,6 +4189,7 @@
    "bottom_temperature_K": 354.45951,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03884,
+   "column_min_tray_holdup_kmol": 2.24828,
    "sif": [],
    "alarms_listed": 0
   },
@@ -3988,6 +4207,7 @@
    "bottom_temperature_K": 354.45829,
    "distillate_x_acetone": 0.94164,
    "bottoms_x_acetone": 0.03887,
+   "column_min_tray_holdup_kmol": 2.24628,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4005,6 +4225,7 @@
    "bottom_temperature_K": 354.45714,
    "distillate_x_acetone": 0.94159,
    "bottoms_x_acetone": 0.03889,
+   "column_min_tray_holdup_kmol": 2.24455,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4022,6 +4243,7 @@
    "bottom_temperature_K": 354.4561,
    "distillate_x_acetone": 0.94153,
    "bottoms_x_acetone": 0.03892,
+   "column_min_tray_holdup_kmol": 2.24296,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4039,6 +4261,7 @@
    "bottom_temperature_K": 354.45543,
    "distillate_x_acetone": 0.94148,
    "bottoms_x_acetone": 0.03894,
+   "column_min_tray_holdup_kmol": 2.24102,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4056,6 +4279,7 @@
    "bottom_temperature_K": 354.45505,
    "distillate_x_acetone": 0.94142,
    "bottoms_x_acetone": 0.03895,
+   "column_min_tray_holdup_kmol": 2.23962,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4073,6 +4297,7 @@
    "bottom_temperature_K": 354.45455,
    "distillate_x_acetone": 0.94137,
    "bottoms_x_acetone": 0.03896,
+   "column_min_tray_holdup_kmol": 2.23968,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4090,6 +4315,7 @@
    "bottom_temperature_K": 354.45385,
    "distillate_x_acetone": 0.94132,
    "bottoms_x_acetone": 0.03898,
+   "column_min_tray_holdup_kmol": 2.24019,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4107,6 +4333,7 @@
    "bottom_temperature_K": 354.4531,
    "distillate_x_acetone": 0.94127,
    "bottoms_x_acetone": 0.03899,
+   "column_min_tray_holdup_kmol": 2.23973,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4124,6 +4351,7 @@
    "bottom_temperature_K": 354.45254,
    "distillate_x_acetone": 0.94122,
    "bottoms_x_acetone": 0.039,
+   "column_min_tray_holdup_kmol": 2.23791,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4141,6 +4369,7 @@
    "bottom_temperature_K": 354.45253,
    "distillate_x_acetone": 0.94117,
    "bottoms_x_acetone": 0.03901,
+   "column_min_tray_holdup_kmol": 2.23532,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4158,6 +4387,7 @@
    "bottom_temperature_K": 354.45295,
    "distillate_x_acetone": 0.94112,
    "bottoms_x_acetone": 0.039,
+   "column_min_tray_holdup_kmol": 2.23356,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4175,6 +4405,7 @@
    "bottom_temperature_K": 354.45333,
    "distillate_x_acetone": 0.94108,
    "bottoms_x_acetone": 0.03899,
+   "column_min_tray_holdup_kmol": 2.23361,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4192,6 +4423,7 @@
    "bottom_temperature_K": 354.45353,
    "distillate_x_acetone": 0.94103,
    "bottoms_x_acetone": 0.03898,
+   "column_min_tray_holdup_kmol": 2.23447,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4209,6 +4441,7 @@
    "bottom_temperature_K": 354.45361,
    "distillate_x_acetone": 0.941,
    "bottoms_x_acetone": 0.03898,
+   "column_min_tray_holdup_kmol": 2.23465,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4226,6 +4459,7 @@
    "bottom_temperature_K": 354.45384,
    "distillate_x_acetone": 0.94097,
    "bottoms_x_acetone": 0.03897,
+   "column_min_tray_holdup_kmol": 2.23363,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4243,6 +4477,7 @@
    "bottom_temperature_K": 354.4544,
    "distillate_x_acetone": 0.94094,
    "bottoms_x_acetone": 0.03895,
+   "column_min_tray_holdup_kmol": 2.23173,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4260,6 +4495,7 @@
    "bottom_temperature_K": 354.45528,
    "distillate_x_acetone": 0.94092,
    "bottoms_x_acetone": 0.03893,
+   "column_min_tray_holdup_kmol": 2.22947,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4277,6 +4513,7 @@
    "bottom_temperature_K": 354.45678,
    "distillate_x_acetone": 0.9409,
    "bottoms_x_acetone": 0.03889,
+   "column_min_tray_holdup_kmol": 2.22733,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4294,6 +4531,7 @@
    "bottom_temperature_K": 354.45866,
    "distillate_x_acetone": 0.94088,
    "bottoms_x_acetone": 0.03885,
+   "column_min_tray_holdup_kmol": 2.22555,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4311,6 +4549,7 @@
    "bottom_temperature_K": 354.46055,
    "distillate_x_acetone": 0.94087,
    "bottoms_x_acetone": 0.0388,
+   "column_min_tray_holdup_kmol": 2.22421,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4328,6 +4567,7 @@
    "bottom_temperature_K": 354.46253,
    "distillate_x_acetone": 0.94086,
    "bottoms_x_acetone": 0.03875,
+   "column_min_tray_holdup_kmol": 2.22331,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4345,6 +4585,7 @@
    "bottom_temperature_K": 354.46484,
    "distillate_x_acetone": 0.94084,
    "bottoms_x_acetone": 0.03869,
+   "column_min_tray_holdup_kmol": 2.22298,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4362,6 +4603,7 @@
    "bottom_temperature_K": 354.46722,
    "distillate_x_acetone": 0.94083,
    "bottoms_x_acetone": 0.03863,
+   "column_min_tray_holdup_kmol": 2.22406,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4379,6 +4621,7 @@
    "bottom_temperature_K": 354.46913,
    "distillate_x_acetone": 0.94081,
    "bottoms_x_acetone": 0.03859,
+   "column_min_tray_holdup_kmol": 2.22697,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4396,6 +4639,7 @@
    "bottom_temperature_K": 354.47047,
    "distillate_x_acetone": 0.9408,
    "bottoms_x_acetone": 0.03855,
+   "column_min_tray_holdup_kmol": 2.23045,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4413,6 +4657,7 @@
    "bottom_temperature_K": 354.47133,
    "distillate_x_acetone": 0.94079,
    "bottoms_x_acetone": 0.03853,
+   "column_min_tray_holdup_kmol": 2.23294,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4430,6 +4675,7 @@
    "bottom_temperature_K": 354.47193,
    "distillate_x_acetone": 0.94077,
    "bottoms_x_acetone": 0.03852,
+   "column_min_tray_holdup_kmol": 2.23393,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4447,6 +4693,7 @@
    "bottom_temperature_K": 354.47269,
    "distillate_x_acetone": 0.94076,
    "bottoms_x_acetone": 0.0385,
+   "column_min_tray_holdup_kmol": 2.23396,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4464,6 +4711,7 @@
    "bottom_temperature_K": 354.47343,
    "distillate_x_acetone": 0.94074,
    "bottoms_x_acetone": 0.03849,
+   "column_min_tray_holdup_kmol": 2.23485,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4481,6 +4729,7 @@
    "bottom_temperature_K": 354.47356,
    "distillate_x_acetone": 0.94073,
    "bottoms_x_acetone": 0.03849,
+   "column_min_tray_holdup_kmol": 2.23773,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4498,6 +4747,7 @@
    "bottom_temperature_K": 354.47298,
    "distillate_x_acetone": 0.94071,
    "bottoms_x_acetone": 0.03851,
+   "column_min_tray_holdup_kmol": 2.24115,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4515,6 +4765,7 @@
    "bottom_temperature_K": 354.47187,
    "distillate_x_acetone": 0.9407,
    "bottoms_x_acetone": 0.03854,
+   "column_min_tray_holdup_kmol": 2.2431,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4532,6 +4783,7 @@
    "bottom_temperature_K": 354.4706,
    "distillate_x_acetone": 0.94069,
    "bottoms_x_acetone": 0.03857,
+   "column_min_tray_holdup_kmol": 2.24294,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4549,6 +4801,7 @@
    "bottom_temperature_K": 354.46945,
    "distillate_x_acetone": 0.94067,
    "bottoms_x_acetone": 0.03859,
+   "column_min_tray_holdup_kmol": 2.24118,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4566,6 +4819,7 @@
    "bottom_temperature_K": 354.46862,
    "distillate_x_acetone": 0.94066,
    "bottoms_x_acetone": 0.03861,
+   "column_min_tray_holdup_kmol": 2.23864,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4583,6 +4837,7 @@
    "bottom_temperature_K": 354.47163,
    "distillate_x_acetone": 0.94065,
    "bottoms_x_acetone": 0.03863,
+   "column_min_tray_holdup_kmol": 2.23623,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4600,6 +4855,7 @@
    "bottom_temperature_K": 354.47607,
    "distillate_x_acetone": 0.94064,
    "bottoms_x_acetone": 0.03863,
+   "column_min_tray_holdup_kmol": 2.2353,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4617,6 +4873,7 @@
    "bottom_temperature_K": 354.47736,
    "distillate_x_acetone": 0.94063,
    "bottoms_x_acetone": 0.03864,
+   "column_min_tray_holdup_kmol": 2.23666,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4634,6 +4891,7 @@
    "bottom_temperature_K": 354.47664,
    "distillate_x_acetone": 0.94062,
    "bottoms_x_acetone": 0.03867,
+   "column_min_tray_holdup_kmol": 2.23979,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4651,6 +4909,7 @@
    "bottom_temperature_K": 354.47496,
    "distillate_x_acetone": 0.9406,
    "bottoms_x_acetone": 0.0387,
+   "column_min_tray_holdup_kmol": 2.2434,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4668,6 +4927,7 @@
    "bottom_temperature_K": 354.4727,
    "distillate_x_acetone": 0.94059,
    "bottoms_x_acetone": 0.03875,
+   "column_min_tray_holdup_kmol": 2.24579,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4685,6 +4945,7 @@
    "bottom_temperature_K": 354.47025,
    "distillate_x_acetone": 0.94058,
    "bottoms_x_acetone": 0.03881,
+   "column_min_tray_holdup_kmol": 2.24592,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4702,6 +4963,7 @@
    "bottom_temperature_K": 354.46797,
    "distillate_x_acetone": 0.94058,
    "bottoms_x_acetone": 0.03885,
+   "column_min_tray_holdup_kmol": 2.24401,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4719,6 +4981,7 @@
    "bottom_temperature_K": 354.46611,
    "distillate_x_acetone": 0.94057,
    "bottoms_x_acetone": 0.03889,
+   "column_min_tray_holdup_kmol": 2.24096,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4736,6 +4999,7 @@
    "bottom_temperature_K": 354.46476,
    "distillate_x_acetone": 0.94056,
    "bottoms_x_acetone": 0.03892,
+   "column_min_tray_holdup_kmol": 2.23762,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4753,6 +5017,7 @@
    "bottom_temperature_K": 354.46393,
    "distillate_x_acetone": 0.94055,
    "bottoms_x_acetone": 0.03893,
+   "column_min_tray_holdup_kmol": 2.23458,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4770,6 +5035,7 @@
    "bottom_temperature_K": 354.46355,
    "distillate_x_acetone": 0.94055,
    "bottoms_x_acetone": 0.03893,
+   "column_min_tray_holdup_kmol": 2.2321,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4787,6 +5053,7 @@
    "bottom_temperature_K": 354.46355,
    "distillate_x_acetone": 0.94054,
    "bottoms_x_acetone": 0.03892,
+   "column_min_tray_holdup_kmol": 2.23022,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4804,6 +5071,7 @@
    "bottom_temperature_K": 354.46385,
    "distillate_x_acetone": 0.94054,
    "bottoms_x_acetone": 0.03891,
+   "column_min_tray_holdup_kmol": 2.22887,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4821,6 +5089,7 @@
    "bottom_temperature_K": 354.46439,
    "distillate_x_acetone": 0.94053,
    "bottoms_x_acetone": 0.03888,
+   "column_min_tray_holdup_kmol": 2.22793,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4838,6 +5107,7 @@
    "bottom_temperature_K": 354.46512,
    "distillate_x_acetone": 0.94053,
    "bottoms_x_acetone": 0.03886,
+   "column_min_tray_holdup_kmol": 2.2273,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4855,6 +5125,7 @@
    "bottom_temperature_K": 354.46616,
    "distillate_x_acetone": 0.94052,
    "bottoms_x_acetone": 0.03883,
+   "column_min_tray_holdup_kmol": 2.22705,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4872,6 +5143,7 @@
    "bottom_temperature_K": 354.46725,
    "distillate_x_acetone": 0.94052,
    "bottoms_x_acetone": 0.0388,
+   "column_min_tray_holdup_kmol": 2.22802,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4889,6 +5161,7 @@
    "bottom_temperature_K": 354.46791,
    "distillate_x_acetone": 0.94052,
    "bottoms_x_acetone": 0.03878,
+   "column_min_tray_holdup_kmol": 2.23064,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4906,6 +5179,7 @@
    "bottom_temperature_K": 354.46807,
    "distillate_x_acetone": 0.94051,
    "bottoms_x_acetone": 0.03877,
+   "column_min_tray_holdup_kmol": 2.23366,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4923,6 +5197,7 @@
    "bottom_temperature_K": 354.46785,
    "distillate_x_acetone": 0.94051,
    "bottoms_x_acetone": 0.03877,
+   "column_min_tray_holdup_kmol": 2.23553,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4940,6 +5215,7 @@
    "bottom_temperature_K": 354.4675,
    "distillate_x_acetone": 0.9405,
    "bottoms_x_acetone": 0.03878,
+   "column_min_tray_holdup_kmol": 2.23579,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4957,6 +5233,7 @@
    "bottom_temperature_K": 354.46723,
    "distillate_x_acetone": 0.94051,
    "bottoms_x_acetone": 0.03878,
+   "column_min_tray_holdup_kmol": 2.23481,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4974,6 +5251,7 @@
    "bottom_temperature_K": 354.46722,
    "distillate_x_acetone": 0.94052,
    "bottoms_x_acetone": 0.03877,
+   "column_min_tray_holdup_kmol": 2.23322,
    "sif": [],
    "alarms_listed": 0
   },
@@ -4991,6 +5269,7 @@
    "bottom_temperature_K": 354.4675,
    "distillate_x_acetone": 0.94053,
    "bottoms_x_acetone": 0.03876,
+   "column_min_tray_holdup_kmol": 2.23152,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5008,6 +5287,7 @@
    "bottom_temperature_K": 354.46799,
    "distillate_x_acetone": 0.94054,
    "bottoms_x_acetone": 0.03874,
+   "column_min_tray_holdup_kmol": 2.23002,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5025,6 +5305,7 @@
    "bottom_temperature_K": 354.46885,
    "distillate_x_acetone": 0.94055,
    "bottoms_x_acetone": 0.03872,
+   "column_min_tray_holdup_kmol": 2.22901,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5042,6 +5323,7 @@
    "bottom_temperature_K": 354.46981,
    "distillate_x_acetone": 0.94056,
    "bottoms_x_acetone": 0.0387,
+   "column_min_tray_holdup_kmol": 2.22938,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5059,6 +5341,7 @@
    "bottom_temperature_K": 354.47039,
    "distillate_x_acetone": 0.94056,
    "bottoms_x_acetone": 0.03868,
+   "column_min_tray_holdup_kmol": 2.23158,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5076,6 +5359,7 @@
    "bottom_temperature_K": 354.4705,
    "distillate_x_acetone": 0.94057,
    "bottoms_x_acetone": 0.03868,
+   "column_min_tray_holdup_kmol": 2.23437,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5093,6 +5377,7 @@
    "bottom_temperature_K": 354.47022,
    "distillate_x_acetone": 0.94058,
    "bottoms_x_acetone": 0.03868,
+   "column_min_tray_holdup_kmol": 2.23626,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5110,6 +5395,7 @@
    "bottom_temperature_K": 354.46977,
    "distillate_x_acetone": 0.94058,
    "bottoms_x_acetone": 0.03869,
+   "column_min_tray_holdup_kmol": 2.23676,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5127,6 +5413,7 @@
    "bottom_temperature_K": 354.4691,
    "distillate_x_acetone": 0.94059,
    "bottoms_x_acetone": 0.03869,
+   "column_min_tray_holdup_kmol": 2.23617,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5144,6 +5431,7 @@
    "bottom_temperature_K": 354.46854,
    "distillate_x_acetone": 0.9406,
    "bottoms_x_acetone": 0.0387,
+   "column_min_tray_holdup_kmol": 2.23506,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5161,6 +5449,7 @@
    "bottom_temperature_K": 354.46847,
    "distillate_x_acetone": 0.9406,
    "bottoms_x_acetone": 0.0387,
+   "column_min_tray_holdup_kmol": 2.23388,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5178,6 +5467,7 @@
    "bottom_temperature_K": 354.46862,
    "distillate_x_acetone": 0.94061,
    "bottoms_x_acetone": 0.03869,
+   "column_min_tray_holdup_kmol": 2.2329,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5195,6 +5485,7 @@
    "bottom_temperature_K": 354.46886,
    "distillate_x_acetone": 0.94062,
    "bottoms_x_acetone": 0.03868,
+   "column_min_tray_holdup_kmol": 2.23218,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5212,6 +5503,7 @@
    "bottom_temperature_K": 354.46916,
    "distillate_x_acetone": 0.94062,
    "bottoms_x_acetone": 0.03867,
+   "column_min_tray_holdup_kmol": 2.23168,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5229,6 +5521,7 @@
    "bottom_temperature_K": 354.46951,
    "distillate_x_acetone": 0.94063,
    "bottoms_x_acetone": 0.03866,
+   "column_min_tray_holdup_kmol": 2.23135,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5246,6 +5539,7 @@
    "bottom_temperature_K": 354.46991,
    "distillate_x_acetone": 0.94064,
    "bottoms_x_acetone": 0.03865,
+   "column_min_tray_holdup_kmol": 2.23111,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5263,6 +5557,7 @@
    "bottom_temperature_K": 354.47034,
    "distillate_x_acetone": 0.94064,
    "bottoms_x_acetone": 0.03864,
+   "column_min_tray_holdup_kmol": 2.23093,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5280,6 +5575,7 @@
    "bottom_temperature_K": 354.47082,
    "distillate_x_acetone": 0.94065,
    "bottoms_x_acetone": 0.03862,
+   "column_min_tray_holdup_kmol": 2.23076,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5297,6 +5593,7 @@
    "bottom_temperature_K": 354.42872,
    "distillate_x_acetone": 0.94066,
    "bottoms_x_acetone": 0.03864,
+   "column_min_tray_holdup_kmol": 2.23045,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5314,6 +5611,7 @@
    "bottom_temperature_K": 354.42182,
    "distillate_x_acetone": 0.94067,
    "bottoms_x_acetone": 0.03869,
+   "column_min_tray_holdup_kmol": 2.23056,
    "sif": [],
    "alarms_listed": 0
   },
@@ -5331,6 +5629,7 @@
    "bottom_temperature_K": 354.45704,
    "distillate_x_acetone": 0.94069,
    "bottoms_x_acetone": 0.03872,
+   "column_min_tray_holdup_kmol": 2.23085,
    "sif": [],
    "alarms_listed": 0
   }

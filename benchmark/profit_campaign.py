@@ -111,7 +111,7 @@ BY_ID = {s["id"]: s for s in SCENARIOS}
 FOOTPRINT_SCALE = {"cstr_pressure_bar": 0.10, "cstr_temperature_K": 1.0, "cstr_holdup_kmol": 2.0,
                    "column_pressure_bar": 0.02, "drum_holdup_kmol": 2.0, "reboiler_holdup_kmol": 2.0,
                    "top_temperature_K": 1.0, "bottom_temperature_K": 1.0, "distillate_x_acetone": 0.01,
-                   "bottoms_x_acetone": 0.01}
+                   "bottoms_x_acetone": 0.01, "column_min_tray_holdup_kmol": 0.2}
 
 
 def _utf8() -> None:
@@ -234,9 +234,9 @@ async def run_scenario(scn: dict, mode: str, sched: dict, window: float, verbose
     tripped = trip_min is not None or status in ("SAFE_TRIP", "DAMAGE", "MODEL_LIMIT", "NUMERICAL_FAILURE")
     if tripped and trip_min is None:
         trip_min = round(end_t, 2)
-    # SIF trip vs unplanned shutdown because the plant left the model's valid region (e.g. top tray
-    # dry-out after loss of reflux: README "MODEL_LIMIT"; there is no SIF for it, the operator would
-    # have to shut the column down). Both stop production and pay the shutdown/startup penalty.
+    # SIF trip vs unplanned shutdown because the plant left the model's valid region (README
+    # "MODEL_LIMIT"; tray dry-out is now caught first by the COL_L_LL SIF). Both stop production and
+    # pay the shutdown/startup penalty.
     stop_kind = None
     if tripped:
         stop_kind = "SIF" if status == "SAFE_TRIP" or sr_trip(env) else status
@@ -492,7 +492,7 @@ def _money(x: float | None) -> str:
     return "—" if x is None else (f"-${-x:,.0f}" if x < 0 else f"${x:,.0f}")
 
 
-_TRIP_SIFS = {"R_P_HHH", "RB_L_HH", "DR_L_LL", "DR_L_HH", "COL_P_HH"}
+_TRIP_SIFS = {"R_P_HHH", "RB_L_HH", "DR_L_LL", "DR_L_HH", "COL_P_HH", "COL_L_LL"}
 
 
 def _trip(t, sifs, status="SAFE_TRIP") -> str:
@@ -530,7 +530,7 @@ def _write_markdown(out: dict) -> None:
         L.append(f"| {r['id']} | {r['faults']} | {probe} | {passive} | " + " | ".join(cells) + f" | {_money(r['nominal_profit'])} |")
     t = out["totals"]
     L += ["", f"**Without agents: {t['passive_trips']}/{t['scenarios']} plant stops ({t['passive_sif_trips']} SIF trips + "
-              f"{t['passive_dry_outs']} column dry-outs with no SIF), profit {_money(t['passive_profit'])}; nominal "
+              f"{t['passive_dry_outs']} model-limit stops with no SIF), profit {_money(t['passive_profit'])}; nominal "
               f"{_money(t['nominal_profit'])}.**", ""]
     if modes:
         L += ["## Agent configurations", "",

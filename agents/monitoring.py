@@ -55,6 +55,7 @@ def _limits() -> dict:
                "drum_holdup_kmol": [("DR_L_HH SIF (plant trip)", c.drum_level_hh_kmol, "high"),
                                     ("DR_L_LL SIF (plant trip)", c.drum_level_ll_kmol, "low")],
                "column_pressure_bar": [("COL_P_HH SIF (plant trip)", c.column_pressure_hh_bar, "high")],
+               "column_min_tray_holdup_kmol": [("COL_L_LL SIF (plant trip)", c.column_tray_holdup_ll_kmol, "low")],
                "distillate_x_acetone": [], "top_temperature_K": [], "bottom_temperature_K": []}
         for d in default_alarm_definitions():
             if d.tag in lim:

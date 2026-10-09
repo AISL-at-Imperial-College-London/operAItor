@@ -19,7 +19,8 @@ Inventory
   the change in liquid hold-up (reactor + reboiler + reflux drum) over the window is valued at the
   IPA price: drawing hold-up down (lower level setpoints, feed cut) sells material the plant
   already had, so without this term it would look like profit.
-Plant trip (a plant-trip SIF latches: R_P_HHH, RB_L_HH, DR_L_LL, DR_L_HH, COL_P_HH)
+Plant trip (a plant-trip SIF latches: R_P_HHH, RB_L_HH, DR_L_LL, DR_L_HH, COL_P_HH,
+  COL_L_LL)
   the plant is down for the rest of the scenario window (no revenue, no costs) and pays
   SHUTDOWN_COST + STARTUP_COST once (flaring/off-spec during restart, restart utilities, labour).
 """

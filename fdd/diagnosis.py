@@ -40,6 +40,7 @@ VARIABLE_KNOWLEDGE: dict[str, tuple[str, tuple[str, ...]]] = {
     "meas.bottom_temperature_K": ("Reboiler heating", ()),
     "op.BOT_TIC": ("Reboiler heating", ()),
     "meas.bottoms_x_acetone": ("C-201 separation", ()),
+    "meas.column_min_tray_holdup_kmol": ("C-201 tray liquid (dry trays)", ("reflux_pump_trip", "reflux_valve_stiction", "reflux_drum_leak")),
 }
 
 

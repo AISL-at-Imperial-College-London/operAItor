@@ -1487,6 +1487,9 @@
           },
           {
             "@id": "http://example.org/integrated_cstr_distillation#SIF_COL_P_HH"
+          },
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#SIF_COL_L_LL"
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#comment": [
@@ -12954,6 +12957,9 @@
           },
           {
             "@id": "http://example.org/integrated_cstr_distillation#alarm_P203_TRIP"
+          },
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#alarm_COL_TRAY_L"
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#hasCommandStage": [
@@ -13000,6 +13006,9 @@
           },
           {
             "@id": "http://example.org/integrated_cstr_distillation#SIF_COL_P_HH"
+          },
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#SIF_COL_L_LL"
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#hasOutcomeState": [
@@ -13713,6 +13722,9 @@
           },
           {
             "@id": "http://example.org/integrated_cstr_distillation#alarm_P203_TRIP"
+          },
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#alarm_COL_TRAY_L"
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#comment": [
@@ -22942,6 +22954,340 @@
         "http://www.w3.org/2002/07/owl#sameAs": [
           {
             "@id": "http://example.org/integrated_cstr_distillation#ref_DR_LIC_SP"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#obs_param_column_min_tray_holdup_kmol",
+        "@type": [
+          "http://www.hsu-ifa.de/ontologies/DIN17359#Parameter",
+          "http://www.w3.org/ns/sosa/ObservableProperty"
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#nominalValue": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#double",
+            "@value": 2.24
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#sourceFile": [
+          {
+            "@value": "integrated_plant/plant.py"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#sourceSymbol": [
+          {
+            "@value": "IntegratedPlantDAE.measurements"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#unit": [
+          {
+            "@value": "kmol"
+          }
+        ],
+        "http://www.hsu-ifa.de/ontologies/DIN17359#ParameterIsDescribedByFeature": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#feat_column_tray_liquid"
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#comment": [
+          {
+            "@language": "en",
+            "@value": "Lowest liquid holdup over the 10 column trays (IntegratedPlantDAE.measurements(): column_min_tray_holdup_kmol). Falls when reflux / internal liquid is lost; trays run dry."
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "obs_param_column_min_tray_holdup_kmol – Lowest column tray liquid holdup"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#feat_column_tray_liquid",
+        "@type": [
+          "http://www.hsu-ifa.de/ontologies/DIN17359#Feature"
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#comment": [
+          {
+            "@language": "en",
+            "@value": "Feature derived from column_min_tray_holdup_kmol."
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "Column tray liquid deviation (dry trays)"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#alarm_COL_TRAY_L",
+        "@type": [
+          "http://example.org/integrated_cstr_distillation/ontology#Alarm"
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#direction": [
+          {
+            "@value": "LOW"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#hysteresis": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#double",
+            "@value": 0.1
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#limitValue": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#double",
+            "@value": 1.0
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#monitorsParameter": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#obs_param_column_min_tray_holdup_kmol"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#priority": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#integer",
+            "@value": 1
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#relatedSIF": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#SIF_COL_L_LL"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#sourceFile": [
+          {
+            "@value": "integrated_plant/alarms.py"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#sourceSymbol": [
+          {
+            "@value": "default_alarm_definitions"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#unit": [
+          {
+            "@value": "kmol"
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#comment": [
+          {
+            "@language": "en",
+            "@value": "Operator alarm; logic uses BPCS measurements and is separate from SIF latching/acknowledgement."
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "COL_TRAY_L – Column tray liquid low (dry-tray risk)"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#SIF_COL_L_LL",
+        "@type": [
+          "http://example.org/integrated_cstr_distillation/ontology#SafetyInterlock"
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#direction": [
+          {
+            "@value": "LOW"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#hasOverrideRule": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#override_COL_L_LL_1"
+          },
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#override_COL_L_LL_2"
+          },
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#override_COL_L_LL_3"
+          },
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#override_COL_L_LL_4"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#implementedBy": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#SIS-001"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#limitValue": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#double",
+            "@value": 0.3
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#monitorsParameter": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#obs_param_column_min_tray_holdup_kmol"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#plantTrip": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#boolean",
+            "@value": true
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#sourceFile": [
+          {
+            "@value": "integrated_plant/safety.py"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#sourceSymbol": [
+          {
+            "@value": "SafetySystem.apply"
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#comment": [
+          {
+            "@language": "en",
+            "@value": "Independent latched safety function monitoring column_min_tray_holdup_kmol (dry trays, e.g. loss of reflux); stops boil-up and the feeds; plant-trip latch. Benchmark threshold, not an engineered SIL set point."
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "SIF COL_L_LL"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#override_COL_L_LL_1",
+        "@type": [
+          "http://example.org/integrated_cstr_distillation/ontology#OverrideRule"
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#commandValue": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#double",
+            "@value": 0.0
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#operator": [
+          {
+            "@value": "set"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#overrideTarget": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#act_param_steam_factor"
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#comment": [
+          {
+            "@language": "en",
+            "@value": "set steam_factor to/at 0.0."
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "COL_L_LL override 1"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#override_COL_L_LL_2",
+        "@type": [
+          "http://example.org/integrated_cstr_distillation/ontology#OverrideRule"
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#commandValue": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#double",
+            "@value": 0.0
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#operator": [
+          {
+            "@value": "set"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#overrideTarget": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#act_param_cstr_outflow"
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#comment": [
+          {
+            "@language": "en",
+            "@value": "set cstr_outflow to/at 0.0."
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "COL_L_LL override 2"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#override_COL_L_LL_3",
+        "@type": [
+          "http://example.org/integrated_cstr_distillation/ontology#OverrideRule"
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#commandValue": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#double",
+            "@value": 0.0
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#operator": [
+          {
+            "@value": "set"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#overrideTarget": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#act_param_fresh_ipa_feed"
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#comment": [
+          {
+            "@language": "en",
+            "@value": "set fresh_ipa_feed to/at 0.0."
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "COL_L_LL override 3"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#override_COL_L_LL_4",
+        "@type": [
+          "http://example.org/integrated_cstr_distillation/ontology#OverrideRule"
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#commandValue": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#double",
+            "@value": 0.0
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#operator": [
+          {
+            "@value": "set"
+          }
+        ],
+        "http://example.org/integrated_cstr_distillation/ontology#overrideTarget": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#act_param_cstr_heater_factor"
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#comment": [
+          {
+            "@language": "en",
+            "@value": "set cstr_heater_factor to/at 0.0."
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "COL_L_LL override 4"
           }
         ]
       }

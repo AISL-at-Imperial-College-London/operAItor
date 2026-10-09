@@ -57,7 +57,8 @@ def _limits() -> dict:
            "R_P_HHH": [c.cstr_pressure_hhh_bar, "bar", "high, plant trip"], "R_L_HH": [c.cstr_level_hh_kmol, "kmol", "high"],
            "R_L_LL": [c.cstr_level_ll_kmol, "kmol", "low"], "RB_L_LL": [c.reboiler_level_ll_kmol, "kmol", "low"],
            "RB_L_HH": [c.reboiler_level_hh_kmol, "kmol", "high, plant trip"], "DR_L_LL": [c.drum_level_ll_kmol, "kmol", "low, plant trip"],
-           "DR_L_HH": [c.drum_level_hh_kmol, "kmol", "high, plant trip"], "COL_P_HH": [c.column_pressure_hh_bar, "bar", "high, plant trip"]}
+           "DR_L_HH": [c.drum_level_hh_kmol, "kmol", "high, plant trip"], "COL_P_HH": [c.column_pressure_hh_bar, "bar", "high, plant trip"],
+           "COL_L_LL": [c.column_tray_holdup_ll_kmol, "kmol (lowest tray holdup)", "low, plant trip"]}
     alarms = {d.alarm_id: [d.tag, d.direction, d.limit, d.unit] for d in default_alarm_definitions()
               if not d.tag.startswith("pump_")}
     return {"sif_limits": sif, "alarm_limits": alarms}

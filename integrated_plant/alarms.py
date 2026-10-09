@@ -185,6 +185,7 @@ def default_alarm_definitions(safety: SafetyConfig = SafetyConfig()) -> tuple[Al
         AlarmDefinition("DR_L_LL", "drum_holdup_kmol", "Reflux drum level low-low", "LOW", 14.0, 1, 1.0, "kmol"),
         AlarmDefinition("COL_P_H", "column_pressure_bar", "Column pressure high", "HIGH", 1.15, 2, 0.02, "bar"),
         AlarmDefinition("COL_P_HH", "column_pressure_bar", "Column pressure high-high", "HIGH", 1.28, 1, 0.02, "bar"),
+        AlarmDefinition("COL_TRAY_L", "column_min_tray_holdup_kmol", "Column tray liquid low (dry-tray risk)", "LOW", 1.0, 1, 0.1, "kmol"),
         AlarmDefinition("DIST_X_L", "distillate_x_acetone", "Distillate acetone purity low", "LOW", 0.90, 3, 0.01, "mol frac"),
         AlarmDefinition("BTM_X_H", "bottoms_x_acetone", "Bottoms acetone high", "HIGH", 0.08, 3, 0.01, "mol frac"),
         AlarmDefinition("P101_TRIP", "pump_FEED_failed", "Fresh-feed duty pump trip / no selected pump flow", "HIGH", 0.5, 1, 0.0, "bool"),

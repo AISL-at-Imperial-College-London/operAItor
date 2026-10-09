@@ -207,7 +207,7 @@ const money = (x) => x == null ? "—" : (x < 0 ? "−$" : "$") + Math.abs(Math.
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const rows = D.campaign.rows, T = D.campaign.totals, byId = Object.fromEntries(rows.map((r) => [r.id, r]));
 const CFG = D.campaign.configs || {};
-const TRIP_SIFS = new Set(["R_P_HHH", "RB_L_HH", "DR_L_LL", "DR_L_HH", "COL_P_HH"]);
+const TRIP_SIFS = new Set(["R_P_HHH", "RB_L_HH", "DR_L_LL", "DR_L_HH", "COL_P_HH", "COL_L_LL"]);
 const GROUP_LABEL = { single: "Single fault", pair_indep: "Two faults, independent", pair_coupled: "Two faults, interacting",
   triple_none: "Three faults, none interact", triple_2plus1: "Three faults, two interact", triple_all: "Three faults, all interact" };
 const FAULT_LABEL = (f) => f.replace(/_/g, " ");
@@ -229,6 +229,7 @@ const VARS = {
   cstr_holdup_kmol: { label: "Reactor level", unit: "kmol", lim: [[38, "R_L_L alarm", "warn"], [62, "R_L_H alarm", "warn"], [72, "R_L_HH SIF", "bad"], [20, "R_L_LL SIF", "bad"]] },
   distillate_x_acetone: { label: "Distillate purity", unit: "mol frac", lim: [[0.9, "sales spec / DIST_X_L", "warn"]] },
   bottoms_x_acetone: { label: "Bottoms acetone", unit: "mol frac", lim: [[0.08, "BTM_X_H alarm", "warn"]] },
+  column_min_tray_holdup_kmol: { label: "Lowest tray liquid holdup", unit: "kmol", lim: [[1.0, "COL_TRAY_L alarm", "warn"], [0.3, "COL_L_LL SIF", "bad"]] },
   top_temperature_K: { label: "Column top temperature", unit: "K", lim: [] },
   bottom_temperature_K: { label: "Column bottom temperature", unit: "K", lim: [] },
   margin: { label: "Operating margin", unit: "USD/h", lim: [] },
@@ -241,7 +242,7 @@ function outcome(run) {
     const s = (run.sifs || []).filter((c) => TRIP_SIFS.has(c));
     return { cls: "bad", text: `SIF ${s.join(", ")} · ${run.trip_min.toFixed(1)}` };
   }
-  if (run.status === "MODEL_LIMIT") return { cls: "bad", text: `Dry-out · ${run.trip_min.toFixed(1)}` };
+  if (run.status === "MODEL_LIMIT") return { cls: "bad", text: `Model limit · ${run.trip_min.toFixed(1)}` };
   return { cls: "bad", text: `${run.status} · ${run.trip_min?.toFixed(1)}` };
 }
 const pill = (o) => `<span class="pill ${o.cls}">${esc(o.text)}</span>`;
@@ -372,7 +373,7 @@ function renderStopCauses() {
   const causes = {};
   for (const r of rows) {
     if (r.passive_trip_min == null) continue;
-    const key = r.passive_status === "SAFE_TRIP" ? (r.passive_sifs.filter((c) => TRIP_SIFS.has(c))[0] + " SIF trip") : "Column dry-out (no SIF)";
+    const key = r.passive_status === "SAFE_TRIP" ? (r.passive_sifs.filter((c) => TRIP_SIFS.has(c))[0] + " SIF trip") : "Model limit (no SIF)";
     (causes[key] ||= []).push(r.id);
   }
   const max = Math.max(...Object.values(causes).map((a) => a.length));
@@ -382,7 +383,8 @@ function renderStopCauses() {
       <span class="num small">${ids.length}</span></div><div class="small muted" style="margin:-2px 0 6px">${ids.join(" · ")}</div>`).join("");
   $("#caveats").innerHTML = [
     "Savings are dominated by the assumed shutdown + startup penalty ($20,000 per stop); the stop counts do not depend on it.",
-    "Column dry-outs (no agents: S01, D03, C01, T02, T03) are not SIF trips: the top tray runs dry after loss of reflux and the simulator stops (README: MODEL_LIMIT). They count as unplanned shutdowns with the same penalty.",
+    "Column dry-out (loss of reflux: S01, D03, C01, T02, T03) is protected by the column low-liquid SIF COL_L_LL (lowest tray holdup ≤ 0.30 kmol, plant trip), added 9 Oct. Before it, these cases ran into the column model's limit (MODEL_LIMIT) 6–8 min later and were counted as unplanned shutdowns with the same penalty. Results before the SIF are archived in runs_before_dry_sif/.",
+    "LLM runs are not deterministic. Between this campaign and the 8 Oct one (same model and prompts), six scenarios whose fault and lift times did not change flipped to a stop in the lucky or judge configuration (C02, D04, S06, S10, D02) and one in LLM + twin (C03). Treat differences of 1–3 stops between configurations as within run-to-run noise.",
     "T03 cannot be saved: the 100 kmol/h drum leak exceeds what the crippled condenser can still condense.",
     "LLM configurations use gpt-5-nano (reasoning effort low) for planning-free action proposals; the planning brief comes from the knowledge graph. The judge is a second gpt-5-nano call with the alarm and SIF limits; it has no simulator.",
     "Feeling lucky applies the first executable proposal; only a plan that cannot be executed (unknown loop, out-of-range value) is sent back.",
@@ -582,7 +584,7 @@ function renderChecks() {
     }
   }
   $("#physics").innerHTML = [
-    "SIF thresholds match the README table exactly (R_T_HH 348 K … COL_P_HH 1.35 bar); plant-trip latches are R_P_HHH, RB_L_HH, DR_L_LL, DR_L_HH, COL_P_HH.",
+    "SIF thresholds match the README table exactly (R_T_HH 348 K … COL_P_HH 1.35 bar); plant-trip latches are R_P_HHH, RB_L_HH, DR_L_LL, DR_L_HH, COL_P_HH and the column low-liquid trip COL_L_LL (lowest tray holdup ≤ 0.30 kmol, added 8 Oct).",
     "Every SIF has an operator alarm on the same tag inside its limit, so operators and agents get a response window.",
     "Reactor P-HH keeps feed (endothermic reaction) and opens PCV + BDV; P-HHH cuts feed to 40 %. Column P-HH forces the CW valve to 100 % but cannot restore lost cooling.",
     "Design point holds: 100 kmol/h IPA, conversion 0.700, reactor 3.000 bar, column 1.000 bar, CW valve 60 %.",

@@ -19,6 +19,9 @@ class SafetyConfig:
     drum_level_ll_kmol: float = 10.59
     drum_level_hh_kmol: float = 45.37
     column_pressure_hh_bar: float = 1.35
+    # Column low liquid (dry tray): lowest tray holdup. Nominal ~2.24 kmol; the column model is
+    # invalid below 0.10 kmol (MODEL_LIMIT), so the SIF trips well before that.
+    column_tray_holdup_ll_kmol: float = 0.30
 
     max_emergency_cooling_factor: float = 1.0
     max_condenser_cooling_valve: float = 1.0
@@ -54,6 +57,7 @@ class SafetySystem:
         "DR_L_LL",
         "DR_L_HH",
         "COL_P_HH",
+        "COL_L_LL",
     )
 
     def __init__(self, config: SafetyConfig = SafetyConfig()):
@@ -79,6 +83,7 @@ class SafetySystem:
             "DR_L_LL": m["drum_holdup_kmol"] <= c.drum_level_ll_kmol,
             "DR_L_HH": m["drum_holdup_kmol"] >= c.drum_level_hh_kmol,
             "COL_P_HH": m["column_pressure_bar"] >= c.column_pressure_hh_bar,
+            "COL_L_LL": m.get("column_min_tray_holdup_kmol", float("inf")) <= c.column_tray_holdup_ll_kmol,
         }
 
     def _safe_to_reset(self, cause: str, m: dict[str, float]) -> bool:
@@ -104,6 +109,8 @@ class SafetySystem:
             return m["drum_holdup_kmol"] > c.drum_level_ll_kmol * (1.0 + h)
         if cause == "COL_P_HH":
             return m["column_pressure_bar"] < c.column_pressure_hh_bar * (1.0 - h)
+        if cause == "COL_L_LL":
+            return m.get("column_min_tray_holdup_kmol", float("inf")) > c.column_tray_holdup_ll_kmol * (1.0 + h)
         return False
 
     def apply(
@@ -119,7 +126,7 @@ class SafetySystem:
             for cause in self.CAUSES:
                 if self.latched[cause] and self._safe_to_reset(cause, measurements):
                     self.latched[cause] = False
-            if not any(self.latched[c] for c in ("R_P_HHH", "RB_L_HH", "DR_L_LL", "DR_L_HH", "COL_P_HH")):
+            if not any(self.latched[c] for c in ("R_P_HHH", "RB_L_HH", "DR_L_LL", "DR_L_HH", "COL_P_HH", "COL_L_LL")):
                 self.plant_trip_latched = False
 
         for cause, active in flags.items():
@@ -128,7 +135,7 @@ class SafetySystem:
 
         # Severe escalations define a process trip state, but individual SIF
         # activation is not by itself an episode-termination condition.
-        if any(self.latched[c] for c in ("R_P_HHH", "RB_L_HH", "DR_L_LL", "DR_L_HH", "COL_P_HH")):
+        if any(self.latched[c] for c in ("R_P_HHH", "RB_L_HH", "DR_L_LL", "DR_L_HH", "COL_P_HH", "COL_L_LL")):
             self.plant_trip_latched = True
 
         u = requested
@@ -195,6 +202,17 @@ class SafetySystem:
                 condenser_cooling_valve=max(
                     u.condenser_cooling_valve, self.cfg.max_condenser_cooling_valve
                 ),
+                cstr_outflow=0.0,
+                fresh_ipa_feed=0.0,
+                cstr_heater_factor=0.0,
+            )
+
+        # Column low liquid (dry trays, e.g. loss of reflux): stop boil-up so dry trays do not
+        # overheat, and stop the feeds (column shutdown, plant-trip latch).
+        if self.latched["COL_L_LL"]:
+            u = replace(
+                u,
+                steam_factor=0.0,
                 cstr_outflow=0.0,
                 fresh_ipa_feed=0.0,
                 cstr_heater_factor=0.0,

@@ -284,10 +284,15 @@ class IntegratedPlantDAE:
             "distillate_x_acetone": float(dr[4]),
             "bottoms_x_acetone": float(rb[4]),
         }
+        holdups = []
         for i in range(self.column.cfg.n_trays):
             tr = self.column.tray(ycol, i)
             m[f"tray_{i+1:02d}_temperature_K"] = float(tr[self.column.TRAY_T])
             m[f"tray_{i+1:02d}_pressure_bar"] = float(tr[self.column.TRAY_P])
+            holdups.append(float(tr[self.column.TRAY_M]))
+        # Lowest tray liquid holdup: a dry tray (loss of reflux / internal liquid) is what the
+        # column low-liquid SIF (COL_L_LL) protects against.
+        m["column_min_tray_holdup_kmol"] = min(holdups)
         return m
 
     def operating_summary(self, y: np.ndarray, inputs: Optional[PlantInputs] = None) -> dict:

@@ -11,15 +11,15 @@
  "schedule": {
   "0": {
    "onset_min": 10.0,
-   "lift_min": 37.2
+   "lift_min": 29.3
   },
   "1": {
    "onset_min": 12.0,
-   "lift_min": 37.2
+   "lift_min": 29.3
   },
   "2": {
    "onset_min": 14.0,
-   "lift_min": 37.2
+   "lift_min": 29.3
   }
  },
  "window_min": 120.0,
@@ -39,12 +39,12 @@
   "acetone": 1087.13,
   "ipa_credit": 559.23,
   "h2": 44.48,
-  "feed": -1815.52,
+  "feed": -1813.02,
   "steam": -10.01,
   "heating": -13.33,
-  "margin": -148.03,
+  "margin": -145.53,
   "trip_penalty": -20000.0,
-  "total": -20148.03
+  "total": -20145.53
  },
  "on_spec_acetone_kmol": 14.398,
  "off_spec_min": 0.0,
@@ -150,9 +150,9 @@
   "llm_model": "gpt-5-nano",
   "llm_usage": {
    "calls": 8,
-   "input_tokens": 51527,
-   "output_tokens": 6813,
-   "cost_usd": 0.005302
+   "input_tokens": 51878,
+   "output_tokens": 6053,
+   "cost_usd": 0.005015
   },
   "llm_errors": [],
   "judge": [],
@@ -163,20 +163,20 @@
     "cycle": 0,
     "ok": true,
     "most_likely": "condenser_cooling_loss",
-    "fault_class": "actuator",
+    "fault_class": "sensor",
     "hypotheses": [
      [
       "condenser_cooling_loss",
-      0.6
+      0.65
      ],
      [
-      "h2_pcv_capacity_degradation",
-      0.15
+      "reflux_flow_freeze",
+      0.05
      ]
     ],
-    "summary": "PCA abnormal state with very large T2 and SPE, dominated by column/pressure signals and a saturated column pressure controller. The most likely issue is condenser cooling loss affecting the column pressure; the COL_PIC loop is saturated, indicating loss of condenser cooling authority. Other plausible contributors are COL_PIC being out of range and a secondary effect from H2 PCV related issues.",
-    "latency_s": 8.64,
-    "tokens": 5010
+    "summary": "The PCA indicates a large, coherent plant upset with both T2 and SPE violated, dominated by column pressure-related variables and a saturated reflux controller. The most plausible fault is condenser cooling effectiveness loss propagating through the column, causing elevated and shifting column pressures and related measurements.",
+    "latency_s": 6.69,
+    "tokens": 4691
    },
    {
     "t": 12.5,
@@ -187,23 +187,39 @@
     "hypotheses": [
      [
       "reflux_pump_trip",
-      0.6
+      0.7
      ],
      [
       "condenser_cooling_loss",
-      0.25
+      0.2
      ]
     ],
-    "summary": "Abnormal PCA with large coherent shift and high SPE indicates a process upset propagating through the reflux section, with a failed reflux pump driving the disturbance.",
-    "latency_s": 6.32,
-    "tokens": 4902
+    "summary": "PCA shows a large, coherent process upset with strong SPE violations and a plant-wide upshift in pressures. The most likely cause is a failure in the reflux train, consistent with a reflux pump trip that is causing loss of reflux flow and abnormal pressure rise along the column and interconnected vessels.",
+    "latency_s": 8.52,
+    "tokens": 5136
    },
    {
     "t": 18.0,
     "cycle": 2,
     "ok": true,
     "most_likely": "condenser_cooling_loss",
-    "fault_class": "actuator",
+    "fault_class": "equipment",
+    "hypotheses": [
+     [
+      "condenser_cooling_loss",
+      0.65
+     ]
+    ],
+    "summary": "PCA anomaly with large coherent upset; strongest evidence points to condenser cooling effectiveness loss causing high column pressure and related feed/pressure disturbances.",
+    "latency_s": 8.13,
+    "tokens": 4926
+   },
+   {
+    "t": 18.5,
+    "cycle": 3,
+    "ok": true,
+    "most_likely": "condenser_cooling_loss",
+    "fault_class": "sensor",
     "hypotheses": [
      [
       "condenser_cooling_loss",
@@ -211,32 +227,12 @@
      ],
      [
       "reflux_drum_leak",
-      0.15
+      0.1
      ]
     ],
-    "summary": "PCA indicates a large, coherent upset with multiple column/receiving system pressures rising and downstream holdup changes, with saturations in key loops and multiple high-pressure alarms. The most likely single fault is condenser cooling loss causing elevated column pressure and related signs.",
-    "latency_s": 9.28,
-    "tokens": 5136
-   },
-   {
-    "t": 18.5,
-    "cycle": 3,
-    "ok": true,
-    "most_likely": "condenser_cooling_loss",
-    "fault_class": "equipment",
-    "hypotheses": [
-     [
-      "condenser_cooling_loss",
-      0.7
-     ],
-     [
-      "reflux_drum_leak",
-      0.05
-     ]
-    ],
-    "summary": "PCA indicates a large, coherent process upset with widespread correlation changes and strong column/ condenser related symptoms. The most consistent fault is condenser cooling loss causing elevated column pressure and drum/tray pressures, with control loops saturated trying to compensate.",
-    "latency_s": 9.19,
-    "tokens": 5064
+    "summary": "PCA flags a large, coherent process upset with strong column pressure rise and drum holdup changes. The most consistent fault is condenser cooling losses driving high column pressure and related drum/pump responses.",
+    "latency_s": 10.32,
+    "tokens": 5123
    }
   ],
   "timing": {
@@ -245,57 +241,57 @@
      "t": 11.5,
      "cycle": 0,
      "agent": "diagnosis",
-     "latency_s": 8.64,
-     "tokens": 5010
+     "latency_s": 6.69,
+     "tokens": 4691
     },
     {
      "t": 11.5,
      "cycle": 1,
      "agent": "action",
-     "latency_s": 7.046,
-     "tokens": 9015
+     "latency_s": 7.173,
+     "tokens": 8852
     },
     {
      "t": 12.5,
      "cycle": 1,
      "agent": "diagnosis",
-     "latency_s": 6.32,
-     "tokens": 4902
+     "latency_s": 8.52,
+     "tokens": 5136
     },
     {
      "t": 12.5,
      "cycle": 2,
      "agent": "action",
-     "latency_s": 6.114,
-     "tokens": 9338
+     "latency_s": 6.124,
+     "tokens": 9306
     },
     {
      "t": 18.0,
      "cycle": 2,
      "agent": "diagnosis",
-     "latency_s": 9.28,
-     "tokens": 5136
+     "latency_s": 8.13,
+     "tokens": 4926
     },
     {
      "t": 18.0,
      "cycle": 3,
      "agent": "action",
-     "latency_s": 10.69,
-     "tokens": 10039
+     "latency_s": 9.91,
+     "tokens": 10038
     },
     {
      "t": 18.5,
      "cycle": 3,
      "agent": "diagnosis",
-     "latency_s": 9.19,
-     "tokens": 5064
+     "latency_s": 10.32,
+     "tokens": 5123
     },
     {
      "t": 18.5,
      "cycle": 4,
      "agent": "action",
-     "latency_s": 8.223,
-     "tokens": 9836
+     "latency_s": 7.554,
+     "tokens": 9859
     }
    ],
    "twin_rollouts": [],
@@ -308,27 +304,27 @@
     {
      "cycle": 1,
      "t": 11.5,
-     "wall_s": 23.751
+     "wall_s": 16.697
     },
     {
      "cycle": 2,
      "t": 12.5,
-     "wall_s": 54.806
+     "wall_s": 20.462
     },
     {
      "cycle": 3,
      "t": 18.0,
-     "wall_s": 23.201
+     "wall_s": 20.76
     },
     {
      "cycle": 4,
      "t": 18.5,
-     "wall_s": 8.23
+     "wall_s": 7.559
     }
    ],
-   "llm_s": 65.503,
+   "llm_s": 64.421,
    "twin_s": 0,
-   "decision_s": 109.988,
+   "decision_s": 65.478,
    "n_llm_calls": 8,
    "n_twin_rollouts": 0,
    "n_decisions": 5
@@ -365,7 +361,7 @@
     "commands": [
      {
       "type": "SET_THROUGHPUT",
-      "value": 90.0
+      "value": 85.0
      }
     ],
     "diagnosis": "condenser_cooling_loss"
@@ -414,7 +410,7 @@
     "commands": [
      {
       "type": "SET_THROUGHPUT",
-      "value": 90.0
+      "value": 85.0
      }
     ],
     "failed": []
@@ -462,7 +458,7 @@
   "verification": [],
   "errors": []
  },
- "wall_s": 219.6,
+ "wall_s": 83.3,
  "ticks": [
   {
    "t": 0.5,
@@ -478,6 +474,7 @@
    "bottom_temperature_K": 354.42228,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.23756,
    "sif": [],
    "alarms_listed": 0
   },
@@ -495,6 +492,7 @@
    "bottom_temperature_K": 354.42228,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.23756,
    "sif": [],
    "alarms_listed": 0
   },
@@ -512,6 +510,7 @@
    "bottom_temperature_K": 354.42204,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.23756,
    "sif": [],
    "alarms_listed": 0
   },
@@ -529,6 +528,7 @@
    "bottom_temperature_K": 354.42178,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.23757,
    "sif": [],
    "alarms_listed": 0
   },
@@ -546,6 +546,7 @@
    "bottom_temperature_K": 354.42167,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.2374,
    "sif": [],
    "alarms_listed": 0
   },
@@ -563,6 +564,7 @@
    "bottom_temperature_K": 354.42165,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03974,
+   "column_min_tray_holdup_kmol": 2.236,
    "sif": [],
    "alarms_listed": 0
   },
@@ -580,6 +582,7 @@
    "bottom_temperature_K": 354.43948,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03973,
+   "column_min_tray_holdup_kmol": 2.23302,
    "sif": [],
    "alarms_listed": 0
   },
@@ -597,6 +600,7 @@
    "bottom_temperature_K": 354.46382,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03971,
+   "column_min_tray_holdup_kmol": 2.22973,
    "sif": [],
    "alarms_listed": 0
   },
@@ -614,6 +618,7 @@
    "bottom_temperature_K": 354.47278,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03969,
+   "column_min_tray_holdup_kmol": 2.22759,
    "sif": [],
    "alarms_listed": 0
   },
@@ -631,6 +636,7 @@
    "bottom_temperature_K": 354.47381,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03965,
+   "column_min_tray_holdup_kmol": 2.22723,
    "sif": [],
    "alarms_listed": 0
   },
@@ -648,6 +654,7 @@
    "bottom_temperature_K": 354.47379,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03962,
+   "column_min_tray_holdup_kmol": 2.2283,
    "sif": [],
    "alarms_listed": 0
   },
@@ -665,6 +672,7 @@
    "bottom_temperature_K": 354.47349,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03959,
+   "column_min_tray_holdup_kmol": 2.23008,
    "sif": [],
    "alarms_listed": 0
   },
@@ -682,6 +690,7 @@
    "bottom_temperature_K": 354.47426,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03956,
+   "column_min_tray_holdup_kmol": 2.23201,
    "sif": [],
    "alarms_listed": 0
   },
@@ -699,6 +708,7 @@
    "bottom_temperature_K": 354.47528,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03955,
+   "column_min_tray_holdup_kmol": 2.23372,
    "sif": [],
    "alarms_listed": 0
   },
@@ -716,6 +726,7 @@
    "bottom_temperature_K": 354.47495,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03953,
+   "column_min_tray_holdup_kmol": 2.23507,
    "sif": [],
    "alarms_listed": 0
   },
@@ -733,6 +744,7 @@
    "bottom_temperature_K": 354.47389,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03953,
+   "column_min_tray_holdup_kmol": 2.23605,
    "sif": [],
    "alarms_listed": 0
   },
@@ -750,6 +762,7 @@
    "bottom_temperature_K": 354.47267,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03952,
+   "column_min_tray_holdup_kmol": 2.23672,
    "sif": [],
    "alarms_listed": 0
   },
@@ -767,6 +780,7 @@
    "bottom_temperature_K": 354.4714,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03952,
+   "column_min_tray_holdup_kmol": 2.23716,
    "sif": [],
    "alarms_listed": 0
   },
@@ -784,6 +798,7 @@
    "bottom_temperature_K": 354.47009,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03952,
+   "column_min_tray_holdup_kmol": 2.23744,
    "sif": [],
    "alarms_listed": 0
   },
@@ -801,6 +816,7 @@
    "bottom_temperature_K": 354.46878,
    "distillate_x_acetone": 0.9417,
    "bottoms_x_acetone": 0.03952,
+   "column_min_tray_holdup_kmol": 2.23761,
    "sif": [],
    "alarms_listed": 0
   },
@@ -818,6 +834,7 @@
    "bottom_temperature_K": 355.09163,
    "distillate_x_acetone": 0.94171,
    "bottoms_x_acetone": 0.03979,
+   "column_min_tray_holdup_kmol": 2.24604,
    "sif": [],
    "alarms_listed": 0
   },
@@ -835,6 +852,7 @@
    "bottom_temperature_K": 355.91277,
    "distillate_x_acetone": 0.94172,
    "bottoms_x_acetone": 0.04035,
+   "column_min_tray_holdup_kmol": 2.25752,
    "sif": [],
    "alarms_listed": 0
   },
@@ -852,6 +870,7 @@
    "bottom_temperature_K": 356.408,
    "distillate_x_acetone": 0.94178,
    "bottoms_x_acetone": 0.04125,
+   "column_min_tray_holdup_kmol": 2.2671,
    "sif": [],
    "alarms_listed": 0
   },
@@ -869,6 +888,7 @@
    "bottom_temperature_K": 356.92011,
    "distillate_x_acetone": 0.94187,
    "bottoms_x_acetone": 0.04244,
+   "column_min_tray_holdup_kmol": 2.27699,
    "sif": [],
    "alarms_listed": 0
   },
@@ -886,6 +906,7 @@
    "bottom_temperature_K": 357.24236,
    "distillate_x_acetone": 0.94191,
    "bottoms_x_acetone": 0.04406,
+   "column_min_tray_holdup_kmol": 2.08795,
    "sif": [],
    "alarms_listed": 1
   },
@@ -903,6 +924,7 @@
    "bottom_temperature_K": 357.58755,
    "distillate_x_acetone": 0.94198,
    "bottoms_x_acetone": 0.04604,
+   "column_min_tray_holdup_kmol": 2.29552,
    "sif": [],
    "alarms_listed": 1
   },
@@ -920,6 +942,7 @@
    "bottom_temperature_K": 357.83152,
    "distillate_x_acetone": 0.94212,
    "bottoms_x_acetone": 0.04843,
+   "column_min_tray_holdup_kmol": 2.3043,
    "sif": [],
    "alarms_listed": 1
   },
@@ -937,6 +960,7 @@
    "bottom_temperature_K": 358.08166,
    "distillate_x_acetone": 0.94234,
    "bottoms_x_acetone": 0.05119,
+   "column_min_tray_holdup_kmol": 2.31295,
    "sif": [],
    "alarms_listed": 1
   },
@@ -954,6 +978,7 @@
    "bottom_temperature_K": 358.24008,
    "distillate_x_acetone": 0.94261,
    "bottoms_x_acetone": 0.05437,
+   "column_min_tray_holdup_kmol": 2.32126,
    "sif": [],
    "alarms_listed": 1
   },
@@ -971,6 +996,7 @@
    "bottom_temperature_K": 358.40514,
    "distillate_x_acetone": 0.94294,
    "bottoms_x_acetone": 0.05793,
+   "column_min_tray_holdup_kmol": 2.3293,
    "sif": [],
    "alarms_listed": 1
   },
@@ -988,6 +1014,7 @@
    "bottom_temperature_K": 358.47593,
    "distillate_x_acetone": 0.94334,
    "bottoms_x_acetone": 0.06194,
+   "column_min_tray_holdup_kmol": 2.33716,
    "sif": [],
    "alarms_listed": 1
   },
@@ -1005,6 +1032,7 @@
    "bottom_temperature_K": 358.55769,
    "distillate_x_acetone": 0.9438,
    "bottoms_x_acetone": 0.06635,
+   "column_min_tray_holdup_kmol": 2.34501,
    "sif": [],
    "alarms_listed": 1
   },
@@ -1022,6 +1050,7 @@
    "bottom_temperature_K": 358.52487,
    "distillate_x_acetone": 0.94433,
    "bottoms_x_acetone": 0.07126,
+   "column_min_tray_holdup_kmol": 2.35393,
    "sif": [],
    "alarms_listed": 1
   },
@@ -1039,6 +1068,7 @@
    "bottom_temperature_K": 358.51212,
    "distillate_x_acetone": 0.94494,
    "bottoms_x_acetone": 0.07662,
+   "column_min_tray_holdup_kmol": 2.36438,
    "sif": [],
    "alarms_listed": 1
   },
@@ -1056,6 +1086,7 @@
    "bottom_temperature_K": 358.46796,
    "distillate_x_acetone": 0.94564,
    "bottoms_x_acetone": 0.08239,
+   "column_min_tray_holdup_kmol": 2.37721,
    "sif": [],
    "alarms_listed": 2
   },
@@ -1073,40 +1104,43 @@
    "bottom_temperature_K": 358.41625,
    "distillate_x_acetone": 0.94644,
    "bottoms_x_acetone": 0.08855,
+   "column_min_tray_holdup_kmol": 2.39356,
    "sif": [],
    "alarms_listed": 3
   },
   {
    "t": 18.5,
-   "margin_usd_h": -2505.69,
+   "margin_usd_h": -2205.17,
    "on_spec": true,
-   "cstr_pressure_bar": 2.96885,
-   "cstr_temperature_K": 335.91668,
-   "cstr_holdup_kmol": 49.49061,
+   "cstr_pressure_bar": 2.96861,
+   "cstr_temperature_K": 335.95267,
+   "cstr_holdup_kmol": 49.44895,
    "column_pressure_bar": 1.28485,
-   "drum_holdup_kmol": 11.67842,
-   "reboiler_holdup_kmol": 39.35692,
-   "top_temperature_K": 338.05987,
-   "bottom_temperature_K": 358.32709,
+   "drum_holdup_kmol": 11.67843,
+   "reboiler_holdup_kmol": 39.35694,
+   "top_temperature_K": 338.05996,
+   "bottom_temperature_K": 358.3272,
    "distillate_x_acetone": 0.94735,
    "bottoms_x_acetone": 0.09513,
+   "column_min_tray_holdup_kmol": 2.41447,
    "sif": [],
    "alarms_listed": 4
   },
   {
    "t": 18.9,
-   "margin_usd_h": 2950.95,
+   "margin_usd_h": 2950.93,
    "on_spec": true,
-   "cstr_pressure_bar": 2.96931,
-   "cstr_temperature_K": 336.04728,
-   "cstr_holdup_kmol": 49.3881,
-   "column_pressure_bar": 1.29049,
+   "cstr_pressure_bar": 2.96882,
+   "cstr_temperature_K": 336.08205,
+   "cstr_holdup_kmol": 49.34644,
+   "column_pressure_bar": 1.2905,
    "drum_holdup_kmol": 10.43146,
-   "reboiler_holdup_kmol": 39.64303,
-   "top_temperature_K": 338.16249,
-   "bottom_temperature_K": 358.25406,
+   "reboiler_holdup_kmol": 39.64308,
+   "top_temperature_K": 338.16271,
+   "bottom_temperature_K": 358.25429,
    "distillate_x_acetone": 0.94817,
    "bottoms_x_acetone": 0.1007,
+   "column_min_tray_holdup_kmol": 2.43377,
    "sif": [
     "DR_L_LL"
    ],

@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import { send, usePlant } from "../store";
 
-const PACES: [string, string][] = [["0:0", "no pacing"], ["10:0.05", "0.05 s / 10 it"], ["10:0.2", "0.2 s / 10 it"], ["10:0.5", "0.5 s / 10 it"], ["1:0.25", "0.25 s / it"]];
-const SPEEDS: [string, string][] = [["0", "Max"], ["250", "0.5 min / 0.25 s"], ["500", "0.5 min / 0.5 s"], ["1000", "0.5 min / 1 s"]];
+// One speed control: [label, delay per 0.5-min step (ms), pace every N steps, pace sleep (s)].
+const SPEEDS: [string, number, number, number][] = [
+  ["Max speed", 0, 0, 0], ["Fast", 0, 10, 0.05], ["Medium", 0, 10, 0.5],
+  ["Slow · 0.5 min / 0.25 s", 250, 0, 0], ["Real-time-ish · 0.5 min / 1 s", 1000, 0, 0],
+];
+const speedKey = (d: number, every: number, sleep: number) => `${d}:${every}:${sleep}`;
 
 export function TopBar({ onToggleDrawer }: { onToggleDrawer: () => void }) {
   const meta = usePlant((s) => s.meta);
@@ -16,6 +20,9 @@ export function TopBar({ onToggleDrawer }: { onToggleDrawer: () => void }) {
   const unack = snap?.alarms.filter((a) => a.state.endsWith("UNACK")).length ?? 0;
   const active = snap?.alarms.filter((a) => a.state.startsWith("ACTIVE")).length ?? 0;
   const runState = !snap ? "—" : snap.done ? "ENDED" : snap.running ? "RUNNING" : "PAUSED";
+  const current = speedKey(snap?.tick_delay_ms ?? 0, snap?.pace?.every ?? 10, snap?.pace?.sleep_s ?? 0.05);
+  const known = SPEEDS.some(([, d, n, sl]) => speedKey(d, n, sl) === current);
+  const sifs = snap?.sif_latched ?? [];
 
   return (
     <header className="topbar">
@@ -46,13 +53,15 @@ export function TopBar({ onToggleDrawer }: { onToggleDrawer: () => void }) {
         )}
         <button className="btn" onClick={() => send({ type: "step", minutes: 1 })}>+1 min</button>
         <button className="btn" onClick={() => send({ type: "step", minutes: 5 })}>+5 min</button>
-        <select aria-label="Speed" value={String(snap?.tick_delay_ms ?? 0)} onChange={(e) => send({ type: "speed", delay_ms: +e.target.value })}>
-          {SPEEDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-        <select aria-label="Pacing" title="Sleep after every N plant iterations (0.5 sim-min each)"
-          value={`${snap?.pace?.every ?? 10}:${snap?.pace?.sleep_s ?? 0.05}`}
-          onChange={(e) => { const [every, sleep_s] = e.target.value.split(":").map(Number); send({ type: "pace", every, sleep_s }); }}>
-          {PACES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        <select aria-label="Speed" title="Simulation speed" value={current}
+          onChange={(e) => {
+            const s = SPEEDS.find(([, d, n, sl]) => speedKey(d, n, sl) === e.target.value);
+            if (!s) return;
+            send({ type: "speed", delay_ms: s[1] });
+            send({ type: "pace", every: s[2], sleep_s: s[3] });
+          }}>
+          {!known && <option value={current}>custom</option>}
+          {SPEEDS.map(([l, d, n, sl]) => <option key={l} value={speedKey(d, n, sl)}>{l}</option>)}
         </select>
         <label className="check" title="Pause the plant while the agents are deciding (KG → plan → act → twin → reprompt)">
           <input type="checkbox" checked={snap?.hold_for_agents ?? true}
@@ -68,6 +77,8 @@ export function TopBar({ onToggleDrawer }: { onToggleDrawer: () => void }) {
         {snap && snap.episode_status !== "RUNNING" && (
           <span className="chip warn" title="Episode outcome">{snap.episode_status}</span>
         )}
+        {snap?.plant_trip && <span className="chip bad" title="A plant-trip SIF has latched">PLANT TRIP</span>}
+        {sifs.length > 0 && <span className="chip bad" title="Latched safety functions">SIF {sifs.join(", ")}</span>}
         <span className={`chip ${unack ? "bad blink" : active ? "warn" : ""}`}>{active} alarms{unack ? ` · ${unack} unack` : ""}</span>
         <span className={`chip ${last?.fault ? "bad" : "ok"}`}>{last?.fault ? "FAULT" : "FDD ok"}</span>
         <button className="btn drawer-toggle" onClick={onToggleDrawer}>Controls</button>

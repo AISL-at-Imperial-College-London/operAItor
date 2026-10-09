@@ -245,6 +245,7 @@ The first safety layer is deterministic, independent and latched. Current synthe
 | Drum L-LL | 10.59 kmol | reflux/distillate stopped, steam/feed stopped; plant-trip latch |
 | Drum L-HH | 45.37 kmol | steam/feed stopped; plant-trip latch |
 | Column P-HH | 1.35 bar | steam OFF, condenser CW valve forced to 100%, feed stopped; plant-trip latch |
+| Column L-LL (dry tray) | 0.30 kmol lowest tray holdup | steam OFF, column feed / fresh feed / reactor heater stopped; plant-trip latch |
 
 The pressure logic deliberately reflects the endothermic benchmark reaction: the first pressure-high action maximizes gas removal **without cutting feed**. Feed reduction is reserved for the escalated P-HHH stage.
 

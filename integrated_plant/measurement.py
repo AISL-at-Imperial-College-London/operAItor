@@ -92,7 +92,11 @@ def default_sensor_specs(nominal_truth: dict[str, float]) -> dict[str, SensorSpe
     """Small sensor-like noise rather than a fixed percentage of all signals."""
     specs: dict[str, SensorSpec] = {}
     for key, val in nominal_truth.items():
-        if "x_acetone" in key:
+        if key == "column_min_tray_holdup_kmol":
+            # derived tray-liquid indicator: noise-free, so adding it leaves the noise sequence
+            # of every other sensor (and the earlier benchmark runs) unchanged
+            specs[key] = SensorSpec(0.0)
+        elif "x_acetone" in key:
             specs[key] = SensorSpec(0.0025, 0.0, 1.0)
         elif "temperature_K" in key:
             specs[key] = SensorSpec(0.15, 200.0, 600.0)

@@ -11,7 +11,7 @@ const ROWS: Record<string, [string, string, string, number][]> = {
     ["Pressure", "column_pressure_bar", "bar", 3], ["Top T", "top_temperature_K", "K", 2],
     ["Bottom T", "bottom_temperature_K", "K", 2], ["Reboiler holdup", "reboiler_holdup_kmol", "kmol", 1],
     ["Drum holdup", "drum_holdup_kmol", "kmol", 1], ["Distillate x", "distillate_x_acetone", "", 3],
-    ["Bottoms x", "bottoms_x_acetone", "", 3],
+    ["Bottoms x", "bottoms_x_acetone", "", 3], ["Lowest tray holdup", "column_min_tray_holdup_kmol", "kmol", 2],
   ],
 };
 const LOOPS: Record<string, string[]> = {
@@ -67,26 +67,6 @@ export function Faceplates() {
           </table>
         </div>
       ))}
-      <div className="card">
-        <div className="card-title">Pump trains</div>
-        <table className="loops">
-          <thead><tr><th>Train</th><th>Running</th><th>Standby</th><th></th></tr></thead>
-          <tbody>
-            {Object.entries(snap.pumps).map(([id, p]) => (
-              <tr key={id}>
-                <td>{id}</td>
-                <td className={p.selected_failed ? "alm-unack" : ""}>{p.active_pump}</td>
-                <td>{p.active_pump === p.primary ? p.spare : p.primary}</td>
-                <td>{p.selected_failed ? <span className="pill pill-bad">FAILED</span> : <span className="pill pill-ok">OK</span>}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="card-title" style={{ marginTop: 12 }}>Safety</div>
-        <div className="kv-line">SIF latched: <b>{snap.sif_latched.join(", ") || "none"}</b></div>
-        <div className="kv-line">Plant trip: <b className={snap.plant_trip ? "alm-unack" : ""}>{snap.plant_trip ? "LATCHED" : "no"}</b></div>
-        <div className="kv-line">Last action: <span className="dim">{snap.last_action}</span></div>
-      </div>
     </div>
   );
 }

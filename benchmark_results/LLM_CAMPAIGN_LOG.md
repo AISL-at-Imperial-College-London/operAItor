@@ -307,3 +307,82 @@ Nominal reference over the same windows: $34,202. Total LLM cost: $2.62.
   condenser loss.
 - **Decisions are slower** than in the old campaign, because of the extra diagnosis call per
   decision and many runs sharing the CPU. Mean LLM latency was 8–9 s per call.
+
+## Column dry-out SIF and campaign rerun (8–9 Oct)
+**Why:** five scenarios (S01, C01, D03, T02, T03) ended as `MODEL_LIMIT` (a tray holdup fell below
+0.10 kmol and the column model became invalid). No safety function covered a dry column, so these
+were counted as stops without any protection acting.
+
+**What was added:**
+- Measurement `column_min_tray_holdup_kmol`: the lowest liquid holdup over the 10 trays (nominal
+  2.22–2.24 kmol). It is noise-free, so the noise sequence of every other sensor is unchanged.
+- Alarm `COL_TRAY_L` (priority 1): ≤ 1.0 kmol.
+- SIF `COL_L_LL`, a plant-trip latch:
+  - trips at ≤ 0.30 kmol;
+  - steam off, column feed off, fresh feed off, reactor heater off.
+- Knowledge graph nodes for the new measurement, alarm and SIF (with override rules), and
+  `kg_sim_mapping.json` regenerated.
+- The new tag added to the judge's limits, the trend monitor (minutes to SIF), the diagnosis map,
+  the README SIF table, the tests, and the dashboard (trip SIF list, variable plot).
+
+**Choosing the thresholds:**
+- Reflux loss (S01) takes the lowest tray from 2.24 to 1.04 kmol in 2 min, 0.57 in 4 min and
+  0.36 in 6 min, and to 0.10 at about 14 min.
+- Faults that are not column dry-out keep it at about 2.2 kmol.
+- The alarm at 1.0 kmol gives about 4 min warning before the SIF at 0.30 kmol. That SIF trips 6–8 min
+  before the model limit.
+
+**Probe runs (nobody acting):**
+- The 15 non-dry-out scenarios are identical to before (same trip times and SIFs).
+- The five dry-out cases are now `COL_L_LL` SIF trips:
+
+| Scenario | Now | Before |
+|---|---|---|
+| S01 | 16.9 min | 24.4 min, model limit |
+| C01 | 20.4 min | 28.3 min, model limit |
+| T02 | 20.4 min | 28.3 min, model limit |
+| T03 | 19.3 min | 27.2 min, model limit |
+| D03 | 21.9 min | 29.4 min, model limit |
+
+Because these trips come earlier, the fault-lift times for the five cases move earlier too (trip + 10 min).
+
+**Comparison:** same setup as the 8 Oct campaign (gpt-5-nano, LLM diagnosis on, `base` context,
+`PLANT_LLM_MAX_RETRIES=8`). The 8 Oct results are archived in `runs_before_dry_sif/`.
+
+**Console cleanup (same change):**
+- The speed and pacing selects are merged into one Speed control.
+- PLANT TRIP and latched-SIF chips added to the top bar.
+- Removed from the Overview: the pump-train table and Safety block (the graphic already shows the
+  pump badges and SIF lamps) and the event log (now on the "Alarms & events" tab).
+- Removed from FDD & Agents: the per-agent cards (they duplicated the pipeline strip and the timeline).
+- The outdated "rule agents" text is fixed. "Lowest tray holdup" is added to the column faceplate.
+
+**Results (9 Oct, 80 runs, 0 LLM errors).** Nominal reference $34,202.
+
+| Configuration | Plant stops | Saving vs no agents | Mean time per decision | LLM cost | 8 Oct (stops / saving) |
+|---|---:|---:|---:|---:|---|
+| No agents | 18 (all SIF trips now) | — (profit −$364,878) | — | — | 18 (13 SIF + 5 dry-outs) |
+| LLM, feeling lucky | 9 | $179,199 | 21 s | $0.49 | 7 / $211,534 |
+| LLM + LLM judge | 11 | $135,136 | 29 s | $1.10 | 8 / $207,148 |
+| LLM + digital twin | **5** | **$260,455** | 167 s | $0.91 | 4 / $284,568 |
+
+Total LLM cost: $2.50. The first LLM diagnosis names a true fault in 45 of 60 runs (46 on 8 Oct).
+
+**Findings:**
+- **LLM + twin is still clearly best.** Its stops:
+  - S08, C01 and T02 (condenser-cooling loss);
+  - T03 (cannot be recovered);
+  - C03 (reflux-drum leak + distillate pump trip), which it saved on 8 Oct.
+- **The dry-out cases end the same way as before** in every configuration:
+  - S01 and D03 are saved by all three;
+  - C01, T02 and T03 are lost by all three. The agents fail on the condenser/reflux reasoning, not on the column protection.
+- **Run-to-run variance is large for the configurations without a simulator.** Their extra stops are
+  in scenarios whose fault and lift times did not change at all:
+  - lucky: C02, D04, S06 (and S10 is now saved);
+  - judge: C02, D02, S10;
+  - LLM + twin: C03.
+
+  So a difference of 2–3 stops between two lucky or judge campaigns is gpt-5-nano noise, not an effect
+  of the SIF. With the twin the outcome is much more stable (4 → 5).
+- The ranking is unchanged: twin > lucky ≈ judge. Lucky beats judge again, because the gpt-5-nano
+  judge rejects good actions (S10, D02) as often as it catches bad ones.

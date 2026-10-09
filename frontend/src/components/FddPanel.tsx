@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { send, usePlant } from "../store";
 import type { AgentEvent } from "../types";
 import { Chart } from "./Chart";
-import { AgentCards, PipelineCard } from "./Pipeline";
+import { PipelineCard } from "./Pipeline";
 import { C } from "./Trends";
 
 const pretty = (v: string) => v.replace(/^meas\./, "").replace(/^op\./, "OP ").replace(/_/g, " ");
@@ -18,7 +18,7 @@ function describePlan(e: AgentEvent) {
   if (e.stage === "verification") return <span className="dim">{e.reason}</span>;
   if (e.stage === "llm_diagnosis") return <span>LLM diagnosis: <b>{e.most_likely ?? "unclear"}</b> <span className="dim">— {e.summary ?? e.error}</span></span>;
   if (e.stage === "alarm_ack") return <span className="dim">acknowledged {(e.alarms ?? []).join(", ")} — {e.reason}</span>;
-  if (e.stage === "llm_error") return <span className="alm-unack">LLM call failed (rule fallback): {e.error}</span>;
+  if (e.stage === "llm_error") return <span className="alm-unack">LLM call failed, nothing applied: {e.error}</span>;
   if (e.stage === "validation") { const bad = e.checks?.filter((c) => !c.ok) ?? []; return <span className={e.accepted ? "" : "alm-ack"}>{e.accepted ? "ACCEPT" : `REJECT: ${bad[0]?.check} — ${bad[0]?.detail}`}</span>; }
   if (e.stage === "fallback") return <span className="alm-ack">{e.reason}: {e.plan?.commands.map((c) => Object.values(c).join(" ")).join(", ")}</span>;
   if (e.stage === "reprompt") return <span className="alm-ack">retry {e.attempt}/{e.reprompt_max}: {String(e.feedback?.fail_reason ?? "")}</span>;
@@ -34,7 +34,7 @@ function describePlan(e: AgentEvent) {
 
 function LlmBadge({ model }: { model: string | null }) {
   const usage = usePlant((s) => s.llmUsage);
-  if (!model) return <div className="dim small">No LLM in the loop (rule agents). Start the server with an OpenAI key to use {"gpt-5-nano"}.</div>;
+  if (!model) return <div className="dim small">No LLM connected: the agents monitor and diagnose only, they take no actions. Start the server with an OpenAI key (gpt-5-nano) or a local model.</div>;
   return (
     <div className="small llm-badge">
       <span className="pill pill-ok">OpenAI {model}</span>{" "}
@@ -150,14 +150,12 @@ export function FddPanel() {
             <div className="note warn">No PCA model loaded — run <code>train_pca.py</code>. Rule checks only.</div>
           )}
           {agent?.pca_meta && (
-            <div className="dim small">PCA: {agent.pca_meta.n_components} PCs, {(100 * agent.pca_meta.explained_variance).toFixed(1)}% variance,
-              {" "}{agent.pca_meta.n_samples} training samples · preset <b>{agent.preset}</b> · planner {agent.planner} ·
-              action agent {agent.actor ?? "none"}{agent.twin ? " · twin" : ""}{agent.kg ? " · KG" : ""}</div>
+            <div className="dim small">PCA: {agent.pca_meta.n_components} PCs, {(100 * agent.pca_meta.explained_variance).toFixed(1)}% variance</div>
           )}
           {agent && (
             <LlmBadge model={agent.llm_model ?? null} />
           )}
-          <div className="card-title" style={{ marginTop: 12 }}>Hypotheses</div>
+          <div className="card-title" style={{ marginTop: 12 }}>Rule-based hypotheses</div>
           {last?.diagnosis.hypotheses.length ? (
             <ol className="hyps">
               {last.diagnosis.hypotheses.map((h) => (
@@ -181,7 +179,6 @@ export function FddPanel() {
 
       <LlmDiagnosisCard />
       <PlanningCard />
-      <AgentCards />
 
       {pendingList.length > 0 && (
         <div className="card pending">
