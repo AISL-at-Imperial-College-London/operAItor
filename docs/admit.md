@@ -110,7 +110,7 @@ The trace is shown and saved in four places:
 
 | Where | What |
 |---|---|
-| Console → **FDD & Agents** → **ADMIT gate** card | the trace of every attempt (pick one in the selector): record next to rule, gate table, remedies, and the ledger with cited entries highlighted |
+| Console → **Agents** tab → **ADMIT gate** card | the trace of every attempt (pick one in the selector): record next to rule, gate table, remedies, and the ledger with cited entries highlighted |
 | Console → agent timeline | one line per attempt: admitted / blocked and the violation codes |
 | `admit_audit/<start time>_<preset>.jsonl` (local server) | one JSON line per attempt with the full trace. Off on the hosted app; set `PLANT_ADMIT_LOG=<dir>` to choose the folder, or `PLANT_ADMIT_LOG=` to switch it off |
 | Benchmark runs: `benchmark_results/runs/<id>_admit*.json` → `agent.admit[]` | the full trace of every attempt in the run |

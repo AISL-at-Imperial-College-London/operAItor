@@ -50,7 +50,8 @@ export function OperatorPanel() {
 
   return (
     <div className="panel-body">
-      <p className="hint">Restricted operator authority — the same actions the action agent may use.</p>
+      <p className="hint">You have the same authority as the action agent: setpoints, throughput, standby pumps and the
+        emergency auxiliaries. Safety functions cannot be bypassed.</p>
       <section>
         <h4>Throughput</h4>
         <div className="row">
@@ -107,8 +108,8 @@ function CampaignSection() {
   const start = () => send({ type: "campaign_start", campaign: name, scenario: "nominal",
                               ...(name === "random" ? rnd : {}) });
   return (
-    <section>
-      <h4>Fault campaign (automated injection)</h4>
+    <details className="sub">
+      <summary>Fault campaign <span className="dim small">scripted sequence of faults</span></summary>
       <div className="row">
         <Field label="Campaign">
           <Select value={name} onChange={setName}
@@ -145,93 +146,96 @@ function CampaignSection() {
               </div>
             );
           })}
-          {campaign.report_path && <div className="dim small">Report: <code>{campaign.report_path.split(/[\/]/).pop()}</code> in campaign_results/</div>}
+          {campaign.report_path && <div className="dim small">Report: <code>{campaign.report_path.split(/[\/]/).pop()}</code></div>}
         </div>
       )}
-    </section>
+    </details>
   );
 }
 
-export function MasterPanel() {
+type Kind = "pump" | "actuator" | "sensor" | "process" | "disturbance";
+const KINDS: [Kind, string][] = [["pump", "Pump trip"], ["actuator", "Valve / actuator"], ["sensor", "Sensor"],
+                                 ["process", "Process / utility"], ["disturbance", "Disturbance"]];
+
+export function FaultsPanel() {
   const meta = usePlant((s) => s.meta);
   const snap = usePlant((s) => s.snap);
-  const [dist, setDist] = useState({ target: "cooling_water_temperature_K", direction: "1", duration_min: 15 });
-  const [actu, setActu] = useState({ target: "cstr_vent_valve", mode: "freeze", severity_pct: 50, duration_min: 0 });
-  const [pump, setPump] = useState({ pump_id: "P-201A", duration_min: 0 });
-  const [sens, setSens] = useState({ target: "cstr_pressure_bar", mode: "bias", bias_pct: -20, duration_min: 0 });
-  const [proc, setProc] = useState({ fault: "catalyst_activity_loss", severity: 50, duration_min: 0 });
+  const [kind, setKind] = useState<Kind>("pump");
+  const [duration, setDuration] = useState(0);
+  const [pump, setPump] = useState("P-201A");
+  const [actu, setActu] = useState({ target: "cstr_vent_valve", mode: "freeze", severity_pct: 50 });
+  const [sens, setSens] = useState({ target: "cstr_pressure_bar", mode: "bias", bias_pct: -20 });
+  const [proc, setProc] = useState({ fault: "catalyst_activity_loss", severity: 50 });
+  const [dist, setDist] = useState({ target: "cooling_water_temperature_K", direction: "1" });
   if (!meta || !snap) return null;
   const inj = meta.injections;
-  const inject = (kind: string, body: Record<string, unknown>) => send({ type: "inject", kind, ...body });
   const t = snap.truth;
+  const inject = () => {
+    const body: Record<string, unknown> =
+      kind === "pump" ? { pump_id: pump } : kind === "actuator" ? actu : kind === "sensor" ? sens
+      : kind === "process" ? proc : { target: dist.target, direction: +dist.direction };
+    send({ type: "inject", kind, ...body, duration_min: kind === "disturbance" && !duration ? 15 : duration });
+  };
+  const active = [...t.schedule.filter((e) => e.phase === "active").map((e) => e.name),
+                  ...(["runtime", "actuator", "sensor", "pump"] as const).flatMap((k) => t[k])];
 
   return (
     <div className="panel-body">
-      <p className="hint warn">Ground-truth test controls. Never visible to the agents.</p>
+      <p className="hint warn">Test controls: what you inject here is ground truth and is never shown to the agents.</p>
+      <section>
+        <h4>Inject a fault</h4>
+        <div className="seg wrap" role="radiogroup" aria-label="Fault type">
+          {KINDS.map(([k, l]) => <button key={k} role="radio" aria-checked={kind === k} className={kind === k ? "on" : ""}
+            onClick={() => setKind(k)}>{l}</button>)}
+        </div>
+        {kind === "pump" && (
+          <Field label="Pump"><Select value={pump} options={meta.pump_ids} onChange={setPump} /></Field>
+        )}
+        {kind === "actuator" && (<>
+          <div className="row">
+            <Field label="Valve / actuator"><Select value={actu.target} options={inj.actuator_targets} onChange={(v) => setActu({ ...actu, target: v })} /></Field>
+            <Field label="Failure"><Select value={actu.mode} options={inj.actuator_modes} onChange={(v) => setActu({ ...actu, mode: v })} /></Field>
+          </div>
+          <Field label="Severity [% of nominal]"><Num value={actu.severity_pct} onChange={(v) => setActu({ ...actu, severity_pct: v })} /></Field>
+        </>)}
+        {kind === "sensor" && (<>
+          <div className="row">
+            <Field label="Sensor"><Select value={sens.target} options={inj.sensor_targets} onChange={(v) => setSens({ ...sens, target: v })} /></Field>
+            <Field label="Failure"><Select value={sens.mode} options={["bias", "freeze"]} onChange={(v) => setSens({ ...sens, mode: v })} /></Field>
+          </div>
+          {sens.mode === "bias" && <Field label="Bias [% of value]"><Num value={sens.bias_pct} onChange={(v) => setSens({ ...sens, bias_pct: v })} /></Field>}
+        </>)}
+        {kind === "process" && (<>
+          <Field label="Fault"><Select value={proc.fault} options={inj.process_faults} onChange={(v) => setProc({ ...proc, fault: v })} /></Field>
+          <Field label="Severity (loss %, or leak kmol/h)"><Num value={proc.severity} onChange={(v) => setProc({ ...proc, severity: v })} /></Field>
+        </>)}
+        {kind === "disturbance" && (
+          <div className="row">
+            <Field label="Variable"><Select value={dist.target} options={Object.entries(inj.disturbances)} onChange={(v) => setDist({ ...dist, target: v })} /></Field>
+            <Field label="Step"><Select value={dist.direction} onChange={(v) => setDist({ ...dist, direction: v })}
+              options={[["1", `+${inj.disturbance_steps?.[dist.target] ?? "step"}`], ["-1", `−${inj.disturbance_steps?.[dist.target] ?? "step"}`]]} /></Field>
+          </div>
+        )}
+        <Field label={kind === "disturbance" ? "Duration [min]" : "Duration [min] (0 = until cleared)"}>
+          <Num value={duration} min={0} onChange={setDuration} /></Field>
+        <div className="row">
+          <button className="btn danger" onClick={inject}>Inject</button>
+          <button className="btn" onClick={() => send({ type: "clear_injections" })} disabled={!active.length}>Clear all injections</button>
+        </div>
+      </section>
+      <section>
+        <h4>Active injections</h4>
+        {active.length ? active.map((a) => <div key={a} className="kv-line"><span className="pill pill-bad">active</span> {a}</div>)
+          : <p className="dim small">None.</p>}
+        {t.schedule.some((e) => e.phase !== "active") && (
+          <details className="sub"><summary>Scheduled / finished</summary>
+            {t.schedule.filter((e) => e.phase !== "active").map((e) => (
+              <div key={e.name} className="kv-line small"><span className="pill">{e.phase}</span> {e.name}
+                <span className="dim"> @ {e.start_min.toFixed(0)}{e.end_min != null ? `–${e.end_min.toFixed(0)}` : ""} min</span></div>))}
+          </details>
+        )}
+      </section>
       <CampaignSection />
-      <section>
-        <h4>Disturbance</h4>
-        <Field label="Variable"><Select value={dist.target} options={Object.entries(inj.disturbances)} onChange={(v) => setDist({ ...dist, target: v })} /></Field>
-        <div className="row">
-          <Field label="Step"><Select value={dist.direction} onChange={(v) => setDist({ ...dist, direction: v })}
-            options={[["1", `+${inj.disturbance_steps?.[dist.target] ?? "step"}`], ["-1", `−${inj.disturbance_steps?.[dist.target] ?? "step"}`]]} /></Field>
-          <Field label="Duration [min]"><Num value={dist.duration_min} onChange={(v) => setDist({ ...dist, duration_min: v })} /></Field>
-        </div>
-        <button className="btn" onClick={() => inject("disturbance", { ...dist, direction: +dist.direction })}>Inject disturbance</button>
-      </section>
-      <section>
-        <h4>Actuator fault</h4>
-        <div className="row">
-          <Field label="Target"><Select value={actu.target} options={inj.actuator_targets} onChange={(v) => setActu({ ...actu, target: v })} /></Field>
-          <Field label="Mode"><Select value={actu.mode} options={inj.actuator_modes} onChange={(v) => setActu({ ...actu, mode: v })} /></Field>
-        </div>
-        <div className="row">
-          <Field label="Severity [% nominal]"><Num value={actu.severity_pct} onChange={(v) => setActu({ ...actu, severity_pct: v })} /></Field>
-          <Field label="Duration [min], 0 = persistent"><Num value={actu.duration_min} onChange={(v) => setActu({ ...actu, duration_min: v })} /></Field>
-        </div>
-        <button className="btn danger" onClick={() => inject("actuator", actu)}>Inject actuator fault</button>
-      </section>
-      <section>
-        <h4>Pump trip</h4>
-        <div className="row">
-          <Field label="Pump"><Select value={pump.pump_id} options={meta.pump_ids} onChange={(v) => setPump({ ...pump, pump_id: v })} /></Field>
-          <Field label="Duration [min], 0 = persistent"><Num value={pump.duration_min} onChange={(v) => setPump({ ...pump, duration_min: v })} /></Field>
-        </div>
-        <button className="btn danger" onClick={() => inject("pump", pump)}>Trip pump</button>
-      </section>
-      <section>
-        <h4>Sensor fault</h4>
-        <div className="row">
-          <Field label="Sensor"><Select value={sens.target} options={inj.sensor_targets} onChange={(v) => setSens({ ...sens, target: v })} /></Field>
-          <Field label="Mode"><Select value={sens.mode} options={["bias", "freeze"]} onChange={(v) => setSens({ ...sens, mode: v })} /></Field>
-        </div>
-        <div className="row">
-          <Field label="Bias [% of value]"><Num value={sens.bias_pct} onChange={(v) => setSens({ ...sens, bias_pct: v })} /></Field>
-          <Field label="Duration [min], 0 = persistent"><Num value={sens.duration_min} onChange={(v) => setSens({ ...sens, duration_min: v })} /></Field>
-        </div>
-        <button className="btn danger" onClick={() => inject("sensor", sens)}>Inject sensor fault</button>
-      </section>
-      <section>
-        <h4>Process / utility fault</h4>
-        <Field label="Fault"><Select value={proc.fault} options={inj.process_faults} onChange={(v) => setProc({ ...proc, fault: v })} /></Field>
-        <div className="row">
-          <Field label="Severity (loss %, leaks kmol/h)"><Num value={proc.severity} onChange={(v) => setProc({ ...proc, severity: v })} /></Field>
-          <Field label="Duration [min], 0 = persistent"><Num value={proc.duration_min} onChange={(v) => setProc({ ...proc, duration_min: v })} /></Field>
-        </div>
-        <button className="btn danger" onClick={() => inject("process", proc)}>Inject process fault</button>
-      </section>
-      <button className="btn" onClick={() => send({ type: "clear_injections" })}>End all manual injections</button>
-
-      <section className="truth">
-        <h4>Ground truth</h4>
-        {t.schedule.map((e) => (
-          <div key={e.name} className="kv-line"><span className={`pill ${e.phase === "active" ? "pill-bad" : ""}`}>{e.phase}</span> {e.name}
-            <span className="dim"> @ {e.start_min.toFixed(0)}{e.end_min != null ? `–${e.end_min.toFixed(0)}` : ""} min</span></div>
-        ))}
-        {(["runtime", "actuator", "sensor", "pump"] as const).map((k) => (
-          <div key={k} className="kv-line">{k}: <b>{t[k].join(", ") || "none"}</b></div>
-        ))}
-      </section>
     </div>
   );
 }

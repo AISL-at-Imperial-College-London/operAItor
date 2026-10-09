@@ -1,25 +1,21 @@
 import { useEffect, useState } from "react";
-import { Alarms } from "./components/Alarms";
+import { AgentsTab } from "./components/AgentsTab";
+import { AlarmsTab } from "./components/Alarms";
 import { ChatPanel } from "./components/Chat";
-import { MasterPanel, OperatorPanel } from "./components/ControlPanels";
-import { Faceplates } from "./components/Faceplates";
-import { FddPanel } from "./components/FddPanel";
+import { FaultsPanel, OperatorPanel } from "./components/ControlPanels";
 import { SessionNotice } from "./components/LlmKey";
-import { Overview } from "./components/Overview";
-import { TopBar } from "./components/TopBar";
+import { PlantTab } from "./components/PlantTab";
+import { Header, type Drawer, type Tab, TABS } from "./components/TopBar";
 import { Trends } from "./components/Trends";
 import { API_VERSION, usePlant } from "./store";
 
-const TABS = ["Overview", "Trends", "FDD & Agents", "Alarms & events"] as const;
-type Tab = (typeof TABS)[number];
-const SIDES = ["Operator", "Assistant", "Master"] as const;
-type Side = (typeof SIDES)[number];
-const SIDE_LABEL: Record<Side, string> = { Operator: "Operator", Assistant: "Assistant", Master: "Master / faults" };
+const DRAWERS: Drawer[] = ["operate", "assistant", "faults"];
+const DRAWER_TITLE: Record<Drawer, string> = { operate: "Operate", assistant: "Assistant", faults: "Inject faults" };
 
 function load<T extends string>(key: string, fallback: T, allowed: readonly T[]): T {
   try {
     const v = localStorage.getItem(key) as T | null;
-    return v && allowed.includes(v) ? v : fallback;
+    return v !== null && allowed.includes(v) ? v : fallback;
   } catch {
     return fallback;
   }
@@ -41,75 +37,58 @@ function Toast() {
   return <div className={`toast ${toast.ok ? "ok" : "bad"}`} role="status">{toast.text}</div>;
 }
 
-function Messages() {
-  const messages = usePlant((s) => s.messages);
-  return (
-    <div className="card">
-      <div className="card-title">Event log</div>
-      <ul className="msgs">
-        {[...messages].reverse().slice(0, 30).map((m, i) => (
-          <li key={i} className={m.level}><span className="num t">{m.time_min.toFixed(1)}</span> {m.text}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export default function App() {
-  const [tab, setTab] = useState<Tab>(() => load("tab", "Overview", TABS));
-  const [side, setSide] = useState<Side>(() => load("side", "Operator", SIDES));
-  const [drawer, setDrawer] = useState(false);
+  const [tab, setTab] = useState<Tab>(() => load("tab", "plant", TABS.map((t) => t.id)));
+  // One drawer at a time; "" = closed. Wide screens start with the operator panel open.
+  const [drawer, setDrawer] = useState<Drawer | "">(() =>
+    load("drawer", window.innerWidth >= 1500 ? "operate" : "", ["", ...DRAWERS] as const));
   const snap = usePlant((s) => s.snap);
   const connected = usePlant((s) => s.connected);
   const backendVersion = usePlant((s) => s.backendVersion);
   const notice = usePlant((s) => s.notice);
 
   useEffect(() => save("tab", tab), [tab]);
-  useEffect(() => save("side", side), [side]);
+  useEffect(() => save("drawer", drawer), [drawer]);
 
   return (
-    <div className="app">
-      <TopBar onToggleDrawer={() => setDrawer((d) => !d)} />
+    <div className={`app ${drawer ? "with-drawer" : ""}`}>
+      <Header tab={tab} onTab={setTab} drawer={drawer} onDrawer={(d) => setDrawer((cur) => (cur === d ? "" : d))} />
       {connected && backendVersion !== null && backendVersion < API_VERSION && (
-        <div className="offline outdated">
-          The plant server is running older code than this console (API v{backendVersion}, console needs v{API_VERSION}).
-          Restart it (<code>acetone-plant serve</code>) and reload this page.
+        <div className="banner warn">
+          The plant server runs older code than this console (API v{backendVersion}, console needs v{API_VERSION}).
+          Restart it (<code>acetone-plant serve</code>) and reload.
         </div>
       )}
       <SessionNotice />
-      {!connected && !notice && (
-        <div className="offline">Connecting to the plant server…</div>
-      )}
+      {!connected && !notice && <div className="banner warn">Connecting to the plant server…</div>}
       <div className="layout">
         <main>
-          <nav className="tabs" role="tablist">
-            {TABS.map((t) => (
-              <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => setTab(t)}>{t}</button>
-            ))}
-          </nav>
-          {snap && (
-            <div className="tab-body">
-              {tab === "Overview" && (<><Overview /><Faceplates /><Alarms compact /></>)}
-              {tab === "Trends" && <Trends />}
-              {tab === "FDD & Agents" && <FddPanel />}
-              {tab === "Alarms & events" && (<><Alarms /><Messages /></>)}
-            </div>
-          )}
+          {snap ? (
+            <>
+              {tab === "plant" && <PlantTab onAlarms={() => setTab("alarms")} />}
+              {tab === "trends" && <Trends />}
+              {tab === "agents" && <AgentsTab />}
+              {tab === "alarms" && <AlarmsTab />}
+            </>
+          ) : <div className="empty pad">Waiting for the plant…</div>}
         </main>
-        <aside className={`side ${drawer ? "open" : ""}`}>
-          <div className="side-head">
-            <nav className="tabs small" role="tablist">
-              {SIDES.map((t) => (
-                <button key={t} role="tab" aria-selected={side === t} className={side === t ? "on" : ""} onClick={() => setSide(t)}>
-                  {SIDE_LABEL[t]}
-                </button>
-              ))}
-            </nav>
-            <button className="btn sm drawer-close" onClick={() => setDrawer(false)} aria-label="Close controls">✕</button>
-          </div>
-          {side === "Operator" ? <OperatorPanel /> : side === "Assistant" ? <ChatPanel /> : <MasterPanel />}
-        </aside>
-        {drawer && <div className="scrim" onClick={() => setDrawer(false)} />}
+        {drawer && (
+          <aside className="drawer" aria-label={DRAWER_TITLE[drawer]}>
+            <div className="drawer-head">
+              <nav className="seg" role="tablist">
+                {DRAWERS.map((d) => (
+                  <button key={d} role="tab" aria-selected={drawer === d} className={drawer === d ? "on" : ""}
+                    onClick={() => setDrawer(d)}>{DRAWER_TITLE[d]}</button>
+                ))}
+              </nav>
+              <button className="icon-btn" onClick={() => setDrawer("")} aria-label="Close panel">✕</button>
+            </div>
+            <div className="drawer-body">
+              {drawer === "operate" ? <OperatorPanel /> : drawer === "assistant" ? <ChatPanel /> : <FaultsPanel />}
+            </div>
+          </aside>
+        )}
+        {drawer && <div className="scrim" onClick={() => setDrawer("")} />}
       </div>
       <Toast />
     </div>

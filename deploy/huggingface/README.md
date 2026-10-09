@@ -17,7 +17,7 @@ recovery agents.
 
 **Try it:**
 1. Press **Run** to start the plant.
-2. Inject a fault from **Master / faults**, e.g. trip the reflux pump.
+2. Open **Faults** and inject one, e.g. trip the reflux pump P-201A.
 3. Watch the alarms, the fault detection, and the plant trip if nobody acts.
 
 **Turn on the agents:** paste your own OpenAI API key in the **Assistant** panel.

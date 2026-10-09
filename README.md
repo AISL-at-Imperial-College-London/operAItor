@@ -27,7 +27,7 @@ before they reach the plant.
 
 ### In the browser (hosted)
 
-Open the deployed Space and press **Run**, then inject a fault from **Master / faults**. To turn
+Open the deployed Space and press **Run**, then inject a fault from the **Faults** panel. To turn
 on the agents, paste your own OpenAI API key in the **Assistant** panel. It is kept only in server
 memory for your session, and a run costs a few cents with gpt-5-nano. Deploying your own copy for
 free is covered in [docs/deployment.md](docs/deployment.md).

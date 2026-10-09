@@ -94,7 +94,7 @@ class PlantService:
         self.hold_timeout_s = 600.0
         self._hold_timeout_reported = False
         self._agent_hold_since: float | None = None
-        self.config = {"scenario": "nominal", "horizon_min": 360.0, "seed": 20261004, "stop_on_trip": False}
+        self.config = {"scenario": "nominal", "horizon_min": 360.0, "seed": 20261004, "stop_on_trip": True}
         self.trend: deque = deque(maxlen=history_len)
         self.history: deque = deque(maxlen=history_len)   # measurements + loop OP/SP (chat agent trends)
         self.monitor: deque = deque(maxlen=history_len)

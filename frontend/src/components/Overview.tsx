@@ -26,7 +26,15 @@ const LAMPS: [number, number, string | null][] = [
   [1387, 634, null], [1127, 711, "reboiler_holdup_kmol"], [1388, 730, null], [1388, 764, "bottoms_x_acetone"],
 ];
 
-const EXEC: [string, number, number][] = [["R_P_HH", 90, 869], ["R_L_LL", 202, 869], ["DR_L_LL", 317, 869], ["COL_P_HH", 438, 869]];
+// The artwork's "Executive Alarms" / legend box only shows 4 SIFs; it is covered by a live panel
+// with all 11 safety functions (artwork pixels: left, top, width, height).
+const SIF_BOX = [22, 762, 846, 168] as const;
+export const SIFS: [string, string, boolean][] = [
+  ["R_T_HH", "Reactor T high", false], ["R_P_HH", "Reactor P high", false], ["R_P_HHH", "Reactor P high-high", true],
+  ["R_L_HH", "Reactor level high", false], ["R_L_LL", "Reactor level low", false], ["RB_L_HH", "Reboiler level high", true],
+  ["RB_L_LL", "Reboiler level low", false], ["DR_L_HH", "Drum level high", true], ["DR_L_LL", "Drum level low", true],
+  ["COL_P_HH", "Column P high", true], ["COL_L_LL", "Column trays dry", true],
+];
 
 const PUMPS: [string, "A" | "B", number, number][] = [
   ["FEED", "A", 154, 308], ["FEED", "B", 230, 310], ["CSTR_OUTLET", "A", 498, 729], ["CSTR_OUTLET", "B", 578.5, 729],
@@ -78,9 +86,16 @@ export function Overview() {
           {LAMPS.map(([x, y, tag], i) => (
             <div key={i} className={`ov-lamp ${tagState(tag)}`} style={pos(x, y)} title={tag ?? ""} />
           ))}
-          {EXEC.map(([cause, x, y]) => (
-            <div key={cause} className={`ov-exec ${snap.sif_latched.includes(cause) ? "latched" : ""}`} style={pos(x, y)} title={cause} />
-          ))}
+          <div className="ov-sifs" style={pos(...SIF_BOX)}>
+            <div className="ov-sifs-title">Safety functions (SIF)<span>trip = plant trip · lamps: white normal, amber alarm, red trip</span></div>
+            <div className="ov-sifs-grid">
+              {SIFS.map(([id, label, trip]) => (
+                <div key={id} className={`ov-sif ${snap.sif_latched.includes(id) ? "latched" : ""}`} title={`${id}${trip ? " (plant trip)" : ""}`}>
+                  <i />{label}{trip && <b>trip</b>}
+                </div>
+              ))}
+            </div>
+          </div>
           {PUMPS.map(([train, side, x, y]) => {
             const p = snap.pumps[train];
             const id = side === "A" ? p.primary : p.spare;

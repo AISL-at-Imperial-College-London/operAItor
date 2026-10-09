@@ -8,57 +8,53 @@ export const C = {
 
 const pv = (key: string, label: string, color = C.a): SeriesDef[] => [
   { key, label, color },
-  { key: `${key}_sp`, label: "SP", color: C.sp, dash: true },
+  { key: `${key}_sp`, label: "setpoint", color: C.sp, dash: true },
 ];
 
-const CHARTS: { title: string; unit: string; series: SeriesDef[] }[] = [
-  { title: "Reactor temperature", unit: "K", series: pv("r_temp", "T_R") },
-  { title: "Reactor pressure", unit: "bar", series: pv("r_press", "P_R") },
-  { title: "Reactor holdup", unit: "kmol", series: pv("r_level", "M_R") },
-  { title: "Column pressure", unit: "bar", series: pv("col_press", "P_COL") },
-  { title: "Top temperature", unit: "K", series: pv("top_temp", "T_TOP") },
-  { title: "Bottom temperature", unit: "K", series: pv("bottom_temp", "T_BOT") },
-  { title: "Reboiler holdup", unit: "kmol", series: pv("rb_level", "M_B") },
-  { title: "Reflux drum holdup", unit: "kmol", series: pv("dr_level", "M_D") },
-  {
-    title: "Compositions (acetone)", unit: "mol frac",
-    series: [
-      { key: "r_x", label: "x_R", color: C.a },
-      { key: "dist_x", label: "x_D", color: C.c },
-      { key: "btm_x", label: "x_B", color: C.b },
-    ],
-  },
-  {
-    title: "Flows", unit: "kmol/h",
-    series: [
-      { key: "feed", label: "Feed", color: C.a },
-      { key: "outflow", label: "R out", color: C.b },
-      { key: "reflux", label: "Reflux", color: C.c },
-      { key: "distillate", label: "D", color: C.d },
-      { key: "bottoms", label: "B", color: C.e },
-    ],
-  },
-  {
-    title: "Valve / utility actuals", unit: "fraction",
-    series: [
-      { key: "heater", label: "Heater", color: C.f },
-      { key: "steam", label: "Steam", color: C.b },
-      { key: "cooling", label: "CW valve", color: C.e },
-      { key: "pcv", label: "H2 PCV", color: C.a },
-      { key: "bdv", label: "H2 BDV", color: C.d },
-      { key: "cool_eff", label: "Cond. eff.", color: C.c, dash: true },
-    ],
-  },
-  { title: "H2 vent flow", unit: "kmol/h", series: [{ key: "h2", label: "F_H2", color: C.a }] },
+type ChartDef = { title: string; unit: string; series: SeriesDef[] };
+const GROUPS: [string, ChartDef[]][] = [
+  ["Reactor R-101", [
+    { title: "Temperature", unit: "K", series: pv("r_temp", "T") },
+    { title: "Pressure", unit: "bar", series: pv("r_press", "P") },
+    { title: "Liquid holdup", unit: "kmol", series: pv("r_level", "holdup") },
+    { title: "H2 vent flow", unit: "kmol/h", series: [{ key: "h2", label: "H2 vent", color: C.a }] },
+  ]],
+  ["Column T-201", [
+    { title: "Pressure", unit: "bar", series: pv("col_press", "P") },
+    { title: "Top temperature", unit: "K", series: pv("top_temp", "T top") },
+    { title: "Bottom temperature", unit: "K", series: pv("bottom_temp", "T bottom") },
+    { title: "Reflux drum holdup", unit: "kmol", series: pv("dr_level", "drum") },
+    { title: "Reboiler holdup", unit: "kmol", series: pv("rb_level", "reboiler") },
+  ]],
+  ["Quality, flows and valves", [
+    { title: "Acetone mole fraction", unit: "", series: [
+      { key: "r_x", label: "reactor", color: C.a }, { key: "dist_x", label: "distillate", color: C.c },
+      { key: "btm_x", label: "bottoms", color: C.b }] },
+    { title: "Flows", unit: "kmol/h", series: [
+      { key: "feed", label: "feed", color: C.a }, { key: "outflow", label: "reactor out", color: C.b },
+      { key: "reflux", label: "reflux", color: C.c }, { key: "distillate", label: "distillate", color: C.d },
+      { key: "bottoms", label: "bottoms", color: C.e }] },
+    { title: "Valves and utilities", unit: "fraction", series: [
+      { key: "heater", label: "heater", color: C.f }, { key: "steam", label: "steam", color: C.b },
+      { key: "cooling", label: "CW valve", color: C.e }, { key: "pcv", label: "H2 PCV", color: C.a },
+      { key: "bdv", label: "H2 BDV", color: C.d }, { key: "cool_eff", label: "condenser eff.", color: C.c, dash: true }] },
+  ]],
 ];
 
 export function Trends() {
   const trend = usePlant((s) => s.trend);
   const version = usePlant((s) => s.trendVersion);
   return (
-    <div className="grid charts">
-      {CHARTS.map((c) => (
-        <Chart key={c.title} title={c.title} unit={c.unit} series={c.series} data={trend} version={version} />
+    <div className="stack">
+      {GROUPS.map(([group, charts]) => (
+        <section key={group}>
+          <h2 className="section-title">{group}</h2>
+          <div className="grid charts">
+            {charts.map((c) => (
+              <Chart key={group + c.title} title={c.title} unit={c.unit} series={c.series} data={trend} version={version} />
+            ))}
+          </div>
+        </section>
       ))}
     </div>
   );

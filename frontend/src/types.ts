@@ -145,6 +145,7 @@ export interface AgentEvent {
   alarms?: string[];
   // admit (ADMIT gate verdict)
   admissible?: boolean;
+  accept?: boolean;
   hazard_id?: string | null;
   simulate?: boolean;
   wall_s?: number;

@@ -39,11 +39,12 @@ acetone-plant serve                                    # http://localhost:8001
 
 In the console:
 
-- **Master / faults** tab: start a fault campaign.
-- **Assistant** tab: chat with the plant.
-- **FDD & Agents** tab: watch the agent pipeline.
+- **Plant** tab: process graphic with all safety functions, key variables, control loops, active alarms.
+- **Trends**, **Agents** (pipeline, current decision, fault detection, ADMIT trace, timeline), **Alarms** (active alarms + event log).
+- Header buttons open a side panel: **Operate** (operator actions), **Assistant** (chat, OpenAI key,
+  agent configuration), **Faults** (inject a fault, fault campaigns). **Episode** sets up a new episode.
 
-### Watching the agents (FDD & Agents tab)
+### Watching the agents (Agents tab)
 
 - **Agent pipeline.** A live strip of the decision currently in progress:
   Monitoring → Knowledge graph → Planning → Action agent → Digital twin →
@@ -113,7 +114,7 @@ has a `.env` containing a key, so `acetone-plant serve` makes real
 the agents only monitor (no actions), the chat is offline, and the server prints why.
 
 Startup prints, e.g.: `Agents: preset llm, planning/action model gpt-5-nano, chat llm gpt-5-nano`.
-The FDD & Agents tab shows the model and the running token count and cost.
+The Agents tab shows the model and the running token count and cost.
 
 Settings for GPT-5 / o-series reasoning models (`acetone_plant/agents/llm.py`):
 
@@ -143,7 +144,7 @@ acetone-plant serve --port 9000
 
 ## Fault campaigns (automated injection)
 
-Start a campaign from the console (**Master / faults** → Fault campaign); presets: `demo`, `random`,
+Start a campaign from the console (**Faults** panel → Fault campaign); presets: `demo`, `random`,
 `reprompt_demo`, and more in `acetone_plant/server/campaigns.py`.
 
 A campaign is a timed list of injections from `acetone_plant/server/campaigns.py`

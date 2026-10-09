@@ -20,11 +20,12 @@ interface Props {
   xKey?: string;
   height?: number;
   logY?: boolean;
+  bare?: boolean;   // no card frame (used inside another card)
 }
 
 const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
-export function Chart({ title, unit, data, version, series, xKey = "t", height = 190, logY }: Props) {
+export function Chart({ title, unit, data, version, series, xKey = "t", height = 170, logY, bare }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const plot = useRef<uPlot | null>(null);
 
@@ -36,12 +37,12 @@ export function Chart({ title, unit, data, version, series, xKey = "t", height =
     const opts: uPlot.Options = {
       width: el.clientWidth || 300,
       height,
-      legend: { show: true, live: true },
+      legend: { show: true, live: false },
       cursor: { drag: { x: true, y: false } },
       scales: { x: { time: false }, y: logY ? { distr: 3 } : { auto: true } },
       axes: [
-        { ...axis, label: "min", labelSize: 14, labelFont: "11px system-ui" },
-        { ...axis, size: 52, label: unit, labelSize: unit ? 14 : 0, labelFont: "11px system-ui" },
+        { ...axis, size: 28 },
+        { ...axis, size: 50 },
       ],
       series: [
         { label: "t" },
@@ -65,8 +66,8 @@ export function Chart({ title, unit, data, version, series, xKey = "t", height =
   }, [version, data]);
 
   return (
-    <div className="card chart">
-      <div className="card-title">{title}</div>
+    <div className={bare ? "chart bare" : "card chart"}>
+      <div className="chart-title">{title}{unit ? <span className="dim"> · {unit}</span> : null}<span className="dim x-unit">time [min]</span></div>
       <div ref={box} className="chart-box" />
     </div>
   );
