@@ -29,4 +29,4 @@ recovery agents.
 
 Every visitor gets their own plant. Sessions end 15 minutes after the tab is closed.
 
-Source and documentation: https://github.com/AISL-at-Imperial-College-London/OperAItor
+Source and documentation: https://github.com/AISL-at-Imperial-College-London/operAItor

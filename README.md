@@ -127,3 +127,7 @@ pip install -e ".[dev,admit]"
 pytest                            # ~3 min
 cd frontend && npm run dev        # console with hot reload on http://localhost:5173 (proxy to :8001)
 ```
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). OperAItor is a project of AISL, Imperial College London.

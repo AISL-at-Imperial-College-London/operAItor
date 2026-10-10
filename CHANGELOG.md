@@ -2,7 +2,7 @@
 
 ## 1.0.0 (2026-10-09)
 
-First release as a shippable package and hosted web app.
+First public release of **OperAItor**, a package and hosted web app, under the Apache License 2.0.
 
 **Product**
 - `operaitor` package with the `operaitor` CLI: `serve`, `doctor`, `benchmark`,
