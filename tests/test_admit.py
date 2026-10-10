@@ -1,13 +1,13 @@
 """ADMIT integration: cartridge compiles, the live gate admits a correct record and rejects bad ones.
 
-Skipped when admit-bench is not installed (pip install "acetone-plant[admit]").
+Skipped when admit-bench is not installed (pip install "operaitor[admit]").
 """
 from __future__ import annotations
 
 import asyncio
 import unittest
 
-from acetone_plant.admit import available
+from operaitor.admit import available
 
 ADMIT, WHY = available()
 
@@ -16,9 +16,9 @@ ADMIT, WHY = available()
 class AdmitTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from acetone_plant.admit.build import _decision_point
-        from acetone_plant.admit.gate import AdmitGate
-        from acetone_plant.agents.plan_compiler import compile_plan
+        from operaitor.admit.build import _decision_point
+        from operaitor.admit.gate import AdmitGate
+        from operaitor.agents.plan_compiler import compile_plan
         cls.gate = AdmitGate()
         # S01 (reflux pump trip) at the moment PCA confirms the fault
         cls.env, cls.obs, cls.det, cls.diag = asyncio.run(_decision_point(0))
@@ -27,7 +27,7 @@ class AdmitTests(unittest.TestCase):
         assert not errors, errors
 
     def evaluate(self, record):
-        from acetone_plant.agents.recovery_graph import clone_env
+        from operaitor.agents.recovery_graph import clone_env
         return self.gate.evaluate(clone_env(self.env), self.action, [self.cmd], [record],
                                   self.obs, self.det, self.diag, None)
 

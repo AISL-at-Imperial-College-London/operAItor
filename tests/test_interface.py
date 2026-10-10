@@ -1,4 +1,4 @@
-from acetone_plant.plant import (
+from operaitor.plant import (
     EpisodeRunner, EpisodeTiming, IntegratedPlantDAE, PumpFault,
     RuntimeInputEvent, SupervisoryAction, curated_episode, nominal_episode,
 )

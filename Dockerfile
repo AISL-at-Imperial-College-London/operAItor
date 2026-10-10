@@ -1,7 +1,7 @@
-# Acetone plant console: one image with the built React console and the Python backend.
-#   docker build -t acetone-plant .
-#   docker run -p 7860:7860 acetone-plant                       # hosted mode: visitors bring their own key
-#   docker run -p 7860:7860 -e PLANT_HOSTED=0 -e OPENAI_API_KEY=sk-... acetone-plant   # private: server key
+# OperAItor: one image with the built React console and the Python backend.
+#   docker build -t operaitor .
+#   docker run -p 7860:7860 operaitor                       # hosted mode: visitors bring their own key
+#   docker run -p 7860:7860 -e PLANT_HOSTED=0 -e OPENAI_API_KEY=sk-... operaitor   # private: server key
 
 # ---- console (React + Vite) -------------------------------------------------------------
 FROM node:22-alpine AS web
@@ -20,10 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /
 RUN useradd -m -u 1000 app
 WORKDIR /app
 COPY pyproject.toml README.md ./
-COPY acetone_plant ./acetone_plant
-COPY --from=web /web/dist ./acetone_plant/server/web
+COPY operaitor ./operaitor
+COPY --from=web /web/dist ./operaitor/server/web
 RUN pip install ".[llm,admit]" && chown -R app /app
 USER app
 EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s CMD python -c "import urllib.request,os;urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"7860\")}/api/health')"
-CMD ["sh", "-c", "acetone-plant serve --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "operaitor serve --host 0.0.0.0 --port ${PORT}"]

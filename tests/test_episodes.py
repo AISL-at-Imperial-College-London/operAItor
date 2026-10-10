@@ -2,7 +2,7 @@ import unittest
 from dataclasses import replace
 import numpy as np
 
-from acetone_plant.plant import (
+from operaitor.plant import (
     IntegratedPlantDAE, SafetySystem, SafetyConfig,
     SensorFault, SensorFaultEngine, ActuatorFault, ActuatorFaultEngine,
     SupervisoryAction, PassiveActor,
@@ -50,7 +50,7 @@ class V05Tests(unittest.TestCase):
         self.assertLess(np.linalg.norm(r), 1e-9)
 
     def test_random_disturbances_are_15_min_physical_steps(self):
-        from acetone_plant.plant.scenario import DISTURBANCE_STEPS
+        from operaitor.plant.scenario import DISTURBANCE_STEPS
         s = randomized_step_disturbance_scenario(duration_min=180, seed=20261004)
         self.assertGreaterEqual(len(s.events), 1)
         for e in s.events:

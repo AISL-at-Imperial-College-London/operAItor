@@ -5,7 +5,7 @@
 First release as a shippable package and hosted web app.
 
 **Product**
-- `acetone_plant` package with the `acetone-plant` CLI: `serve`, `doctor`, `benchmark`,
+- `operaitor` package with the `operaitor` CLI: `serve`, `doctor`, `benchmark`,
   `dashboard`, `loop-tests`, `train-pca`, `admit`.
 - Installation through `pyproject.toml`, with optional extras `[llm]`, `[ollama]`, `[admit]`,
   `[bench]` and `[dev]`.
@@ -22,7 +22,7 @@ First release as a shippable package and hosted web app.
   - the action agent files an ADMIT action record with every command;
   - ADMIT's hard gates T0–T4 decide admissibility, with T4 projected on a clone of the plant;
   - violation codes and remedies feed the reprompter.
-- The plant as an ADMIT cartridge (`acetone_plant/admit/cartridge`): action grammar, authority,
+- The plant as an ADMIT cartridge (`operaitor/admit/cartridge`): action grammar, authority,
   SOPs, one hazard per SIF, cause → effect from the knowledge graph, and one case per benchmark
   scenario with an oracle found by projection.
 

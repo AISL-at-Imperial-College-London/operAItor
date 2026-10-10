@@ -34,8 +34,8 @@ health check. Free instances sleep after 15 min without traffic, and they have l
 ## Anything that runs containers
 
 ```bash
-docker build -t acetone-plant .
-docker run -p 7860:7860 acetone-plant
+docker build -t operaitor .
+docker run -p 7860:7860 operaitor
 ```
 
 Put HTTPS in front of it (the key travels over the WebSocket), e.g. Caddy:

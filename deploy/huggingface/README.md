@@ -1,5 +1,5 @@
 ---
-title: Acetone Plant Console
+title: OperAItor
 emoji: 🏭
 colorFrom: blue
 colorTo: green
@@ -9,7 +9,7 @@ pinned: false
 short_description: Simulated chemical plant with fault detection and LLM agents
 ---
 
-# Acetone plant console
+# OperAItor
 
 A simulated isopropanol → acetone plant: a reactor (CSTR) feeding a 10-tray distillation
 column, with 8 PI control loops, safety functions (SIFs), alarms, PCA fault detection and LLM
@@ -27,4 +27,4 @@ recovery agents.
 
 Every visitor gets their own plant. Sessions end 15 minutes after the tab is closed.
 
-Source and documentation: https://github.com/AISL-at-Imperial-College-London/acetone_reaction
+Source and documentation: https://github.com/AISL-at-Imperial-College-London/OperAItor

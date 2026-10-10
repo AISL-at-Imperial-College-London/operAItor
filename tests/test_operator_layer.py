@@ -1,6 +1,6 @@
 import unittest
 
-from acetone_plant.plant import (
+from operaitor.plant import (
     AlarmManager, AlarmState, EpisodeRunner, EpisodeTiming, IntegratedPlantDAE,
     RuntimeInputEngine, RuntimeInputEvent, default_alarm_definitions,
     nominal_episode,

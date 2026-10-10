@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// `npm run dev` proxies the Python backend (`acetone-plant serve`, default port 8001).
+// `npm run dev` proxies the Python backend (`operaitor serve`, default port 8001).
 // Point it elsewhere with e.g. `$env:PLANT_PORT=9000; npm run dev`.
 const port = process.env.PLANT_PORT ?? "8001";
 

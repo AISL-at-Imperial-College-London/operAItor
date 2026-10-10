@@ -8,10 +8,10 @@ from __future__ import annotations
 import asyncio
 import unittest
 
-from acetone_plant.plant import EpisodeRunner, IntegratedPlantDAE, nominal_episode
-from acetone_plant.plant.alarms import AlarmManager, AlarmState, default_alarm_definitions
-from acetone_plant.plant.safety import SafetyConfig, SafetySystem
-from acetone_plant.plant.scenario import DISTURBANCE_STEPS, disturbance_step
+from operaitor.plant import EpisodeRunner, IntegratedPlantDAE, nominal_episode
+from operaitor.plant.alarms import AlarmManager, AlarmState, default_alarm_definitions
+from operaitor.plant.safety import SafetyConfig, SafetySystem
+from operaitor.plant.scenario import DISTURBANCE_STEPS, disturbance_step
 
 PLANT = IntegratedPlantDAE()
 
@@ -137,12 +137,12 @@ class AlarmAcknowledgementTests(unittest.TestCase):
 
     def test_agent_acknowledges_alarms_it_handled(self):
         try:
-            from acetone_plant.agents.recovery_graph import make_config
-            from acetone_plant.agents.supervisor import AsyncSupervisor
+            from operaitor.agents.recovery_graph import make_config
+            from operaitor.agents.supervisor import AsyncSupervisor
         except ImportError as exc:  # langgraph not installed
             self.skipTest(str(exc))
-        from acetone_plant.plant import SupervisoryAction
-        from acetone_plant.server.plant_service import PlantService
+        from operaitor.plant import SupervisoryAction
+        from operaitor.server.plant_service import PlantService
 
         async def scenario():
             s = PlantService()
@@ -169,12 +169,12 @@ class AlarmAcknowledgementTests(unittest.TestCase):
 
     def test_sif_reset_request_counts_as_agent_involvement(self):
         try:
-            from acetone_plant.agents.recovery_graph import make_config
-            from acetone_plant.agents.supervisor import AsyncSupervisor
+            from operaitor.agents.recovery_graph import make_config
+            from operaitor.agents.supervisor import AsyncSupervisor
         except ImportError as exc:
             self.skipTest(str(exc))
         from dataclasses import replace
-        from acetone_plant.server.plant_service import PlantService
+        from operaitor.server.plant_service import PlantService
 
         async def scenario():
             s = PlantService()
@@ -193,11 +193,11 @@ class AlarmAcknowledgementTests(unittest.TestCase):
 
     def test_returned_alarm_without_agent_involvement_is_left_for_the_operator(self):
         try:
-            from acetone_plant.agents.recovery_graph import make_config
-            from acetone_plant.agents.supervisor import AsyncSupervisor
+            from operaitor.agents.recovery_graph import make_config
+            from operaitor.agents.supervisor import AsyncSupervisor
         except ImportError as exc:
             self.skipTest(str(exc))
-        from acetone_plant.server.plant_service import PlantService
+        from operaitor.server.plant_service import PlantService
 
         async def scenario():
             s = PlantService()

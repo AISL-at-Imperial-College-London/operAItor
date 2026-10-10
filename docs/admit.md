@@ -10,9 +10,9 @@ This repository uses ADMIT in two ways. Install with `pip install -e ".[admit]"`
 ## 1. ADMIT as the agents' validator (`llm_admit`)
 
 ```bash
-acetone-plant serve --agent llm_admit           # or pick "LLM + ADMIT gates" in the console
-acetone-plant serve --agent llm_admit_nosim     # ADMIT without the simulation layer (T0-T3)
-acetone-plant benchmark compare admit admit_nosim   # the 20-scenario campaign, both variants
+operaitor serve --agent llm_admit           # or pick "LLM + ADMIT gates" in the console
+operaitor serve --agent llm_admit_nosim     # ADMIT without the simulation layer (T0-T3)
+operaitor benchmark compare admit admit_nosim   # the 20-scenario campaign, both variants
 ```
 
 Both `llm_admit` configurations use the LLM planning agent as well as the LLM action agent.
@@ -23,7 +23,7 @@ with a correct record is admitted even if it would make the plant worse.
 ADMIT replaces the validation step of the recovery graph. The steps are:
 
 1. **The platform builds the evidence ledger** from the live plant at the decision point
-   (`acetone_plant/admit/gate.py: evidence_entries`). The ledger is hash-chained. Each entry's
+   (`operaitor/admit/gate.py: evidence_entries`). The ledger is hash-chained. Each entry's
    trust comes from its channel:
 
    | Evidence | Channel | Trust |
@@ -118,12 +118,12 @@ The trace is shown and saved in four places:
 
 ## 2. The plant as an ADMIT cartridge
 
-`acetone_plant/admit/cartridge/` holds the four cartridge files. They are generated from the
+`operaitor/admit/cartridge/` holds the four cartridge files. They are generated from the
 plant definition, so the cartridge cannot drift from the simulator:
 
 | File | Contents |
 |---|---|
-| `manifest.yaml` | world `acetone_plant`, agent authority (A2), modes, trust map, freshness, the action grammar above |
+| `manifest.yaml` | world `operaitor`, agent authority (A2), modes, trust map, freshness, the action grammar above |
 | `system_graph.jsonl` | assets (R-101, T-201, E-201, V-201, E-202, the 10 pumps, PCV/BDV), tags with alarm and trip limits, loops, pump trains |
 | `safety_case_graph.jsonl` | one hazard per SIF; cause → effect for the 19 KG fault modes; unsafe actions; recovery plans |
 | `procedures_cases.jsonl` | 5 SOPs, and 20 cases (one per benchmark scenario) |
@@ -139,13 +139,13 @@ plant definition, so the cartridge cannot drift from the simulator:
   operator. That is the case for the condenser-cooling-loss scenarios S08, C01, T02 and T03.
 
 ```bash
-acetone-plant admit build --jobs 8     # regenerate (≈5 min; simulates the 20 scenarios)
-acetone-plant admit validate           # admitbench's compile stage
-acetone-plant admit run --provider stub --model oracle      # oracle must be admissible
-acetone-plant admit run --provider openai --model gpt-5-nano   # any admitbench provider/model
+operaitor admit build --jobs 8     # regenerate (≈5 min; simulates the 20 scenarios)
+operaitor admit validate           # admitbench's compile stage
+operaitor admit run --provider stub --model oracle      # oracle must be admissible
+operaitor admit run --provider openai --model gpt-5-nano   # any admitbench provider/model
 ```
 
-`acetone-plant admit run` registers the `acetone_plant` world with admitbench, then passes the
+`operaitor admit run` registers the `operaitor` world with admitbench, then passes the
 rest of the arguments to `admitbench run`.
 
 ## Results

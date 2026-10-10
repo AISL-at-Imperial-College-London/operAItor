@@ -1,4 +1,6 @@
-# Acetone plant console
+# OperAItor
+
+**AI operators for a chemical plant, checked before they act.**
 
 A simulated chemical plant you can run in the browser, break on purpose, and watch AI agents try
 to recover. It has fault detection, safety functions, and LLM agents whose actions are checked
@@ -40,8 +42,8 @@ Requires Python ≥ 3.11 and Node 20+.
 pip install -e ".[llm]"          # add ,admit for the ADMIT gates and cartridge; ,dev for tests
 cd frontend && npm ci && npm run build && cd ..
 cp .env.example .env              # put OPENAI_API_KEY=... in .env (optional; git-ignored)
-acetone-plant doctor              # checks the installation
-acetone-plant serve               # http://localhost:8001
+operaitor doctor              # checks the installation
+operaitor serve               # http://localhost:8001
 ```
 
 Without a key, the agents monitor and diagnose but take no actions, and the chat answers offline.
@@ -51,22 +53,22 @@ agents at any OpenAI-compatible server.
 Or with Docker:
 
 ```bash
-docker build -t acetone-plant .
-docker run -p 7860:7860 acetone-plant                                   # visitors bring their own key
-docker run -p 7860:7860 -e PLANT_HOSTED=0 -e OPENAI_API_KEY=sk-... acetone-plant   # private: server key
+docker build -t operaitor .
+docker run -p 7860:7860 operaitor                                   # visitors bring their own key
+docker run -p 7860:7860 -e PLANT_HOSTED=0 -e OPENAI_API_KEY=sk-... operaitor   # private: server key
 ```
 
 ## Command line
 
 | Command | What it does |
 |---|---|
-| `acetone-plant serve [--agent llm_admit] [--llm off] [--hosted]` | Web console and agents |
-| `acetone-plant doctor` | Check dependencies, PCA model, console build and LLM access |
-| `acetone-plant benchmark probe\|compare\|report` | 20-scenario fault campaign: profit and plant trips, with and without agents |
-| `acetone-plant dashboard` | Build the campaign dashboard (HTML) |
-| `acetone-plant loop-tests` | PI loop setpoint-step tests with plots |
-| `acetone-plant train-pca` | Retrain the PCA fault-detection model |
-| `acetone-plant admit build\|validate\|run` | The plant as an ADMIT cartridge ([docs/admit.md](docs/admit.md)) |
+| `operaitor serve [--agent llm_admit] [--llm off] [--hosted]` | Web console and agents |
+| `operaitor doctor` | Check dependencies, PCA model, console build and LLM access |
+| `operaitor benchmark probe\|compare\|report` | 20-scenario fault campaign: profit and plant trips, with and without agents |
+| `operaitor dashboard` | Build the campaign dashboard (HTML) |
+| `operaitor loop-tests` | PI loop setpoint-step tests with plots |
+| `operaitor train-pca` | Retrain the PCA fault-detection model |
+| `operaitor admit build\|validate\|run` | The plant as an ADMIT cartridge ([docs/admit.md](docs/admit.md)) |
 
 ## Results
 
@@ -83,7 +85,7 @@ The 20-scenario campaign (gpt-5-nano, with the column dry-out SIF) is in
 ## Repository
 
 ```
-acetone_plant/
+operaitor/
   plant/       simulator: CSTR, column, control, safety (SIFs), alarms, pumps, faults, episodes
   fdd/         PCA monitor and rule-based diagnosis
   agents/      monitoring, KG, planning, LLM action / diagnosis / judge, recovery graph, chat

@@ -1,6 +1,6 @@
 # Plant model
 
-Reference for the simulator in `acetone_plant/plant/`: equations, control and safety layers,
+Reference for the simulator in `operaitor/plant/`: equations, control and safety layers,
 faults and episode outcomes. The SIF table below is checked by `tests/test_physics_consistency.py`.
 
 The design goal is **causal realism rather than high-fidelity equipment modelling**: faults should produce believable process signatures, the BPCS should react, independent SIFs should be able to override commands, final-element faults should still be able to defeat those commands, and an external actor should receive discrete decision opportunities.

@@ -5,11 +5,11 @@ import unittest
 
 from langchain_core.messages import AIMessage
 
-from acetone_plant.agents.chat import ChatAgent
-from acetone_plant.agents.kg import KnowledgeGraph
-from acetone_plant.agents.recovery_graph import make_config
-from acetone_plant.agents.supervisor import AsyncSupervisor
-from acetone_plant.server.plant_service import PlantService
+from operaitor.agents.chat import ChatAgent
+from operaitor.agents.kg import KnowledgeGraph
+from operaitor.agents.recovery_graph import make_config
+from operaitor.agents.supervisor import AsyncSupervisor
+from operaitor.server.plant_service import PlantService
 
 KG = KnowledgeGraph()
 SPARE_PLAN = {"commands": [{"type": "START_SPARE", "target": "REFLUX"}], "reasoning": "reflux duty pump failed",
@@ -19,7 +19,7 @@ SPARE_PLAN = {"commands": [{"type": "START_SPARE", "target": "REFLUX"}], "reason
 def fake_llm_agent(*plans):
     """LLM action agent with scripted replies (no API calls); there is no rule-based agent."""
     from langchain_core.language_models import FakeListChatModel
-    from acetone_plant.agents.action import LLMActionAgent
+    from operaitor.agents.action import LLMActionAgent
     return LLMActionAgent("fake", llm=FakeListChatModel(responses=[json.dumps(p) for p in plans]))
 
 
@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
 class ValidateTests(unittest.TestCase):
     def test_validate_requires_restoration(self):
-        from acetone_plant.agents.recovery_graph import AgentConfig, validate_outcome
+        from operaitor.agents.recovery_graph import AgentConfig, validate_outcome
         base = {"rollout": "ok", "horizon_min": 20.0, "terminal_status": "RUNNING", "safe_reached": True,
                 "time_to_safe_min": 2.0, "unsafe_fraction": 0.05,
                 "final": {"active_alarms": ["COL_P_H"], "saturated_loops": [], "t2_ratio": 1.4, "spe_ratio": 0.8,
@@ -188,7 +188,7 @@ class ValidateTests(unittest.TestCase):
 
 class AlarmValidationTests(unittest.TestCase):
     def test_targets_come_from_active_alarms_and_failed_pumps(self):
-        from acetone_plant.agents.recovery_graph import faulty_targets
+        from operaitor.agents.recovery_graph import faulty_targets
         det = {"rules": {"active_alarms": ["R_L_H", "P201_TRIP"], "failed_trains": ["REFLUX"]}, "pca_persistent": False}
         t = faulty_targets(det, {"contributors": []}, None)
         self.assertEqual([(x["name"], x["kind"]) for x in t], [("R_L_H", "alarm"), ("REFLUX pump", "pump")])
@@ -202,7 +202,7 @@ class AlarmValidationTests(unittest.TestCase):
             async def propose(self, context):
                 raise RuntimeError("Error code: 400 - temperature does not support 0.7")
 
-        from acetone_plant.agents.episodes import run_episode
+        from operaitor.agents.episodes import run_episode
         cfg = make_config("llm_notwin")
         metrics, trace, _ = asyncio.run(run_episode("reflux_pump_trip", cfg, kg=KG, action_agent=Broken(),
                                                     horizon_min=6.0, onset_min=2.0, seed=0))
@@ -216,25 +216,25 @@ class AlarmRegressionTests(unittest.TestCase):
     """Failures seen in a live gpt-5-nano campaign (2026-10-05)."""
 
     def test_kg_ids_are_mapped_to_catalog_names(self):
-        from acetone_plant.agents.action import normalise_plan
+        from operaitor.agents.action import normalise_plan
         plan, _ = normalise_plan({"commands": [{"type": "SET_SETPOINT", "target": "controller_R_PIC", "value": 3.2}],
                                   "reasoning": "r"})
         self.assertEqual(plan["commands"][0]["target"], "R_PIC")
 
     def test_unknown_names_get_actionable_feedback(self):
-        from acetone_plant.agents.action import explain_plan_errors
+        from operaitor.agents.action import explain_plan_errors
         catalog = {"controllers": {"R_PIC": {"sp_min": 2.5, "sp_max": 3.4}}, "pump_trains": {"REFLUX": {}},
                    "auxiliaries": {"H2_BDV": {}}}
         errs = explain_plan_errors({"commands": [{"type": "SET_SETPOINT", "target": "XYZ", "value": 1}]}, catalog)
         self.assertIn("R_PIC", errs[0])
 
     def test_no_pump_trip_hypothesis_when_pump_is_running(self):
-        from acetone_plant.fdd import diagnose
+        from operaitor.fdd import diagnose
         d = diagnose(None, {"failed_trains": [], "active_alarms": ["DIST_X_L"], "saturated_loops": [], "sif_latched": []})
         self.assertNotIn("reflux_pump_trip", [h["fault"] for h in d["hypotheses"]])
 
     def test_fallback_excludes_actions_that_raise_safety_alarms(self):
-        from acetone_plant.agents.recovery_graph import AgentConfig, validate_outcome
+        from operaitor.agents.recovery_graph import AgentConfig, validate_outcome
         m = {"rollout": "ok", "horizon_min": 30.0, "terminal_status": "RUNNING", "safe_reached": True,
              "time_to_safe_min": 2.0, "unsafe_fraction": 0.0, "restored": False, "time_to_restore_min": None,
              "final": {"safe": True, "targets": [], "new_alarms_blocking": ["R_L_H"], "new_alarms_noted": []}}
@@ -242,8 +242,8 @@ class AlarmRegressionTests(unittest.TestCase):
 
     def test_repeated_proposal_is_rejected_without_rollout(self):
         from langchain_core.language_models import FakeListChatModel
-        from acetone_plant.agents.action import LLMActionAgent
-        from acetone_plant.agents.episodes import run_episode
+        from operaitor.agents.action import LLMActionAgent
+        from operaitor.agents.episodes import run_episode
         same = json.dumps({"commands": [{"type": "SET_THROUGHPUT", "value": 90.0}], "reasoning": "x", "kg_evidence": []})
         fake = FakeListChatModel(responses=[same] * 4)
         cfg = make_config("llm", twin_horizon_min=3.0)
@@ -269,8 +269,8 @@ class KgMapTests(unittest.TestCase):
             self.assertEqual(vm.command_target(cmd, name), target, (cmd, name))
 
     def test_every_simulator_variable_has_a_kg_node(self):
-        from acetone_plant.plant import IntegratedPlantDAE
-        from acetone_plant.agents.kg_map import VariableMap
+        from operaitor.plant import IntegratedPlantDAE
+        from operaitor.agents.kg_map import VariableMap
         plant = IntegratedPlantDAE()
         tags = [k for k in plant.measurements(plant.nominal_state(plant.default_inputs())) if not k.startswith("pump_")]
         missing = VariableMap(KG, measurement_tags=tags).coverage()["simulator_without_kg_node"]
@@ -284,8 +284,8 @@ class KgMapTests(unittest.TestCase):
 
 class TargetTests(unittest.TestCase):
     def test_pca_confirmed_fault_targets_are_t2_and_spe(self):
-        from acetone_plant.agents.recovery_graph import _target_status, faulty_targets
-        from acetone_plant.fdd import DEFAULT_MODEL_PATH, PCAMonitor
+        from operaitor.agents.recovery_graph import _target_status, faulty_targets
+        from operaitor.fdd import DEFAULT_MODEL_PATH, PCAMonitor
         pca = PCAMonitor.load(DEFAULT_MODEL_PATH)
         det = {"rules": {"active_alarms": [], "failed_trains": []}, "pca_persistent": True}
         t = faulty_targets(det, {"contributors": []}, pca)
@@ -299,7 +299,7 @@ class TargetTests(unittest.TestCase):
         self.assertEqual([x["kind"] for x in faulty_targets(det_no_pca, {}, pca)], ["alarm"])
 
     def test_mixed_no_action_is_dropped(self):
-        from acetone_plant.agents.action import normalise_plan
+        from operaitor.agents.action import normalise_plan
         plan, _ = normalise_plan({"commands": [{"type": "SET_THROUGHPUT", "value": 90}, {"type": "NO_ACTION"}],
                                   "reasoning": "r"})
         self.assertEqual(plan["commands"], [{"type": "SET_THROUGHPUT", "value": 90}])
@@ -307,20 +307,20 @@ class TargetTests(unittest.TestCase):
 
 class QualityGateTests(unittest.TestCase):
     def _obs(self, alarms):
-        env = __import__("acetone_plant.agents.episodes", fromlist=["x"]).build_episode("reflux_pump_trip", 5, 30, 0)
+        env = __import__("operaitor.agents.episodes", fromlist=["x"]).build_episode("reflux_pump_trip", 5, 30, 0)
         obs = env.observation()
         obs["alarm_states"] = {a: ("ACTIVE_UNACK" if a in alarms else "NORMAL") for a in obs["alarm_states"]}
         return obs
 
     def test_quality_alarm_alone_does_not_trigger(self):
-        from acetone_plant.agents.monitoring import MonitoringAgent
+        from operaitor.agents.monitoring import MonitoringAgent
         mon = MonitoringAgent(None)
         out = asyncio.run(mon({"observation": self._obs(["BTM_X_H"])}))
         self.assertFalse(out["detection"]["fault"])
         self.assertEqual(out["detection"]["advisory"], ["BTM_X_H"])
 
     def test_safety_alarm_still_triggers(self):
-        from acetone_plant.agents.monitoring import MonitoringAgent
+        from operaitor.agents.monitoring import MonitoringAgent
         out = asyncio.run(MonitoringAgent(None)({"observation": self._obs(["R_L_H"])}))
         self.assertTrue(out["detection"]["fault"])
 
@@ -336,7 +336,7 @@ class JudgeTests(unittest.TestCase):
 
     def test_judge_verdict_is_parsed(self):
         from langchain_core.language_models import FakeListChatModel
-        from acetone_plant.agents.judge import LLMJudge
+        from operaitor.agents.judge import LLMJudge
         fake = FakeListChatModel(responses=[json.dumps({"accept": False, "confidence": 0.7, "reason": "wrong loop",
                                                         "risks": ["DR_L_LL"], "suggestion": "start the spare"})])
         v = asyncio.run(LLMJudge("fake", llm=fake).judge(self._ctx(), {"commands": [{"type": "NO_ACTION"}], "reasoning": "r"}))
@@ -344,7 +344,7 @@ class JudgeTests(unittest.TestCase):
         self.assertEqual(v["suggestion"], "start the spare")
 
     def test_failed_judge_call_rejects(self):
-        from acetone_plant.agents.judge import LLMJudge
+        from operaitor.agents.judge import LLMJudge
 
         class Broken:
             async def ainvoke(self, _):
@@ -364,7 +364,7 @@ class LLMDiagnosisTests(unittest.TestCase):
     """LLM diagnosis agent (fake LLM, no API calls)."""
 
     def test_catalogue_covers_kg_and_library_faults(self):
-        from acetone_plant.agents.diagnosis_llm import fault_catalogue
+        from operaitor.agents.diagnosis_llm import fault_catalogue
         names = {c["fault"] for c in fault_catalogue(KG)}
         for f in ("condenser_cooling_loss", "reflux_drum_leak", "bottoms_pump_trip", "feed_pump_trip",
                   "reactor_pressure_sensor_low_bias"):
@@ -372,7 +372,7 @@ class LLMDiagnosisTests(unittest.TestCase):
 
     def test_verdict_is_restricted_to_the_catalogue(self):
         from langchain_core.language_models import FakeListChatModel
-        from acetone_plant.agents.diagnosis_llm import LLMDiagnoser, as_diagnosis
+        from operaitor.agents.diagnosis_llm import LLMDiagnoser, as_diagnosis
         reply = {"summary": "drum draining", "most_likely": "fault_reflux_drum_leak", "fault_class": "process",
                  "hypotheses": [{"fault": "reflux_drum_leak", "probability": 0.7, "evidence": ["SPE on drum level"],
                                  "against": []},
@@ -390,7 +390,7 @@ class LLMDiagnosisTests(unittest.TestCase):
         self.assertEqual(diag["heuristic"]["summary"], "DR_LIC_out_of_range")
 
     def test_failed_llm_keeps_the_heuristic(self):
-        from acetone_plant.agents.diagnosis_llm import LLMDiagnoser, as_diagnosis
+        from operaitor.agents.diagnosis_llm import LLMDiagnoser, as_diagnosis
 
         class Broken:
             async def ainvoke(self, _):

@@ -56,7 +56,7 @@ export default function App() {
       {connected && backendVersion !== null && backendVersion < API_VERSION && (
         <div className="banner warn">
           The plant server runs older code than this console (API v{backendVersion}, console needs v{API_VERSION}).
-          Restart it (<code>acetone-plant serve</code>) and reload.
+          Restart it (<code>operaitor serve</code>) and reload.
         </div>
       )}
       <SessionNotice />

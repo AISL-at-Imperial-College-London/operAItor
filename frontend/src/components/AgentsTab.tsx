@@ -162,7 +162,7 @@ function FaultDetection() {
   const max = Math.max(1e-9, ...contributors.map((c) => c.score));
   return (
     <>
-      {agent && !agent.pca_loaded && <p className="warn-text">No PCA model loaded (<code>acetone-plant train-pca</code>); rule checks only.</p>}
+      {agent && !agent.pca_loaded && <p className="warn-text">No PCA model loaded (<code>operaitor train-pca</code>); rule checks only.</p>}
       <div className="grid charts">
         <Chart bare title="Hotelling T²" data={monitor} version={version} logY height={150}
           series={[{ key: "t2", label: "T²", color: C.a }, { key: "t2_limit", label: "99% limit", color: C.limit, dash: true }]} />

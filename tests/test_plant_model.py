@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from acetone_plant.plant import (
+from operaitor.plant import (
     IntegratedPlantDAE, RegulatoryControlSystem,
     base_production_scenario, ActuatorFault, ActuatorFaultEngine,
 )

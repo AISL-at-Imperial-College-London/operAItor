@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "acetone-plant"
+name = "operaitor"
 version = "1.0.0"
-description = "Integrated CSTR + distillation plant simulator with PCA fault detection, safety functions and LLM recovery agents, served as a web console."
+description = "OperAItor: LLM operator agents for a simulated chemical plant (CSTR + distillation), with PCA fault detection, safety functions, a digital twin and ADMIT admissibility gates, served as a web console."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "AISL, Imperial College London" }]
@@ -31,23 +31,23 @@ dependencies = [
 llm = ["langchain-openai>=1.0", "python-dotenv>=1.0"]
 # Local models through a native Ollama server (any OpenAI-compatible server works with [llm]).
 ollama = ["langchain-ollama>=0.2"]
-# ADMIT admissibility gates as a validator, and the acetone-plant ADMIT cartridge.
+# ADMIT admissibility gates as a validator, and the acetone plant ADMIT cartridge.
 admit = ["admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"]
 # Benchmark plots (loop tests).
 bench = ["matplotlib>=3.8"]
-dev = ["pytest>=8", "websockets>=12", "acetone-plant[llm,bench]"]
+dev = ["pytest>=8", "websockets>=12", "operaitor[llm,bench]"]
 
 [project.scripts]
-acetone-plant = "acetone_plant.cli:main"
+operaitor = "operaitor.cli:main"
 
 [project.urls]
-Repository = "https://github.com/AISL-at-Imperial-College-London/acetone_reaction"
+Repository = "https://github.com/AISL-at-Imperial-College-London/OperAItor"
 
 [tool.setuptools.packages.find]
-include = ["acetone_plant*"]
+include = ["operaitor*"]
 
 [tool.setuptools.package-data]
-acetone_plant = [
+operaitor = [
     "data/*.json",
     "data/knowledge_graph/*",
     "benchmark/dashboard_template.html",

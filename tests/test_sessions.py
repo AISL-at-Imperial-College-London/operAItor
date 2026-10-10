@@ -7,8 +7,8 @@ import os
 import unittest
 from unittest import mock
 
-from acetone_plant.server import sessions as S
-from acetone_plant.server.sessions import SessionManager, Settings
+from operaitor.server import sessions as S
+from operaitor.server.sessions import SessionManager, Settings
 
 
 def _settings(**kw) -> Settings:
