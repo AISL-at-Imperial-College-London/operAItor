@@ -17,7 +17,8 @@ WebSocket ``/ws?session=<id>`` (JSON). Reconnecting with the same id reattaches 
   client -> server  {"type": "load"|"run"|"pause"|"step"|"speed"|"pace"|"action"|"inject"|
                      "clear_injections"|"ack_all"|"reset_sif"|"agent_mode"|"agent_approve"|
                      "agent_dismiss"|"diagnose_now"|"campaign_start"|"campaign_stop"|"chat", ...}
-                    {"type": "set_api_key", "key": "sk-...", "model": "gpt-5-nano"}
+                    {"type": "set_llm", "provider": "groq|gemini|openrouter|ollama|openai",
+                     "model": "...", "key": "...", "url": "https://... (ollama only)"}
                     {"type": "clear_api_key"}
                     {"type": "set_agent_preset", "preset": "llm" | "llm_admit" | "llm_judge" | "llm_lucky"}
 """
@@ -39,7 +40,7 @@ from operaitor import __version__
 from operaitor.agents.llm import is_openai_model
 
 from .plant_service import jsonable
-from .sessions import VISITOR_PRESETS, Session, SessionManager, check_openai_key
+from .sessions import VISITOR_PRESETS, Session, SessionManager
 
 
 def _frontend_dist() -> Path:
@@ -76,21 +77,33 @@ async def config():
     return {"version": __version__, **manager.settings.public()}
 
 
-async def _set_key(session: Session, msg: dict) -> dict:
+async def _set_llm(session: Session, msg: dict) -> dict:
+    """Connect this session's agents to an LLM provider (the key stays in server memory)."""
+    from operaitor.agents.providers import PROVIDERS, check_endpoint, endpoint_for
+    provider = str(msg.get("provider") or "openai")
+    if provider not in PROVIDERS:
+        return {"ok": False, "summary": f"unknown provider {provider!r}"}
+    p = PROVIDERS[provider]
+    model = str(msg.get("model") or p["models"][0]).strip()
     key = str(msg.get("key") or "").strip()
-    model = str(msg.get("model") or session.model)
-    if model not in manager.settings.models and manager.settings.hosted:
+    url = str(msg.get("url") or "").strip()
+    if not model or len(model) > 120 or len(key) > 400 or len(url) > 300:
+        return {"ok": False, "summary": "invalid model, key or address"}
+    if provider == "openai" and manager.settings.hosted and model not in manager.settings.models:
         return {"ok": False, "summary": f"model {model!r} is not offered here"}
-    if not is_openai_model(model):
-        return {"ok": False, "summary": "only OpenAI models can be used with an API key"}
-    if not key.startswith("sk-") or len(key) < 20:
-        return {"ok": False, "summary": "that does not look like an OpenAI API key"}
-    ok, reason = await check_openai_key(key)
+    if provider == "ollama" and not url and manager.settings.hosted:
+        return {"ok": False, "summary": "give the https address of your Ollama server"}
+    ep = endpoint_for(provider, model, key, url)
+    ok, reason = await check_endpoint(ep, public=manager.settings.hosted)
     if not ok:
         return {"ok": False, "summary": reason}
-    warning = await session.configure_agents(api_key=key, model=model)
+    warning = await session.configure_agents(endpoint=ep)
     await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
-    return {"ok": not warning, "summary": warning or f"LLM agents on ({model}, your key)"}
+    return {"ok": not warning, "summary": warning or f"LLM agents on: {p['label']}, {model}"}
+
+
+async def _set_key(session: Session, msg: dict) -> dict:  # older consoles: OpenAI key only
+    return await _set_llm(session, {**msg, "provider": "openai"})
 
 
 async def _set_preset(session: Session, msg: dict) -> dict:
@@ -108,9 +121,9 @@ async def _set_preset(session: Session, msg: dict) -> dict:
 
 
 async def _clear_key(session: Session) -> dict:
-    warning = await session.configure_agents(api_key="")
+    warning = await session.configure_agents(clear=True)
     await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
-    return {"ok": True, "summary": "key removed; " + (warning or "agents use the server configuration")}
+    return {"ok": True, "summary": "disconnected; " + (warning or "agents use the server configuration")}
 
 
 @app.websocket("/ws")
@@ -159,7 +172,9 @@ async def ws(websocket: WebSocket):
                 tasks.add(task)
                 task.add_done_callback(tasks.discard)
                 continue
-            if kind == "set_api_key":
+            if kind == "set_llm":
+                ack = await _set_llm(session, msg)
+            elif kind == "set_api_key":
                 ack = await _set_key(session, msg)
             elif kind == "clear_api_key":
                 ack = await _clear_key(session)

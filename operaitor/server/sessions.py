@@ -5,10 +5,11 @@ tab reconnects (the console keeps the session id in sessionStorage). Sessions wi
 connected client are closed after ``idle_min``; the number of live sessions is capped so a
 small free host is not overloaded.
 
-LLM credentials are per session. On the hosted app (``PLANT_HOSTED=1``) a visitor supplies
-their own OpenAI key; it is kept in this process's memory for the session only, bound to the
-session's agents through context variables (``agents.llm.use_session_llm``), never logged,
-never written to disk and never sent back to the browser.
+LLM connections are per session. A visitor connects a provider (Groq / Gemini / OpenRouter free
+tiers, their own Ollama URL, or OpenAI; see ``agents/providers.py``). The key is kept in this
+process's memory for the session only, bound to the session's agents through context variables
+(``agents.llm.use_session_llm``), never logged, never written to disk and never sent back to the
+browser. Locally, with no connection, the server's own OpenAI key or a local Ollama is used.
 """
 from __future__ import annotations
 
@@ -21,10 +22,27 @@ import time
 
 from operaitor.agents.chat import OfflineChat
 from operaitor.agents.kg import KnowledgeGraph
-from operaitor.agents.llm import DEFAULT_MODEL, UsageMeter, hosted, llm_status, use_session_llm
+from operaitor.agents.llm import DEFAULT_MODEL, UsageMeter, hosted, llm_status, load_env, use_session_llm
+from operaitor.agents.providers import PROVIDERS, Endpoint, local_ollama_model
 from operaitor.fdd import DEFAULT_MODEL_PATH, PCAMonitor
 
 from .plant_service import PlantService
+
+
+def default_model() -> str:
+    """Free first: PLANT_LLM_MODEL if set; OpenAI only when a key is configured; else local Ollama."""
+    load_env()
+    if os.environ.get("PLANT_LLM_MODEL"):
+        return os.environ["PLANT_LLM_MODEL"]
+    if hosted() or os.environ.get("OPENAI_API_KEY"):
+        return DEFAULT_MODEL
+    return local_ollama_model() or DEFAULT_MODEL
+
+
+def provider_catalog() -> dict:
+    """What the console may offer (no secrets)."""
+    return {k: {"label": v["label"], "models": v["models"], "free": v["free"], "key": v["key"],
+                "signup": v["signup"], "url": k == "ollama"} for k, v in PROVIDERS.items()}
 
 
 def _env_float(name: str, default: float) -> float:
@@ -40,7 +58,7 @@ class Settings:
     hosted: bool = field(default_factory=hosted)
     llm_mode: str = field(default_factory=lambda: os.environ.get("PLANT_LLM", "auto"))
     preset: str = field(default_factory=lambda: os.environ.get("PLANT_AGENT", ""))
-    model: str = field(default_factory=lambda: os.environ.get("PLANT_LLM_MODEL") or DEFAULT_MODEL)
+    model: str = field(default_factory=default_model)
     chat_model: str = field(default_factory=lambda: os.environ.get("PLANT_CHAT_MODEL", ""))
     diagnoser: str = field(default_factory=lambda: os.environ.get("PLANT_DIAGNOSER", ""))
     max_sessions: int = field(default_factory=lambda: int(_env_float("PLANT_MAX_SESSIONS", 4)))
@@ -51,22 +69,7 @@ class Settings:
 
     def public(self) -> dict:
         return {"hosted": self.hosted, "models": list(self.models), "default_model": self.model,
-                "max_sessions": self.max_sessions, "idle_min": self.idle_min}
-
-
-async def check_openai_key(key: str) -> tuple[bool, str]:
-    """Cheap validity check (lists models; no tokens are spent)."""
-    import httpx
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            r = await client.get("https://api.openai.com/v1/models", headers={"Authorization": f"Bearer {key}"})
-    except httpx.HTTPError as exc:
-        return False, f"could not reach OpenAI ({type(exc).__name__})"
-    if r.status_code == 200:
-        return True, "key accepted"
-    if r.status_code == 401:
-        return False, "OpenAI rejected this key (401)"
-    return False, f"OpenAI answered {r.status_code}"
+                "max_sessions": self.max_sessions, "idle_min": self.idle_min, "providers": provider_catalog()}
 
 
 # Agent configurations a visitor can choose in the console (label shown in the UI).
@@ -93,7 +96,7 @@ class Session:
         self.chat = None
         self.model = settings.model
         self.preset = settings.preset
-        self._api_key: str | None = None
+        self.endpoint: Endpoint | None = None  # visitor-connected LLM (holds the key; never sent out)
         self.llm_reason = ""
         self.llm_ctx = contextvars.copy_context()
         self.clients = 0
@@ -114,21 +117,34 @@ class Session:
         if self.supervisor is not None:
             await self.supervisor.stop()
         await self.service.stop()
-        self._api_key = None
+        self.endpoint = None
 
     @property
     def key_source(self) -> str | None:
-        if self._api_key:
+        """'visitor' = connected in the console; 'server' = this server's own configuration."""
+        if self.endpoint is not None:
             return "visitor"
-        if not self.settings.hosted and os.environ.get("OPENAI_API_KEY"):
+        if not self.settings.hosted and self.chat is not None and self.chat.mode == "llm":
             return "server"
         return None
 
-    async def configure_agents(self, api_key: str | None = None, model: str | None = None,
-                               preset: str | None = None) -> str:
-        """(Re)build supervisor + chat with this session's key and model; returns a warning or ''."""
-        if api_key is not None:
-            self._api_key = api_key or None
+    def connection(self) -> dict | None:
+        if self.endpoint is not None:
+            return self.endpoint.public()
+        if self.key_source == "server":
+            free = not self.model.startswith("gpt")
+            return {"provider": "ollama" if free else "openai",
+                    "label": "Ollama on this machine" if free else "OpenAI (server key)",
+                    "model": self.model, "free": free, "url": None}
+        return None
+
+    async def configure_agents(self, endpoint: Endpoint | None = None, clear: bool = False,
+                               model: str | None = None, preset: str | None = None) -> str:
+        """(Re)build supervisor + chat with this session's LLM connection; returns a warning or ''."""
+        if clear:
+            self.endpoint, self.model = None, self.settings.model
+        if endpoint is not None:
+            self.endpoint, self.model = endpoint, endpoint.model
         if model:
             self.model = model
         if preset is not None:
@@ -137,7 +153,7 @@ class Session:
             await self.supervisor.stop()
             self.supervisor = None
         self.llm_ctx = contextvars.copy_context()
-        self.llm_ctx.run(use_session_llm, self._api_key, self.usage)
+        self.llm_ctx.run(use_session_llm, self.endpoint, self.usage)
         return self.llm_ctx.run(self._build_agents)
 
     def _build_agents(self) -> str:
@@ -165,7 +181,7 @@ class Session:
             warning = f"agent preset {preset!r} failed ({exc}); agents monitor only"
             self.supervisor = AsyncSupervisor(self.service, make_config("passive"), kg=self.kg, pca=self.pca)
         self.supervisor.start()  # task created inside llm_ctx -> keeps this session's key and meter
-        chat_model = s.chat_model or self.model
+        chat_model = (s.chat_model if self.endpoint is None else "") or self.model
         self.chat = ChatAgent(self.service, self.kg, llm_model=chat_model if use_llm else None,
                               agent_info=self.supervisor.info)
         if self.chat.llm_error:
@@ -182,6 +198,7 @@ class Session:
     def _hello(self) -> dict:
         return {"session": {"id": self.id, "hosted": self.settings.hosted, "models": list(self.settings.models),
                             "llm": {"model": self.model, "key_source": self.key_source,
+                                    "connection": self.connection(), "providers": provider_catalog(),
                                     "active": bool(self.chat is not None and self.chat.mode == "llm"),
                                     "reason": self.llm_reason, "preset": self.preset or default_preset(),
                                     "presets": VISITOR_PRESETS}},

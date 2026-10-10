@@ -254,8 +254,12 @@ export interface SessionInfo {
   hosted: boolean;
   models: string[];
   llm: { model: string; key_source: "visitor" | "server" | null; active: boolean; reason: string;
-         preset: string; presets: Record<string, string> };
+         preset: string; presets: Record<string, string>;
+         connection: { provider: string; label: string; model: string; free: boolean; url: string | null } | null;
+         providers: Record<string, LlmProvider> };
 }
+
+export interface LlmProvider { label: string; models: string[]; free: boolean; key: boolean; signup: string; url: boolean }
 
 // ADMIT gate trace (stage "admit"): what each action is checked on
 export interface AdmitEvidence { id: string; tag: string | null; source: string; trust: string; quality: string; content: string }

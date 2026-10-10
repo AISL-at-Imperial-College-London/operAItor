@@ -27,10 +27,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# OpenAI models (gpt-5-nano by default) and .env support.
-llm = ["langchain-openai>=1.0", "python-dotenv>=1.0"]
-# Local models through a native Ollama server (any OpenAI-compatible server works with [llm]).
-ollama = ["langchain-ollama>=0.2"]
+# LLM agents: Ollama (free, local), Groq / Gemini / OpenRouter / OpenAI / any OpenAI-compatible server.
+llm = ["langchain-openai>=1.0", "langchain-ollama>=0.3", "python-dotenv>=1.0"]
 # ADMIT admissibility gates as a validator, and the acetone plant ADMIT cartridge.
 admit = ["admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"]
 # Benchmark plots (loop tests).

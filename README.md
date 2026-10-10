@@ -29,26 +29,40 @@ before they reach the plant.
 
 ### In the browser (hosted)
 
-Open the deployed Space and press **Run**, then inject a fault from the **Faults** panel. To turn
-on the agents, paste your own OpenAI API key in the **Assistant** panel. It is kept only in server
-memory for your session, and a run costs a few cents with gpt-5-nano. Deploying your own copy for
-free is covered in [docs/deployment.md](docs/deployment.md).
+Open the deployed Space and press **Run**, then inject a fault from the **Faults** panel.
+
+Without an LLM, the plant, the fault detection and the safety functions all work, and the agents
+monitor and diagnose but take no actions. To let the agents act, open **Assistant → Connect an LLM**
+and pick a provider:
+- **Groq, Google Gemini or OpenRouter:** free tiers with open models (Llama, Qwen, Gemma); you only
+  need a free account.
+- **Your own Ollama server:** free.
+- **OpenAI:** optional, billed to your own account.
+
+The key stays in server memory for your session only. The hosted site itself costs nothing to run;
+[docs/deployment.md](docs/deployment.md) covers deploying a copy.
 
 ### Locally
 
 Requires Python ≥ 3.11 and Node 20+.
 
 ```bash
-pip install -e ".[llm]"          # add ,admit for the ADMIT gates and cartridge; ,dev for tests
+pip install -e ".[llm,admit]"    # add ,dev for tests
 cd frontend && npm ci && npm run build && cd ..
-cp .env.example .env              # put OPENAI_API_KEY=... in .env (optional; git-ignored)
-operaitor doctor              # checks the installation
-operaitor serve               # http://localhost:8001
+ollama pull qwen3:8b             # free local model (https://ollama.com); any Ollama model works
+operaitor doctor                 # checks the installation
+operaitor serve                  # http://localhost:8001
 ```
 
-Without a key, the agents monitor and diagnose but take no actions, and the chat answers offline.
-Other model names (`--llm-model llama3.1:8b`) use a local Ollama. `PLANT_LLM_BASE_URL` points the
-agents at any OpenAI-compatible server.
+**LLM choice, free first:**
+- **Ollama, if it is running, with no OpenAI key set:** the agents use it automatically (`qwen3:8b`,
+  or `--llm-model llama3.2`, `mistral`, …). On a laptop GPU a call takes about 10–20 s.
+- **OpenAI:** put `OPENAI_API_KEY=...` in `.env` to use OpenAI models instead.
+- **In the console:** **Assistant → Connect an LLM** switches to Groq, Gemini, OpenRouter, another
+  Ollama server or OpenAI.
+- **Any other OpenAI-compatible server:** set `PLANT_LLM_BASE_URL`.
+
+Without any LLM, the agents monitor and diagnose but take no actions, and the chat answers offline.
 
 Or with Docker:
 
@@ -72,7 +86,7 @@ docker run -p 7860:7860 -e PLANT_HOSTED=0 -e OPENAI_API_KEY=sk-... operaitor   #
 
 ## Results
 
-The 20-scenario campaign (gpt-5-nano, with the column dry-out SIF) is in
+The 20-scenario campaign (run with gpt-5-nano, with the column dry-out SIF) is in
 [benchmark_results/LLM_CAMPAIGN_LOG.md](benchmark_results/LLM_CAMPAIGN_LOG.md):
 
 | Configuration | Plant stops / 20 | Saving vs no agents |

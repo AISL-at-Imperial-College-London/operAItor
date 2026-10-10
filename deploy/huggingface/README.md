@@ -6,7 +6,7 @@ colorTo: green
 sdk: docker
 app_port: 7860
 pinned: false
-short_description: Simulated chemical plant with fault detection and LLM agents
+short_description: AI operators for a chemical plant, checked before they act
 ---
 
 # OperAItor
@@ -20,10 +20,12 @@ recovery agents.
 2. Open **Faults** and inject one, e.g. trip the reflux pump P-201A.
 3. Watch the alarms, the fault detection, and the plant trip if nobody acts.
 
-**Turn on the agents:** paste your own OpenAI API key in the **Assistant** panel.
+**Turn on the agents:** open **Assistant → Connect an LLM**.
+- **Free:** Groq, Google Gemini or OpenRouter free tiers (you only need a free account), or your own
+  Ollama server.
+- **Optional:** OpenAI, billed to your own account.
 - The key stays in server memory for your session only and is never stored.
-- A run costs a few cents with gpt-5-nano.
-- Without a key the agents monitor and diagnose, but take no actions.
+- Without an LLM the agents monitor and diagnose, but take no actions.
 
 Every visitor gets their own plant. Sessions end 15 minutes after the tab is closed.
 

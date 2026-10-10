@@ -63,7 +63,7 @@ function ConfigSelect() {
   const on = session.llm.active;
   return (
     <label className="inline-field" onClick={(e) => e.stopPropagation()}
-      title={on ? "Validation step after the action agent" : "Needs an LLM: add an OpenAI key in the Assistant panel"}>
+      title={on ? "Validation step after the action agent" : "Needs an LLM: connect one in the Assistant panel"}>
       <span className="dim small">Validation</span>
       <select value={on ? (agent?.preset ?? session.llm.preset) : ""} disabled={!on}
         onChange={(e) => send({ type: "set_agent_preset", preset: e.target.value })}>
@@ -118,7 +118,7 @@ function CurrentDecision() {
         <p className="dim small">When PCA confirms a fault the agents diagnose it, plan, propose an action and validate it before it
           reaches the plant. {llm ? `LLM: ${llm}.` : session?.llm.reason
             ? <span className="warn-text">Agents cannot act: {session.llm.reason}.</span>
-            : "Add an OpenAI key in the Assistant panel to let them act."}</p>
+            : "Connect an LLM in the Assistant panel (free options: Groq, Gemini, OpenRouter or Ollama) to let them act."}</p>
       ) : (
         <ol className="steps">
           <li><span>Diagnosis</span>{diag ? <><b>{diag.most_likely ?? "unclear"}</b><small>{diag.summary}</small></> : <small className="dim">{last?.diagnosis.summary ?? "—"}</small>}</li>

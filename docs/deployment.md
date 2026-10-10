@@ -10,8 +10,9 @@ A Docker Space on the free **CPU basic** hardware (2 vCPU, 16 GB) runs the image
 public `https://<owner>-<space>.hf.space` URL.
 
 One-time setup:
-1. Create the Space at https://huggingface.co/new-space with SDK **Docker**, a blank template and
-   hardware **CPU basic**.
+1. Create the Space **under the AISL organisation on Hugging Face** (not a personal account) at
+   https://huggingface.co/new-space, with SDK **Docker**, a blank template and the free hardware
+   **CPU basic**.
 2. In the GitHub repository, go to Settings → Secrets and variables → Actions:
    - add the secret `HF_TOKEN`: a Hugging Face access token with *write* access;
    - add the variable `HF_SPACE`: `<owner>/<space>`.
@@ -49,27 +50,47 @@ Put HTTPS in front of it (the key travels over the WebSocket), e.g. Caddy:
 | `PLANT_MAX_SESSIONS` | `4` | Concurrent plants (one per browser tab). Further visitors see "all sessions in use" |
 | `PLANT_SESSION_IDLE_MIN` | `15` | A session with no open tab is closed after this long |
 | `PLANT_SESSION_MAX_MIN` | `180` | Hosted mode: a session's maximum lifetime |
-| `PLANT_ALLOWED_MODELS` | `gpt-5-nano,gpt-5-mini` | Models a visitor may choose |
-| `PLANT_LLM_MODEL` | `gpt-5-nano` | Default model |
+| `PLANT_ALLOWED_MODELS` | `gpt-5-nano,gpt-5-mini` | OpenAI models a visitor may choose (other providers: any model) |
+| `PLANT_LLM_MODEL` | (auto) | Local runs only: default model. Unset: OpenAI if `OPENAI_API_KEY` is set, else local Ollama (`PLANT_OLLAMA_MODEL`, default `qwen3:8b`) |
+| `PLANT_OLLAMA_URL` / `PLANT_OLLAMA_NUM_CTX` | `http://127.0.0.1:11434` / `16384` | Local Ollama server and context window (agents' prompts are 7–12k tokens) |
 | `PLANT_AGENT` | (llm) | Default agent configuration for new sessions |
 | `PLANT_CAMPAIGN_DIR` | (empty) | Where console campaign reports are written; empty = not written |
 | `PORT` | `7860` | Listening port |
 
-For a private deployment with your own key, set `PLANT_HOSTED=0` and `OPENAI_API_KEY`. Every
-session then uses the server key. Protect such a deployment yourself (e.g. a password on the
-reverse proxy), because anyone who reaches it spends your key.
+For a private deployment on a lab machine with a GPU, set `PLANT_HOSTED=0` and run Ollama next to
+it: every session then uses the free local model. Protect such a deployment yourself (e.g. a
+password on the reverse proxy).
 
-## Visitor keys: what happens to them
+## LLMs on the hosted site (free first)
 
-- **Sending:** the key goes from the browser to the server over the WebSocket. Use HTTPS; Spaces
-  and Render provide it.
-- **Checking:** the server checks the key with a free `GET /v1/models` call.
-- **Use:** it then builds that session's agents with the key. The key is held in process memory
-  only and is never written to disk or logs.
+The hosted site has no LLM of its own and pays for nothing. Each visitor connects one in
+**Assistant → Connect an LLM**:
+
+| Provider | Cost to the visitor | Models (suggestions; any model name the provider accepts) |
+|---|---|---|
+| Groq | free tier | llama-3.3-70b-versatile, llama-3.1-8b-instant, qwen/qwen3-32b |
+| Google Gemini | free tier | gemini-2.5-flash, gemini-2.5-flash-lite |
+| OpenRouter | free models (`:free`) | meta-llama/llama-3.3-70b-instruct:free, qwen/qwen3-235b-a22b:free, … |
+| Own Ollama | free | any model on their server; it must be reachable over https from the internet, e.g. through a tunnel |
+| OpenAI | billed to the visitor | gpt-5-nano, gpt-5-mini (`PLANT_ALLOWED_MODELS`) |
+
+**Why there is no Ollama inside the Space:** the free Space hardware is CPU-only (2 vCPUs). A 3B
+model there needs about 7 minutes per agent call, or roughly 20 minutes per decision, so a bundled
+model would not be usable.
+
+## Visitor keys and addresses: what happens to them
+
+- **Sending:** the key (and, for Ollama, the address) goes from the browser to the server over the
+  WebSocket. Use HTTPS; Spaces and Render provide it.
+- **Checking:** the server checks the connection with a call that spends no tokens (listing models,
+  or OpenRouter's key endpoint).
+- **Ollama addresses:** a visitor's Ollama address must be https and must not resolve to a private,
+  loopback or link-local address, so the public server cannot be used to reach internal networks.
+- **Use:** the server builds that session's agents with the connection. The key is held in process
+  memory only and is never written to disk or logs.
 - **Isolation:** it is never sent back to the browser, and other sessions cannot use it.
-- **End of session:** it is dropped when the session ends (tab closed, idle timeout, or "Remove my
-  key").
-- **In the browser:** the page keeps it in memory only, not in localStorage. A reload asks for it
-  again.
-- **Billing:** visitors pay for their own calls; the console shows tokens and estimated cost per
-  session.
+- **End of session:** it is dropped when the session ends (tab closed, idle timeout, or
+  **Disconnect**).
+- **In the browser:** the page keeps it in memory only, not in localStorage.
+- **Billing:** any cost is billed by the provider to the visitor's own account; the console shows
+  tokens per session, and the estimated cost for OpenAI.
