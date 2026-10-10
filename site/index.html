@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OperAItor · AI operators for a chemical plant</title>
+<meta name="description" content="OperAItor: LLM operator agents for a simulated chemical plant, with PCA fault detection, safety instrumented functions, a digital twin and ADMIT admissibility gates. An AISL project, Imperial College London.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l7 7-7 7-7-7z' fill='%234c8dff'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f6f8fa; --panel: #ffffff; --ink: #1b2129; --muted: #57606a; --line: #d8dee4;
+  --accent: #2563c9; --accent-ink: #ffffff; --ok: #1f7a4c; --warn: #9a6400; --bad: #b42318; --code: #eef1f4;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0d1117; --panel: #151b23; --ink: #e6edf3; --muted: #8b96a5; --line: #29313c;
+          --accent: #4c8dff; --accent-ink: #ffffff; --ok: #3fb97a; --warn: #f0a83a; --bad: #f25555; --code: #1b222c;
+          color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--accent); }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+header.top { border-bottom: 1px solid var(--line); background: var(--panel); }
+header.top .wrap { display: flex; align-items: center; gap: 16px; min-height: 56px; flex-wrap: wrap; }
+.logo { font-weight: 700; font-size: 18px; display: flex; gap: 8px; align-items: center; color: var(--ink); text-decoration: none; }
+.logo i { width: 12px; height: 12px; background: var(--accent); transform: rotate(45deg); display: inline-block; }
+.ai { color: var(--accent); }
+nav.links { margin-left: auto; display: flex; gap: 18px; flex-wrap: wrap; font-size: 15px; }
+nav.links a { color: var(--muted); text-decoration: none; }
+nav.links a:hover { color: var(--ink); }
+.hero { padding: 56px 0 28px; }
+.hero h1 { font-size: clamp(32px, 6vw, 52px); line-height: 1.1; margin: 0 0 14px; letter-spacing: -.02em; }
+.hero p.lead { font-size: clamp(17px, 2.4vw, 20px); color: var(--muted); max-width: 720px; margin: 0 0 24px; }
+.ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line);
+       background: var(--panel); color: var(--ink); text-decoration: none; font-weight: 600; font-size: 15px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn[aria-disabled="true"] { opacity: .55; pointer-events: none; }
+.btn small { font-weight: 400; opacity: .85; }
+.shot { margin: 28px 0 8px; border-radius: 12px; border: 1px solid var(--line); overflow: hidden; background: #0d1117; }
+.shot img { width: 100%; height: auto; display: block; }
+.caption { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+section { padding: 36px 0; border-top: 1px solid var(--line); }
+section h2 { font-size: 26px; margin: 0 0 14px; letter-spacing: -.01em; }
+section p { max-width: 760px; }
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card h3 { margin: 0 0 6px; font-size: 16px; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+.flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 14px; margin: 10px 0 4px; }
+.flow span { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.flow span.key { border-color: var(--accent); font-weight: 600; }
+.flow b { color: var(--muted); font-weight: 400; }
+table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 15px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+th { font-size: 13px; color: var(--muted); font-weight: 600; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: 0; }
+.tw { overflow-x: auto; }
+pre { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font: 14px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; }
+code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .92em; }
+.two { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); align-items: start; }
+footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--muted); font-size: 14px; }
+.pill { display: inline-block; font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; color: var(--muted); }
+.pill.free { color: var(--ok); border-color: var(--ok); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="./"><i aria-hidden="true"></i><span>Oper<span class="ai">AI</span>tor</span></a>
+    <nav class="links" aria-label="Site">
+      <a href="#how">How it works</a>
+      <a href="#results">Results</a>
+      <a href="#run">Run it</a>
+      <a href="./dashboard/">Dashboard</a>
+      <a href="https://github.com/AISL-at-Imperial-College-London/operAItor">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <h1>Oper<span class="ai">AI</span>tor</h1>
+    <p class="lead">AI operators for a chemical plant, checked before they act. Break a simulated acetone plant on purpose,
+      and watch LLM agents detect the fault, diagnose it and propose a fix. A digital twin or the ADMIT admissibility
+      gates decide whether the fix may reach the plant.</p>
+    <div class="ctas">
+      <a class="btn primary" id="demo" href="__DEMO_URL__">Open the live demo</a>
+      <a class="btn" href="./dashboard/">Campaign results <small>(20 fault scenarios)</small></a>
+      <a class="btn" href="https://github.com/AISL-at-Imperial-College-London/operAItor">Source code</a>
+    </div>
+    <figure class="shot"><img src="assets/plant.webp" width="1400" height="915"
+      alt="OperAItor console: process graphic of the reactor and distillation column with safety functions, key variables and control loops"></figure>
+    <p class="caption">The console: every visitor gets their own plant, fault injection, alarms, PCA fault detection and the agent pipeline.</p>
+  </div>
+
+  <section id="what">
+    <h2>What is in it</h2>
+    <div class="grid">
+      <div class="card"><h3>A plant you can break</h3><p>Isopropanol → acetone CSTR feeding a 10-tray distillation column:
+        8 PI loops, 5 duty/standby pump trains, ISA-18.2 alarms and 11 independent safety instrumented functions.</p></div>
+      <div class="card"><h3>Fault detection</h3><p>PCA (Hotelling T² and SPE) confirms faults; rule checks and an LLM
+        diagnosis agent rank the likely causes.</p></div>
+      <div class="card"><h3>LLM operator agents</h3><p>A knowledge graph, a planning agent and an action agent propose
+        concrete commands: setpoints, standby pumps, throughput, emergency auxiliaries.</p></div>
+      <div class="card"><h3>Checked before they act</h3><p>A digital twin, an LLM judge or the
+        <a href="https://github.com/Refiant-Inc/admit-bench">ADMIT</a> hard gates validate every proposal; rejections
+        go back to the agent with the reason.</p></div>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2>How a decision works</h2>
+    <div class="flow" aria-label="Agent pipeline">
+      <span>PCA confirms a fault</span><b>→</b><span>Knowledge graph</span><b>→</b><span>Planning</span><b>→</b>
+      <span>Action agent</span><b>→</b><span class="key">ADMIT gate T0–T4</span><b>→</b><span>Dispatch to the plant</span>
+    </div>
+    <div class="two">
+      <div>
+        <p>With ADMIT, the action agent files an <b>action record</b> with every command: the evidence it relied on, the
+          procedure steps it followed, its confidence, whether the action can be undone, and how. The platform builds the
+          evidence ledger from the live plant. ADMIT then checks the record gate by gate:</p>
+        <ul>
+          <li><b>T0</b> the record is complete and valid;</li>
+          <li><b>T1</b> the cited evidence exists, is trusted and fresh;</li>
+          <li><b>T2</b> the active hazard is addressed;</li>
+          <li><b>T3</b> authority, operating mode and SOP steps;</li>
+          <li><b>T4</b> the plan, projected on the plant, stays inside the safety limits.</li>
+        </ul>
+        <p>Only an admissible plan is applied. Every record, rule and gate result is shown in the console and logged.</p>
+      </div>
+      <figure class="shot" style="margin:0"><img src="assets/admit.webp" width="1400" height="1330" loading="lazy"
+        alt="Agents tab: the ADMIT gate block after the action agent, and the record the agent filed next to the rule and each gate result"></figure>
+    </div>
+  </section>
+
+  <section id="results">
+    <h2>Results</h2>
+    <p>The same 20 fault scenarios (single, coupled and triple faults), the same fault-lift times and economics for every
+      configuration. Agents run with gpt-5-nano; one run per configuration, so differences of 2–3 stops are within the
+      run-to-run noise.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Configuration</th><th class="num">Plant stops / 20</th><th class="num">Saving vs no agents</th><th class="num">Time per decision</th></tr></thead>
+      <tbody>
+        <tr><td>No agents</td><td class="num">18</td><td class="num">—</td><td class="num">—</td></tr>
+        <tr><td>LLM, no validation</td><td class="num">9</td><td class="num">$179k</td><td class="num">21 s</td></tr>
+        <tr><td>LLM + LLM judge</td><td class="num">11</td><td class="num">$135k</td><td class="num">29 s</td></tr>
+        <tr><td>LLM + digital twin</td><td class="num">5</td><td class="num">$260k</td><td class="num">167 s</td></tr>
+        <tr><td>LLM + ADMIT, with simulation (T0–T4)</td><td class="num">6</td><td class="num">$237k</td><td class="num">143 s</td></tr>
+        <tr><td>LLM + ADMIT, no simulation (T0–T3)</td><td class="num">5</td><td class="num">$259k</td><td class="num">42 s</td></tr>
+      </tbody>
+    </table></div>
+    <p>ADMIT's record checks alone matched the digital twin at a quarter of the decision time. The absolute consequence
+      gate (T4) blocks actions that would only delay an unavoidable trip, which is an open design question for admissibility
+      gating. Every run, decision and ADMIT record is in the <a href="./dashboard/">campaign dashboard</a>.</p>
+  </section>
+
+  <section id="run">
+    <h2>Run it yourself (free)</h2>
+    <div class="two">
+      <div>
+        <p>Locally, with a free <a href="https://ollama.com">Ollama</a> model (Python ≥ 3.11, Node 20+):</p>
+<pre>git clone https://github.com/AISL-at-Imperial-College-London/operAItor
+cd operAItor
+pip install -e ".[llm,admit]"
+cd frontend &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; cd ..
+ollama pull qwen3:8b
+operaitor serve        # http://localhost:8001</pre>
+        <p>Or with Docker: <code>docker build -t operaitor . &amp;&amp; docker run -p 7860:7860 operaitor</code></p>
+      </div>
+      <div>
+        <p>In the live demo, the plant, fault detection and safety functions work without any account. To let the agents
+          act, connect an LLM in <b>Assistant → Connect an LLM</b>:</p>
+        <ul>
+          <li>Groq <span class="pill free">free tier</span></li>
+          <li>Google Gemini <span class="pill free">free tier</span></li>
+          <li>OpenRouter <span class="pill free">free models</span></li>
+          <li>your own Ollama server <span class="pill free">free</span></li>
+          <li>OpenAI <span class="pill">billed to your own key</span></li>
+        </ul>
+        <p>Keys stay in server memory for your session only.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    OperAItor is a project of AISL, Imperial College London, released under the
+    <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/blob/main/LICENSE">Apache License 2.0</a>.
+    The ADMIT gates come from <a href="https://github.com/Refiant-Inc/admit-bench">ADMIT Bench</a> (Apache-2.0).
+    <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/tree/main/docs">Documentation</a> ·
+    <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/blob/main/CHANGELOG.md">Changelog</a>
+  </div>
+</footer>
+<script>
+  // The live-demo link is filled in at build time once the Hugging Face Space exists.
+  const demo = document.getElementById("demo");
+  if (!demo.getAttribute("href") || demo.getAttribute("href").startsWith("__")) {
+    demo.setAttribute("aria-disabled", "true");
+    demo.removeAttribute("href");
+    demo.textContent = "Live demo: coming soon";
+  }
+</script>
+</body>
+</html>
