@@ -107,10 +107,14 @@ def build(status: dict | None = None) -> Path:
     return TARGET
 
 
-if __name__ == "__main__":
+def main() -> None:
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--status", default="", help="progress note shown at the top of the page")
     args = ap.parse_args()
     p = build({"note": args.status} if args.status else None)
     print(f"wrote {p} ({p.stat().st_size / 1e6:.2f} MB)")
+
+
+if __name__ == "__main__":
+    main()

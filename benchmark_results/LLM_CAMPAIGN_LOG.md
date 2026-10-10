@@ -386,3 +386,55 @@ Total LLM cost: $2.50. The first LLM diagnosis names a true fault in 45 of 60 ru
   of the SIF. With the twin the outcome is much more stable (4 → 5).
 - The ranking is unchanged: twin > lucky ≈ judge. Lucky beats judge again, because the gpt-5-nano
   judge rejects good actions (S10, D02) as often as it catches bad ones.
+
+## ADMIT campaign (9–10 Oct)
+**Setup:**
+- Two new configurations, both with PCA, the LLM planning agent and the LLM action agent (gpt-5-nano, LLM diagnosis on).
+- **ADMIT (sim)** runs ADMIT's hard gates T0–T4. T4 projects the plan and "do nothing" for 30 min on a clone of the plant.
+- **ADMIT (no sim)** runs T0–T3 only: record, evidence, hazard, authority / mode / SOP steps.
+- Same 20 scenarios, fault-lift times and economics as the 9 Oct dry-SIF campaign.
+- Run at Idle CPU priority, 40 runs, 0 LLM errors, $3.97.
+- Every attempt's record, rule, gate results and evidence ledger are stored in `runs/<id>_admit*.json`. The dashboard shows them under each scenario → *ADMIT checks*.
+
+| Configuration | Plant stops / 20 | Saving vs no agents | Mean time per decision | LLM cost |
+|---|---:|---:|---:|---:|
+| No agents | 18 | — | — | — |
+| LLM, no validation | 9 | $179,199 | 21 s | $0.49 |
+| LLM + LLM judge | 11 | $135,136 | 29 s | $1.10 |
+| LLM + digital twin | 5 | $260,455 | 167 s | $0.91 |
+| LLM planning + ADMIT (sim, T0–T4) | 6 | $236,789 | 143 s | $2.09 |
+| LLM planning + ADMIT (no sim, T0–T3) | 5 | $258,678 | 42 s | $1.88 |
+
+**Stops:**
+- Every configuration: S08, C01, T02 and T03 (condenser-cooling loss). The cartridge oracle for these is "escalate", because no single action stays inside the envelope.
+- Both ADMIT configurations and the twin: C03 (drum leak + distillate pump trip).
+- ADMIT (sim) only: S09.
+
+**ADMIT's verdicts:**
+
+| | ADMIT (sim) | ADMIT (no sim) |
+|---|---:|---:|
+| attempts checked | 866 | 779 |
+| attempts admitted | 139 (16 %) | 158 (20 %) |
+| blocked first at T3 (SOP steps, reversibility, confidence) | 469 | 424 |
+| blocked first at T1 (evidence) | 218 | 180 |
+| blocked first at T0 (record fields) | 31 | 34 |
+| blocked first at T4 (consequence) | 33 | — |
+| blocked first at T2 (hazard) | 2 | 5 |
+
+The most frequent codes:
+- `T1-EVIDENCE-UNKNOWN`: the agent cites evidence ids that are not in the ledger, e.g. `ev_pump_DISTILLATE_failed`.
+- `T3-STEP-MISSING` and `T3-STEP-ORDER`: the setpoint SOP is check_loop_in_auto → verify_measurement, and the agent skips a step or swaps the order.
+- `T4-ENVELOPE` (116, sim only).
+- `T3-REVERSIBILITY-MISMATCH`.
+- `T1-UNTRUSTED-SOURCE`: the agent cites the LLM diagnosis as evidence.
+
+**Findings:**
+- **ADMIT without simulation did as well as the digital twin (5 stops, $259k vs $260k) at a quarter of the decision time (42 s vs 167 s).** Most of the protection comes from T0–T3: the record, evidence, authority and procedure checks.
+- **The simulation layer (T4) did not improve the outcome here** (6 stops vs 5, within the run-to-run noise of ±2–3 seen between identical campaigns). It added 3.4× the decision time. T4 did block 33 records whose plans would cross a SIF limit.
+- **ADMIT blocks most proposals, and mostly on the record, not the physics.** gpt-5-nano files a correct record in only 16–20 % of attempts.
+- **S09 shows the cost of that strictness.** In the sim run every record failed at T1 or T3 (and some proposals also at T4), so nothing was applied and the plant tripped. In the no-sim run the first record happened to pass, and it held the right move: raise TOP_TIC, i.e. less reflux. The agent's diagnosis still said this "raises reflux", so the right action was taken for the wrong reason, and only T4 could catch that kind of error.
+- **Caveats:**
+  - one run per configuration;
+  - both ADMIT configurations use the LLM planning agent, while lucky, judge and twin used the knowledge-graph planner, so this is not purely a comparison of validators;
+  - the evidence ledger is a snapshot at each decision, so the freshness and future-evidence checks never trigger.

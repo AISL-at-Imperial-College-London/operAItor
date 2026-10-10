@@ -85,7 +85,18 @@ def _passthrough(module: str):
     return run
 
 
+PASSTHROUGH = {"train-pca": "acetone_plant.fdd.train", "benchmark": "acetone_plant.benchmark.profit_campaign",
+               "dashboard": "acetone_plant.benchmark.build_dashboard", "loop-tests": "acetone_plant.benchmark.loop_tests",
+               "admit": "acetone_plant.admit.build"}
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] in PASSTHROUGH:  # hand every remaining argument (including --options) to the tool
+        mod = importlib.import_module(PASSTHROUGH[argv[0]])
+        sys.argv = [f"acetone-plant {argv[0]}", *argv[1:]]
+        out = mod.main()
+        return out if isinstance(out, int) else 0
     ap = argparse.ArgumentParser(prog="acetone-plant", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--version", action="version", version=f"acetone-plant {__version__}")
