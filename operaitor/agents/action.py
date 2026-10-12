@@ -15,7 +15,7 @@ import os
 import time
 from typing import Any, Protocol
 
-from .llm import DEFAULT_MODEL, USAGE, make_llm, message_text, parse_json_object
+from .llm import DEFAULT_MODEL, USAGE, ainvoke, make_llm, message_text, parse_json_object
 
 
 class ActionAgent(Protocol):
@@ -177,10 +177,17 @@ If a proposal is rejected, `evaluation_feedback.admit_violations` lists the viol
 """
 
 
+NO_COPY_NOTE = """The JSON above only DESCRIBES the format: replace every <...> and "node_id" with your own
+content. A reply that repeats the description, or has no commands, is rejected."""
+
+
 def action_system_prompt(level: str) -> str:
+    base = ACTION_SYSTEM_PROMPT
+    if os.environ.get("PLANT_PROTOCOL") == "v2":
+        base = base.replace("Each command is one of:", NO_COPY_NOTE + "\nEach command is one of:", 1)
     if level == "base":
-        return ACTION_SYSTEM_PROMPT
-    p = ACTION_SYSTEM_PROMPT.replace(
+        return base
+    p = base.replace(
         """- Work towards the brief's objective using its candidate levers; deviate only if the
   snapshot contradicts the brief, and say why.""",
         """- The brief's candidate levers come from a knowledge-graph lookup and can be incomplete:
@@ -233,7 +240,7 @@ class LLMActionAgent:
             user["admit"] = context["admit"]
             system += ADMIT_ADDENDUM
         t0 = time.perf_counter()
-        msg = await self.llm.ainvoke([("system", system), ("human", json.dumps(user, default=str))])
+        msg = await ainvoke(self.llm, [("system", system), ("human", json.dumps(user, default=str))])
         text = message_text(msg)
         self.last_usage = {**USAGE.record("action", self.model, msg),
                            "latency_s": time.perf_counter() - t0, "raw": text[:4000]}

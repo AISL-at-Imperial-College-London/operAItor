@@ -1,0 +1,4280 @@
+{
+ "prices": {
+  "acetone_usd_t": 1300.0,
+  "ipa_usd_t": 1000.0,
+  "h2_fuel_usd_kg": 1.0,
+  "steam_usd_GJ": 8.0,
+  "hot_utility_usd_GJ": 8.0,
+  "recycle_credit": 0.95,
+  "product_spec_x": 0.9,
+  "shutdown_cost_usd": 5000.0,
+  "startup_cost_usd": 15000.0,
+  "trip_penalty_usd": 20000.0
+ },
+ "configs": {
+  "lucky": {
+   "label": "LLM, no validation (feeling lucky)",
+   "preset": "llm_lucky",
+   "n": 20,
+   "complete": true,
+   "trips": 7,
+   "sif_trips": 7,
+   "profit": -129711.0,
+   "passive_profit_same": -364878.0,
+   "saving": 235167.0,
+   "llm_calls": 345,
+   "llm_cost_usd": 0.0,
+   "llm_tokens": 3473847,
+   "timed_runs": 20,
+   "decision_s": 43256.4,
+   "llm_s": 43254.3,
+   "twin_s": 0,
+   "n_decisions": 339,
+   "n_llm_calls_timed": 345,
+   "n_twin_rollouts": 0,
+   "mean_decision_s": 127.6,
+   "mean_llm_latency_s": 125.37,
+   "run_wall_s": 45804.9
+  },
+  "judge": {
+   "label": "LLM + LLM judge",
+   "preset": "llm_judge",
+   "n": 20,
+   "complete": true,
+   "trips": 7,
+   "sif_trips": 7,
+   "profit": -130083.0,
+   "passive_profit_same": -364878.0,
+   "saving": 234795.0,
+   "llm_calls": 782,
+   "llm_cost_usd": 0.0,
+   "llm_tokens": 7707345,
+   "timed_runs": 20,
+   "decision_s": 92836.9,
+   "llm_s": 92834.5,
+   "twin_s": 0,
+   "n_decisions": 358,
+   "n_llm_calls_timed": 782,
+   "n_twin_rollouts": 0,
+   "mean_decision_s": 259.32,
+   "mean_llm_latency_s": 118.71,
+   "run_wall_s": 95393.6
+  },
+  "llmtwin": {
+   "label": "LLM + digital twin",
+   "preset": "llm",
+   "n": 20,
+   "complete": true,
+   "trips": 7,
+   "sif_trips": 7,
+   "profit": -131145.0,
+   "passive_profit_same": -364878.0,
+   "saving": 233733.0,
+   "llm_calls": 967,
+   "llm_cost_usd": 0.0,
+   "llm_tokens": 10119025,
+   "timed_runs": 20,
+   "decision_s": 144202.7,
+   "llm_s": 111363.1,
+   "twin_s": 32827.6,
+   "n_decisions": 250,
+   "n_llm_calls_timed": 967,
+   "n_twin_rollouts": 908,
+   "mean_decision_s": 576.81,
+   "mean_llm_latency_s": 115.16,
+   "run_wall_s": 147154.8
+  },
+  "admit": {
+   "label": "LLM planning + ADMIT gates (T0-T4, simulated)",
+   "preset": "llm_admit",
+   "n": 20,
+   "complete": true,
+   "trips": 7,
+   "sif_trips": 7,
+   "profit": -126932.0,
+   "passive_profit_same": -364878.0,
+   "saving": 237946.0,
+   "llm_calls": 888,
+   "llm_cost_usd": 0.0,
+   "llm_tokens": 9933925,
+   "timed_runs": 20,
+   "decision_s": 160017.3,
+   "llm_s": 92432.9,
+   "twin_s": 22396.1,
+   "n_decisions": 307,
+   "n_llm_calls_timed": 581,
+   "n_twin_rollouts": 344,
+   "mean_decision_s": 521.23,
+   "mean_llm_latency_s": 159.09,
+   "run_wall_s": 163085.0
+  },
+  "admit_nosim": {
+   "label": "LLM planning + ADMIT gates (T0-T3, no simulation)",
+   "preset": "llm_admit_nosim",
+   "n": 20,
+   "complete": true,
+   "trips": 7,
+   "sif_trips": 7,
+   "profit": -131019.0,
+   "passive_profit_same": -364878.0,
+   "saving": 233859.0,
+   "llm_calls": 810,
+   "llm_cost_usd": 0.0,
+   "llm_tokens": 8870016,
+   "timed_runs": 20,
+   "decision_s": 120672.9,
+   "llm_s": 75930.9,
+   "twin_s": 1.1,
+   "n_decisions": 320,
+   "n_llm_calls_timed": 490,
+   "n_twin_rollouts": 351,
+   "mean_decision_s": 377.1,
+   "mean_llm_latency_s": 154.96,
+   "run_wall_s": 123265.9
+  }
+ },
+ "mode_labels": {
+  "passive": "No agents",
+  "lucky": "LLM, no validation (feeling lucky)",
+  "judge": "LLM + LLM judge",
+  "llmtwin": "LLM + digital twin",
+  "admit": "LLM planning + ADMIT gates (T0-T4, simulated)",
+  "admit_nosim": "LLM planning + ADMIT gates (T0-T3, no simulation)"
+ },
+ "protocol": {
+  "onset_min": 10.0,
+  "lift_after_trip_min": 10.0,
+  "lift_no_trip_min": 30.0,
+  "probe_window_min": 240.0,
+  "min_window_min": 120.0,
+  "tail_min": 60.0,
+  "agent_modes": {
+   "lucky": "llm_lucky",
+   "judge": "llm_judge",
+   "llmtwin": "llm",
+   "admit": "llm_admit",
+   "admit_nosim": "llm_admit_nosim"
+  }
+ },
+ "single_fault_footprints": {
+  "reflux_pump_trip": [
+   "column_min_tray_holdup_kmol",
+   "distillate_x_acetone",
+   "drum_holdup_kmol",
+   "top_temperature_K"
+  ],
+  "bottoms_pump_trip": [
+   "reboiler_holdup_kmol"
+  ],
+  "distillate_pump_trip": [
+   "drum_holdup_kmol"
+  ],
+  "feed_pump_trip": [
+   "bottoms_x_acetone",
+   "column_min_tray_holdup_kmol",
+   "cstr_holdup_kmol",
+   "cstr_pressure_bar",
+   "cstr_temperature_K",
+   "reboiler_holdup_kmol"
+  ],
+  "cstr_outlet_capacity_loss": [
+   "bottoms_x_acetone",
+   "column_min_tray_holdup_kmol",
+   "cstr_holdup_kmol",
+   "cstr_pressure_bar",
+   "cstr_temperature_K",
+   "distillate_x_acetone",
+   "drum_holdup_kmol",
+   "reboiler_holdup_kmol",
+   "top_temperature_K"
+  ],
+  "h2_pcv_capacity_degradation": [
+   "cstr_pressure_bar",
+   "cstr_temperature_K"
+  ],
+  "reactor_heater_stuck_high": [
+   "cstr_pressure_bar",
+   "cstr_temperature_K"
+  ],
+  "condenser_cooling_loss": [
+   "bottom_temperature_K",
+   "bottoms_x_acetone",
+   "column_min_tray_holdup_kmol",
+   "column_pressure_bar",
+   "distillate_x_acetone",
+   "drum_holdup_kmol",
+   "reboiler_holdup_kmol",
+   "top_temperature_K"
+  ],
+  "reflux_drum_leak": [
+   "drum_holdup_kmol"
+  ],
+  "reactor_pressure_sensor_low_bias": [
+   "cstr_pressure_bar"
+  ]
+ },
+ "rows": [
+  {
+   "id": "S01",
+   "group": "single",
+   "faults": "reflux_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    26.9
+   ],
+   "probe_trip_min": 16.9,
+   "probe_sifs": [
+    "COL_L_LL"
+   ],
+   "passive_trip_min": 16.9,
+   "passive_sifs": [
+    "COL_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -19198.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "COL_TRAY_L",
+    "P201_TRIP"
+   ],
+   "footprint_overlap": [],
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 1444.0,
+     "saving": 20642.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 2,
+     "proposals": 2,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 2,
+      "input_tokens": 20285,
+      "output_tokens": 302,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 159.121,
+      "twin_s": 0,
+      "decision_s": 159.165,
+      "n_llm_calls": 2,
+      "n_twin_rollouts": 0,
+      "n_decisions": 2
+     },
+     "wall_s": 322.3
+    },
+    "judge": {
+     "profit": 1444.0,
+     "saving": 20642.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 2,
+     "proposals": 2,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 39644,
+      "output_tokens": 525,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 2,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 490.404,
+      "twin_s": 0,
+      "decision_s": 490.417,
+      "n_llm_calls": 4,
+      "n_twin_rollouts": 0,
+      "n_decisions": 2
+     },
+     "wall_s": 647.2
+    },
+    "llmtwin": {
+     "profit": 1441.0,
+     "saving": 20639.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 1,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 1,
+      "input_tokens": 10056,
+      "output_tokens": 144,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 112.024,
+      "twin_s": 24.352,
+      "decision_s": 136.387,
+      "n_llm_calls": 1,
+      "n_twin_rollouts": 1,
+      "n_decisions": 1
+     },
+     "wall_s": 264.7
+    },
+    "admit": {
+     "profit": 1441.0,
+     "saving": 20639.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 2,
+     "proposals": 2,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 40542,
+      "output_tokens": 1358,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 2,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 216.623,
+      "twin_s": 145.324,
+      "decision_s": 543.82,
+      "n_llm_calls": 2,
+      "n_twin_rollouts": 2,
+      "n_decisions": 2
+     },
+     "wall_s": 724.1
+    },
+    "admit_nosim": {
+     "profit": 1444.0,
+     "saving": 20642.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 2,
+     "proposals": 2,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 40542,
+      "output_tokens": 1359,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 2,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 326.445,
+      "twin_s": 0.007,
+      "decision_s": 598.708,
+      "n_llm_calls": 2,
+      "n_twin_rollouts": 2,
+      "n_decisions": 2
+     },
+     "wall_s": 762.3
+    }
+   }
+  },
+  {
+   "id": "S02",
+   "group": "single",
+   "faults": "bottoms_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    58.7
+   ],
+   "probe_trip_min": 48.7,
+   "probe_sifs": [
+    "RB_L_HH"
+   ],
+   "passive_trip_min": 48.7,
+   "passive_sifs": [
+    "RB_L_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -19279.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "RB_L_HH",
+    "P203_TRIP"
+   ],
+   "footprint_overlap": [],
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 1448.0,
+     "saving": 20727.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 2,
+     "proposals": 2,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 2,
+      "input_tokens": 19691,
+      "output_tokens": 293,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 222.535,
+      "twin_s": 0,
+      "decision_s": 222.562,
+      "n_llm_calls": 2,
+      "n_twin_rollouts": 0,
+      "n_decisions": 2
+     },
+     "wall_s": 391.9
+    },
+    "judge": {
+     "profit": 1448.0,
+     "saving": 20727.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 2,
+     "proposals": 2,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 38451,
+      "output_tokens": 600,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 2,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 504.071,
+      "twin_s": 0,
+      "decision_s": 504.085,
+      "n_llm_calls": 4,
+      "n_twin_rollouts": 0,
+      "n_decisions": 2
+     },
+     "wall_s": 671.2
+    },
+    "llmtwin": {
+     "profit": 1448.0,
+     "saving": 20727.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 1,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 1,
+      "input_tokens": 10012,
+      "output_tokens": 136,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 108.253,
+      "twin_s": 20.014,
+      "decision_s": 128.279,
+      "n_llm_calls": 1,
+      "n_twin_rollouts": 1,
+      "n_decisions": 1
+     },
+     "wall_s": 261.4
+    },
+    "admit": {
+     "profit": 1448.0,
+     "saving": 20727.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 5,
+     "reprompts": 3,
+     "llm_usage": {
+      "calls": 7,
+      "input_tokens": 77203,
+      "output_tokens": 2292,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 2,
+     "admit_rejections": 1,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 492.286,
+      "twin_s": 198.564,
+      "decision_s": 816.874,
+      "n_llm_calls": 5,
+      "n_twin_rollouts": 2,
+      "n_decisions": 2
+     },
+     "wall_s": 1008.2
+    },
+    "admit_nosim": {
+     "profit": 1448.0,
+     "saving": 20727.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 2,
+     "proposals": 2,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 39380,
+      "output_tokens": 1115,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 2,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 323.401,
+      "twin_s": 0.006,
+      "decision_s": 632.157,
+      "n_llm_calls": 2,
+      "n_twin_rollouts": 2,
+      "n_decisions": 2
+     },
+     "wall_s": 781.4
+    }
+   }
+  },
+  {
+   "id": "S03",
+   "group": "single",
+   "faults": "distillate_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    32.4
+   ],
+   "probe_trip_min": 22.4,
+   "probe_sifs": [
+    "DR_L_HH"
+   ],
+   "passive_trip_min": 22.4,
+   "passive_sifs": [
+    "DR_L_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -19849.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "DR_L_HH",
+    "P202_TRIP"
+   ],
+   "footprint_overlap": [],
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 1449.0,
+     "saving": 21298.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 2,
+     "proposals": 2,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 2,
+      "input_tokens": 19027,
+      "output_tokens": 406,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 212.743,
+      "twin_s": 0,
+      "decision_s": 212.784,
+      "n_llm_calls": 2,
+      "n_twin_rollouts": 0,
+      "n_decisions": 2
+     },
+     "wall_s": 383.2
+    },
+    "judge": {
+     "profit": 1394.0,
+     "saving": 21243.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 22,
+     "proposals": 23,
+     "reprompts": 1,
+     "llm_usage": {
+      "calls": 46,
+      "input_tokens": 447620,
+      "output_tokens": 8610,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 1,
+     "judge_calls": 23,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 5830.44,
+      "twin_s": 0,
+      "decision_s": 5830.586,
+      "n_llm_calls": 46,
+      "n_twin_rollouts": 0,
+      "n_decisions": 22
+     },
+     "wall_s": 5954.7
+    },
+    "llmtwin": {
+     "profit": 1449.0,
+     "saving": 21298.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 1,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 1,
+      "input_tokens": 9870,
+      "output_tokens": 139,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 105.58,
+      "twin_s": 15.031,
+      "decision_s": 120.623,
+      "n_llm_calls": 1,
+      "n_twin_rollouts": 1,
+      "n_decisions": 1
+     },
+     "wall_s": 251.7
+    },
+    "admit": {
+     "profit": 1449.0,
+     "saving": 21298.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 5,
+     "reprompts": 3,
+     "llm_usage": {
+      "calls": 7,
+      "input_tokens": 74307,
+      "output_tokens": 2933,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 1,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 498.365,
+      "twin_s": 63.208,
+      "decision_s": 736.746,
+      "n_llm_calls": 5,
+      "n_twin_rollouts": 1,
+      "n_decisions": 2
+     },
+     "wall_s": 908.3
+    },
+    "admit_nosim": {
+     "profit": 1449.0,
+     "saving": 21298.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 5,
+     "reprompts": 3,
+     "llm_usage": {
+      "calls": 7,
+      "input_tokens": 74343,
+      "output_tokens": 2935,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 1,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 846.602,
+      "twin_s": 0.003,
+      "decision_s": 1122.522,
+      "n_llm_calls": 5,
+      "n_twin_rollouts": 1,
+      "n_decisions": 2
+     },
+     "wall_s": 1281.6
+    }
+   }
+  },
+  {
+   "id": "S04",
+   "group": "single",
+   "faults": "feed_pump_trip",
+   "window_min": 151.1,
+   "lift_min": [
+    91.1
+   ],
+   "probe_trip_min": 81.1,
+   "probe_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_trip_min": 81.1,
+   "passive_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1822.0,
+   "passive_profit": -19731.0,
+   "passive_off_spec_min": 20.0,
+   "alarms_listed_at_end_passive": [
+    "R_T_H",
+    "R_L_L",
+    "DR_L_LL",
+    "DIST_X_L",
+    "P101_TRIP"
+   ],
+   "footprint_overlap": [],
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 1813.0,
+     "saving": 21544.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 1,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 1,
+      "input_tokens": 10261,
+      "output_tokens": 136,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 87.715,
+      "twin_s": 0,
+      "decision_s": 87.738,
+      "n_llm_calls": 1,
+      "n_twin_rollouts": 0,
+      "n_decisions": 1
+     },
+     "wall_s": 274.0
+    },
+    "judge": {
+     "profit": 1813.0,
+     "saving": 21544.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 1,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 2,
+      "input_tokens": 20056,
+      "output_tokens": 268,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 1,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 261.36,
+      "twin_s": 0,
+      "decision_s": 261.369,
+      "n_llm_calls": 2,
+      "n_twin_rollouts": 0,
+      "n_decisions": 1
+     },
+     "wall_s": 458.0
+    },
+    "llmtwin": {
+     "profit": 1813.0,
+     "saving": 21544.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 1,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 1,
+      "input_tokens": 10261,
+      "output_tokens": 135,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 123.025,
+      "twin_s": 17.079,
+      "decision_s": 140.116,
+      "n_llm_calls": 1,
+      "n_twin_rollouts": 1,
+      "n_decisions": 1
+     },
+     "wall_s": 308.9
+    },
+    "admit": {
+     "profit": 1813.0,
+     "saving": 21544.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 1,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 2,
+      "input_tokens": 20594,
+      "output_tokens": 522,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 1,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 72.997,
+      "twin_s": 85.598,
+      "decision_s": 278.031,
+      "n_llm_calls": 1,
+      "n_twin_rollouts": 1,
+      "n_decisions": 1
+     },
+     "wall_s": 519.2
+    },
+    "admit_nosim": {
+     "profit": 1813.0,
+     "saving": 21544.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 1,
+     "proposals": 1,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 2,
+      "input_tokens": 20594,
+      "output_tokens": 522,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 1,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 102.634,
+      "twin_s": 0.003,
+      "decision_s": 252.772,
+      "n_llm_calls": 1,
+      "n_twin_rollouts": 1,
+      "n_decisions": 1
+     },
+     "wall_s": 451.8
+    }
+   }
+  },
+  {
+   "id": "S05",
+   "group": "single",
+   "faults": "cstr_outlet_capacity_loss",
+   "window_min": 120.0,
+   "lift_min": [
+    40.0
+   ],
+   "probe_trip_min": null,
+   "probe_sifs": [
+    "R_L_HH"
+   ],
+   "passive_trip_min": null,
+   "passive_sifs": [
+    "R_L_HH"
+   ],
+   "passive_status": "RUNNING",
+   "nominal_profit": 1449.0,
+   "passive_profit": 775.0,
+   "passive_off_spec_min": 16.0,
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_L_H",
+    "R_L_HH",
+    "DIST_X_L",
+    "BTM_X_H"
+   ],
+   "footprint_overlap": [],
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 757.0,
+     "saving": -18.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_L_HH"
+     ],
+     "actions": 23,
+     "proposals": 24,
+     "reprompts": 1,
+     "llm_usage": {
+      "calls": 24,
+      "input_tokens": 241621,
+      "output_tokens": 4809,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 2978.367,
+      "twin_s": 0,
+      "decision_s": 2978.521,
+      "n_llm_calls": 24,
+      "n_twin_rollouts": 0,
+      "n_decisions": 23
+     },
+     "wall_s": 3112.7
+    },
+    "judge": {
+     "profit": 1096.0,
+     "saving": 321.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_L_HH"
+     ],
+     "actions": 23,
+     "proposals": 25,
+     "reprompts": 2,
+     "llm_usage": {
+      "calls": 49,
+      "input_tokens": 481767,
+      "output_tokens": 8052,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 1,
+     "judge_calls": 24,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 6247.729,
+      "twin_s": 0,
+      "decision_s": 6247.874,
+      "n_llm_calls": 49,
+      "n_twin_rollouts": 0,
+      "n_decisions": 23
+     },
+     "wall_s": 6371.7
+    },
+    "llmtwin": {
+     "profit": 855.0,
+     "saving": 80.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_L_HH"
+     ],
+     "actions": 7,
+     "proposals": 64,
+     "reprompts": 48,
+     "llm_usage": {
+      "calls": 64,
+      "input_tokens": 656975,
+      "output_tokens": 12381,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 6026.235,
+      "twin_s": 2007.073,
+      "decision_s": 8033.933,
+      "n_llm_calls": 64,
+      "n_twin_rollouts": 56,
+      "n_decisions": 16
+     },
+     "wall_s": 8200.4
+    },
+    "admit": {
+     "profit": 758.0,
+     "saving": -17.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_L_HH"
+     ],
+     "actions": 15,
+     "proposals": 49,
+     "reprompts": 26,
+     "llm_usage": {
+      "calls": 72,
+      "input_tokens": 792863,
+      "output_tokens": 25306,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 24,
+     "admit_rejections": 9,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 7292.616,
+      "twin_s": 1754.952,
+      "decision_s": 12203.061,
+      "n_llm_calls": 49,
+      "n_twin_rollouts": 24,
+      "n_decisions": 23
+     },
+     "wall_s": 12377.4
+    },
+    "admit_nosim": {
+     "profit": 709.0,
+     "saving": -66.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_L_HH"
+     ],
+     "actions": 22,
+     "proposals": 30,
+     "reprompts": 7,
+     "llm_usage": {
+      "calls": 53,
+      "input_tokens": 551197,
+      "output_tokens": 17737,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 27,
+     "admit_rejections": 5,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 5428.168,
+      "twin_s": 0.09,
+      "decision_s": 9218.787,
+      "n_llm_calls": 30,
+      "n_twin_rollouts": 27,
+      "n_decisions": 23
+     },
+     "wall_s": 9377.9
+    }
+   }
+  },
+  {
+   "id": "S06",
+   "group": "single",
+   "faults": "h2_pcv_capacity_degradation",
+   "window_min": 247.8,
+   "lift_min": [
+    187.8
+   ],
+   "probe_trip_min": 177.8,
+   "probe_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 177.8,
+   "passive_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 2987.0,
+   "passive_profit": -20042.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_P_HH",
+    "RB_L_HH"
+   ],
+   "footprint_overlap": [],
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 3201.0,
+     "saving": 23243.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 55,
+     "proposals": 55,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 55,
+      "input_tokens": 553783,
+      "output_tokens": 10653,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 6975.723,
+      "twin_s": 0,
+      "decision_s": 6976.032,
+      "n_llm_calls": 55,
+      "n_twin_rollouts": 0,
+      "n_decisions": 55
+     },
+     "wall_s": 7248.7
+    },
+    "judge": {
+     "profit": 3219.0,
+     "saving": 23261.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 57,
+     "proposals": 58,
+     "reprompts": 1,
+     "llm_usage": {
+      "calls": 116,
+      "input_tokens": 1141133,
+      "output_tokens": 18419,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 1,
+     "judge_calls": 58,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 13379.704,
+      "twin_s": 0,
+      "decision_s": 13380.076,
+      "n_llm_calls": 116,
+      "n_twin_rollouts": 0,
+      "n_decisions": 57
+     },
+     "wall_s": 13695.4
+    },
+    "llmtwin": {
+     "profit": 3191.0,
+     "saving": 23233.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 30,
+     "proposals": 230,
+     "reprompts": 172,
+     "llm_usage": {
+      "calls": 230,
+      "input_tokens": 2415061,
+      "output_tokens": 50284,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 32219.921,
+      "twin_s": 9108.999,
+      "decision_s": 41332.536,
+      "n_llm_calls": 230,
+      "n_twin_rollouts": 230,
+      "n_decisions": 58
+     },
+     "wall_s": 41647.1
+    },
+    "admit": {
+     "profit": 3214.0,
+     "saving": 23256.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 42,
+     "proposals": 102,
+     "reprompts": 50,
+     "llm_usage": {
+      "calls": 154,
+      "input_tokens": 1706354,
+      "output_tokens": 62570,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 57,
+     "admit_rejections": 15,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 17046.067,
+      "twin_s": 4122.73,
+      "decision_s": 28995.767,
+      "n_llm_calls": 102,
+      "n_twin_rollouts": 57,
+      "n_decisions": 52
+     },
+     "wall_s": 29318.7
+    },
+    "admit_nosim": {
+     "profit": 3101.0,
+     "saving": 23143.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 49,
+     "proposals": 93,
+     "reprompts": 37,
+     "llm_usage": {
+      "calls": 149,
+      "input_tokens": 1610875,
+      "output_tokens": 54591,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 63,
+     "admit_rejections": 14,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 12990.806,
+      "twin_s": 0.204,
+      "decision_s": 19155.334,
+      "n_llm_calls": 93,
+      "n_twin_rollouts": 63,
+      "n_decisions": 56
+     },
+     "wall_s": 19423.6
+    }
+   }
+  },
+  {
+   "id": "S07",
+   "group": "single",
+   "faults": "reactor_heater_stuck_high",
+   "window_min": 120.0,
+   "lift_min": [
+    40.0
+   ],
+   "probe_trip_min": null,
+   "probe_sifs": [
+    "R_T_HH"
+   ],
+   "passive_trip_min": null,
+   "passive_sifs": [
+    "R_T_HH"
+   ],
+   "passive_status": "RUNNING",
+   "nominal_profit": 1449.0,
+   "passive_profit": 1478.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_P_HH",
+    "R_T_H",
+    "R_T_HH"
+   ],
+   "footprint_overlap": [],
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 1527.0,
+     "saving": 49.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_T_HH"
+     ],
+     "actions": 23,
+     "proposals": 23,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 23,
+      "input_tokens": 231551,
+      "output_tokens": 4439,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 2852.104,
+      "twin_s": 0,
+      "decision_s": 2852.267,
+      "n_llm_calls": 23,
+      "n_twin_rollouts": 0,
+      "n_decisions": 23
+     },
+     "wall_s": 2985.4
+    },
+    "judge": {
+     "profit": 1527.0,
+     "saving": 49.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_T_HH"
+     ],
+     "actions": 22,
+     "proposals": 26,
+     "reprompts": 3,
+     "llm_usage": {
+      "calls": 51,
+      "input_tokens": 504620,
+      "output_tokens": 8395,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 3,
+     "judge_calls": 25,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 6521.625,
+      "twin_s": 0,
+      "decision_s": 6521.767,
+      "n_llm_calls": 51,
+      "n_twin_rollouts": 0,
+      "n_decisions": 23
+     },
+     "wall_s": 6650.7
+    },
+    "llmtwin": {
+     "profit": 1554.0,
+     "saving": 76.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_T_HH"
+     ],
+     "actions": 11,
+     "proposals": 50,
+     "reprompts": 36,
+     "llm_usage": {
+      "calls": 50,
+      "input_tokens": 523518,
+      "output_tokens": 9330,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 4822.002,
+      "twin_s": 1740.957,
+      "decision_s": 6563.509,
+      "n_llm_calls": 50,
+      "n_twin_rollouts": 48,
+      "n_decisions": 14
+     },
+     "wall_s": 6731.0
+    },
+    "admit": {
+     "profit": 1730.0,
+     "saving": 252.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_T_HH"
+     ],
+     "actions": 23,
+     "proposals": 30,
+     "reprompts": 7,
+     "llm_usage": {
+      "calls": 53,
+      "input_tokens": 553024,
+      "output_tokens": 17569,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 26,
+     "admit_rejections": 3,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 4514.12,
+      "twin_s": 1815.094,
+      "decision_s": 9465.099,
+      "n_llm_calls": 30,
+      "n_twin_rollouts": 26,
+      "n_decisions": 23
+     },
+     "wall_s": 9629.2
+    },
+    "admit_nosim": {
+     "profit": 1496.0,
+     "saving": 18.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_T_HH"
+     ],
+     "actions": 15,
+     "proposals": 21,
+     "reprompts": 5,
+     "llm_usage": {
+      "calls": 37,
+      "input_tokens": 378253,
+      "output_tokens": 11106,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 17,
+     "admit_rejections": 2,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 3647.161,
+      "twin_s": 0.054,
+      "decision_s": 6232.266,
+      "n_llm_calls": 21,
+      "n_twin_rollouts": 17,
+      "n_decisions": 16
+     },
+     "wall_s": 6386.6
+    }
+   }
+  },
+  {
+   "id": "S08",
+   "group": "single",
+   "faults": "condenser_cooling_loss",
+   "window_min": 120.0,
+   "lift_min": [
+    33.2
+   ],
+   "probe_trip_min": 23.2,
+   "probe_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_trip_min": 23.2,
+   "passive_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -21023.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "DR_L_LL",
+    "COL_P_H",
+    "COL_P_HH",
+    "BTM_X_H"
+   ],
+   "footprint_overlap": [],
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": -21028.0,
+     "saving": -5.0,
+     "trip_min": 23.3,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 4,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 38703,
+      "output_tokens": 759,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 333.028,
+      "twin_s": 0,
+      "decision_s": 333.079,
+      "n_llm_calls": 4,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 366.6
+    },
+    "judge": {
+     "profit": -21024.0,
+     "saving": -1.0,
+     "trip_min": 23.2,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 6,
+     "reprompts": 2,
+     "llm_usage": {
+      "calls": 12,
+      "input_tokens": 115244,
+      "output_tokens": 1947,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 2,
+     "judge_calls": 6,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 1558.443,
+      "twin_s": 0,
+      "decision_s": 1558.48,
+      "n_llm_calls": 12,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 1586.8
+    },
+    "llmtwin": {
+     "profit": -21029.0,
+     "saving": -6.0,
+     "trip_min": 23.3,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 1,
+     "proposals": 12,
+     "reprompts": 9,
+     "llm_usage": {
+      "calls": 12,
+      "input_tokens": 122574,
+      "output_tokens": 2270,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 1237.95,
+      "twin_s": 84.587,
+      "decision_s": 1322.645,
+      "n_llm_calls": 12,
+      "n_twin_rollouts": 12,
+      "n_decisions": 3
+     },
+     "wall_s": 1349.0
+    },
+    "admit": {
+     "profit": -21023.0,
+     "saving": 0.0,
+     "trip_min": 23.2,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 0,
+     "proposals": 16,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 20,
+      "input_tokens": 230260,
+      "output_tokens": 7325,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 6,
+     "admit_rejections": 6,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 2232.127,
+      "twin_s": 107.798,
+      "decision_s": 2875.776,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 6,
+      "n_decisions": 4
+     },
+     "wall_s": 2909.3
+    },
+    "admit_nosim": {
+     "profit": -21027.0,
+     "saving": -4.0,
+     "trip_min": 23.2,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 4,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 8,
+      "input_tokens": 77507,
+      "output_tokens": 2388,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 4,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 744.159,
+      "twin_s": 0.012,
+      "decision_s": 1270.709,
+      "n_llm_calls": 4,
+      "n_twin_rollouts": 4,
+      "n_decisions": 4
+     },
+     "wall_s": 1304.6
+    }
+   }
+  },
+  {
+   "id": "S09",
+   "group": "single",
+   "faults": "reflux_drum_leak",
+   "window_min": 120.0,
+   "lift_min": [
+    56.2
+   ],
+   "probe_trip_min": 46.2,
+   "probe_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_trip_min": 46.2,
+   "passive_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -23491.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "DR_L_LL"
+   ],
+   "footprint_overlap": [],
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": -23004.0,
+     "saving": 487.0,
+     "trip_min": 41.6,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 7,
+     "proposals": 7,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 7,
+      "input_tokens": 69609,
+      "output_tokens": 1404,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 794.297,
+      "twin_s": 0,
+      "decision_s": 794.366,
+      "n_llm_calls": 7,
+      "n_twin_rollouts": 0,
+      "n_decisions": 7
+     },
+     "wall_s": 847.5
+    },
+    "judge": {
+     "profit": -23410.0,
+     "saving": 81.0,
+     "trip_min": 45.8,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 7,
+     "proposals": 11,
+     "reprompts": 4,
+     "llm_usage": {
+      "calls": 20,
+      "input_tokens": 193060,
+      "output_tokens": 3543,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 2,
+     "judge_calls": 9,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 2585.1,
+      "twin_s": 0,
+      "decision_s": 2585.16,
+      "n_llm_calls": 20,
+      "n_twin_rollouts": 0,
+      "n_decisions": 7
+     },
+     "wall_s": 2634.0
+    },
+    "llmtwin": {
+     "profit": -23764.0,
+     "saving": -273.0,
+     "trip_min": 48.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 3,
+     "proposals": 20,
+     "reprompts": 15,
+     "llm_usage": {
+      "calls": 20,
+      "input_tokens": 209676,
+      "output_tokens": 3699,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 2146.636,
+      "twin_s": 468.015,
+      "decision_s": 2614.822,
+      "n_llm_calls": 20,
+      "n_twin_rollouts": 21,
+      "n_decisions": 5
+     },
+     "wall_s": 2669.1
+    },
+    "admit": {
+     "profit": -23491.0,
+     "saving": 0.0,
+     "trip_min": 46.2,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 0,
+     "proposals": 32,
+     "reprompts": 24,
+     "llm_usage": {
+      "calls": 40,
+      "input_tokens": 463805,
+      "output_tokens": 14370,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 10,
+     "admit_rejections": 10,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 4635.004,
+      "twin_s": 364.188,
+      "decision_s": 6081.963,
+      "n_llm_calls": 32,
+      "n_twin_rollouts": 10,
+      "n_decisions": 8
+     },
+     "wall_s": 6155.4
+    },
+    "admit_nosim": {
+     "profit": -23441.0,
+     "saving": 50.0,
+     "trip_min": 45.8,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 7,
+     "proposals": 9,
+     "reprompts": 2,
+     "llm_usage": {
+      "calls": 16,
+      "input_tokens": 162074,
+      "output_tokens": 5232,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 8,
+     "admit_rejections": 1,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 1601.215,
+      "twin_s": 0.025,
+      "decision_s": 2693.068,
+      "n_llm_calls": 9,
+      "n_twin_rollouts": 8,
+      "n_decisions": 7
+     },
+     "wall_s": 2754.0
+    }
+   }
+  },
+  {
+   "id": "S10",
+   "group": "single",
+   "faults": "reactor_pressure_sensor_low_bias",
+   "window_min": 267.5,
+   "lift_min": [
+    207.5
+   ],
+   "probe_trip_min": 197.5,
+   "probe_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 197.5,
+   "passive_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 3234.0,
+   "passive_profit": -19797.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "RB_L_HH"
+   ],
+   "footprint_overlap": [],
+   "interaction": null,
+   "configs": {
+    "lucky": {
+     "profit": 3237.0,
+     "saving": 23034.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 50,
+     "proposals": 52,
+     "reprompts": 2,
+     "llm_usage": {
+      "calls": 52,
+      "input_tokens": 514456,
+      "output_tokens": 10094,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 6492.754,
+      "twin_s": 0,
+      "decision_s": 6493.077,
+      "n_llm_calls": 52,
+      "n_twin_rollouts": 0,
+      "n_decisions": 50
+     },
+     "wall_s": 6786.9
+    },
+    "judge": {
+     "profit": 3239.0,
+     "saving": 23036.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 43,
+     "proposals": 45,
+     "reprompts": 2,
+     "llm_usage": {
+      "calls": 90,
+      "input_tokens": 874546,
+      "output_tokens": 14217,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 2,
+     "judge_calls": 45,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 10826.026,
+      "twin_s": 0,
+      "decision_s": 10826.286,
+      "n_llm_calls": 90,
+      "n_twin_rollouts": 0,
+      "n_decisions": 43
+     },
+     "wall_s": 11114.6
+    },
+    "llmtwin": {
+     "profit": 3257.0,
+     "saving": 23054.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 10,
+     "proposals": 122,
+     "reprompts": 91,
+     "llm_usage": {
+      "calls": 122,
+      "input_tokens": 1241977,
+      "output_tokens": 23080,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 13768.0,
+      "twin_s": 4662.103,
+      "decision_s": 18431.36,
+      "n_llm_calls": 122,
+      "n_twin_rollouts": 108,
+      "n_decisions": 31
+     },
+     "wall_s": 18819.7
+    },
+    "admit": {
+     "profit": 3242.0,
+     "saving": 23039.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 45,
+     "proposals": 74,
+     "reprompts": 28,
+     "llm_usage": {
+      "calls": 120,
+      "input_tokens": 1268585,
+      "output_tokens": 43411,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 55,
+     "admit_rejections": 10,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 11849.638,
+      "twin_s": 3747.178,
+      "decision_s": 22541.474,
+      "n_llm_calls": 74,
+      "n_twin_rollouts": 55,
+      "n_decisions": 46
+     },
+     "wall_s": 22886.6
+    },
+    "admit_nosim": {
+     "profit": 3238.0,
+     "saving": 23035.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 45,
+     "proposals": 63,
+     "reprompts": 18,
+     "llm_usage": {
+      "calls": 108,
+      "input_tokens": 1117263,
+      "output_tokens": 38966,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 54,
+     "admit_rejections": 9,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 9663.581,
+      "twin_s": 0.2,
+      "decision_s": 16297.039,
+      "n_llm_calls": 63,
+      "n_twin_rollouts": 54,
+      "n_decisions": 45
+     },
+     "wall_s": 16590.6
+    }
+   }
+  },
+  {
+   "id": "D01",
+   "group": "pair_indep",
+   "faults": "reactor_pressure_sensor_low_bias + bottoms_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    59.9,
+    59.9
+   ],
+   "probe_trip_min": 49.9,
+   "probe_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 49.9,
+   "passive_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -19320.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "RB_L_HH",
+    "P203_TRIP"
+   ],
+   "footprint_overlap": [
+    []
+   ],
+   "interaction": "reactor pressure loop vs reboiler level loop: different units, no shared loop or alarm",
+   "configs": {
+    "lucky": {
+     "profit": 1444.0,
+     "saving": 20764.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 23,
+     "proposals": 23,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 23,
+      "input_tokens": 229743,
+      "output_tokens": 4448,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 2922.54,
+      "twin_s": 0,
+      "decision_s": 2922.688,
+      "n_llm_calls": 23,
+      "n_twin_rollouts": 0,
+      "n_decisions": 23
+     },
+     "wall_s": 3051.2
+    },
+    "judge": {
+     "profit": 1445.0,
+     "saving": 20765.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 23,
+     "proposals": 25,
+     "reprompts": 2,
+     "llm_usage": {
+      "calls": 50,
+      "input_tokens": 489627,
+      "output_tokens": 7930,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 2,
+     "judge_calls": 25,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 6306.05,
+      "twin_s": 0,
+      "decision_s": 6306.194,
+      "n_llm_calls": 50,
+      "n_twin_rollouts": 0,
+      "n_decisions": 23
+     },
+     "wall_s": 6427.7
+    },
+    "llmtwin": {
+     "profit": 1427.0,
+     "saving": 20747.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 7,
+     "proposals": 30,
+     "reprompts": 22,
+     "llm_usage": {
+      "calls": 30,
+      "input_tokens": 310392,
+      "output_tokens": 5881,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 2877.698,
+      "twin_s": 1027.574,
+      "decision_s": 3905.585,
+      "n_llm_calls": 30,
+      "n_twin_rollouts": 26,
+      "n_decisions": 8
+     },
+     "wall_s": 4070.7
+    },
+    "admit": {
+     "profit": 1480.0,
+     "saving": 20800.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 27,
+     "proposals": 39,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 66,
+      "input_tokens": 674824,
+      "output_tokens": 24043,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 33,
+     "admit_rejections": 6,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 6210.399,
+      "twin_s": 2309.497,
+      "decision_s": 12368.59,
+      "n_llm_calls": 39,
+      "n_twin_rollouts": 33,
+      "n_decisions": 27
+     },
+     "wall_s": 12531.4
+    },
+    "admit_nosim": {
+     "profit": 1454.0,
+     "saving": 20774.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 23,
+     "proposals": 32,
+     "reprompts": 9,
+     "llm_usage": {
+      "calls": 55,
+      "input_tokens": 577184,
+      "output_tokens": 17551,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 27,
+     "admit_rejections": 4,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 6053.116,
+      "twin_s": 0.083,
+      "decision_s": 10340.806,
+      "n_llm_calls": 32,
+      "n_twin_rollouts": 27,
+      "n_decisions": 23
+     },
+     "wall_s": 10479.8
+    }
+   }
+  },
+  {
+   "id": "D02",
+   "group": "pair_indep",
+   "faults": "reactor_heater_stuck_high + distillate_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    31.9,
+    31.9
+   ],
+   "probe_trip_min": 21.9,
+   "probe_sifs": [
+    "DR_L_HH"
+   ],
+   "passive_trip_min": 21.9,
+   "passive_sifs": [
+    "DR_L_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -19834.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_P_HH",
+    "R_T_H",
+    "DR_L_HH",
+    "P202_TRIP"
+   ],
+   "footprint_overlap": [
+    []
+   ],
+   "interaction": "reactor temperature (heater) vs reflux-drum level (distillate pump); simultaneous",
+   "configs": {
+    "lucky": {
+     "profit": 1523.0,
+     "saving": 21357.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 22,
+     "proposals": 22,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 22,
+      "input_tokens": 221236,
+      "output_tokens": 4452,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 2837.8,
+      "twin_s": 0,
+      "decision_s": 2837.915,
+      "n_llm_calls": 22,
+      "n_twin_rollouts": 0,
+      "n_decisions": 22
+     },
+     "wall_s": 2965.2
+    },
+    "judge": {
+     "profit": 1563.0,
+     "saving": 21397.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 23,
+     "proposals": 23,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 46,
+      "input_tokens": 453006,
+      "output_tokens": 7210,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 23,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 5721.916,
+      "twin_s": 0,
+      "decision_s": 5722.056,
+      "n_llm_calls": 46,
+      "n_twin_rollouts": 0,
+      "n_decisions": 23
+     },
+     "wall_s": 5844.5
+    },
+    "llmtwin": {
+     "profit": 1446.0,
+     "saving": 21280.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 7,
+     "proposals": 61,
+     "reprompts": 45,
+     "llm_usage": {
+      "calls": 61,
+      "input_tokens": 633685,
+      "output_tokens": 11278,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 5510.0,
+      "twin_s": 2255.768,
+      "decision_s": 7766.474,
+      "n_llm_calls": 61,
+      "n_twin_rollouts": 59,
+      "n_decisions": 16
+     },
+     "wall_s": 7944.8
+    },
+    "admit": {
+     "profit": 1505.0,
+     "saving": 21339.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 21,
+     "proposals": 33,
+     "reprompts": 10,
+     "llm_usage": {
+      "calls": 56,
+      "input_tokens": 586394,
+      "output_tokens": 20271,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 24,
+     "admit_rejections": 3,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 5229.517,
+      "twin_s": 1578.283,
+      "decision_s": 10220.242,
+      "n_llm_calls": 33,
+      "n_twin_rollouts": 24,
+      "n_decisions": 23
+     },
+     "wall_s": 10383.5
+    },
+    "admit_nosim": {
+     "profit": 1502.0,
+     "saving": 21336.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [],
+     "actions": 20,
+     "proposals": 33,
+     "reprompts": 10,
+     "llm_usage": {
+      "calls": 56,
+      "input_tokens": 591829,
+      "output_tokens": 19116,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 24,
+     "admit_rejections": 4,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 6178.664,
+      "twin_s": 0.074,
+      "decision_s": 10377.502,
+      "n_llm_calls": 33,
+      "n_twin_rollouts": 24,
+      "n_decisions": 23
+     },
+     "wall_s": 10513.3
+    }
+   }
+  },
+  {
+   "id": "D03",
+   "group": "pair_indep",
+   "faults": "h2_pcv_capacity_degradation + reflux_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    31.9,
+    31.9
+   ],
+   "probe_trip_min": 21.9,
+   "probe_sifs": [
+    "COL_L_LL",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 21.9,
+   "passive_sifs": [
+    "COL_L_LL",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -19142.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_P_HH",
+    "COL_TRAY_L",
+    "P201_TRIP"
+   ],
+   "footprint_overlap": [
+    []
+   ],
+   "interaction": "reactor H2 vent capacity vs column reflux: reactor gas side vs column top",
+   "configs": {
+    "lucky": {
+     "profit": 1455.0,
+     "saving": 20597.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 24,
+     "proposals": 24,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 24,
+      "input_tokens": 241097,
+      "output_tokens": 4995,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 3112.125,
+      "twin_s": 0,
+      "decision_s": 3112.261,
+      "n_llm_calls": 24,
+      "n_twin_rollouts": 0,
+      "n_decisions": 24
+     },
+     "wall_s": 3240.1
+    },
+    "judge": {
+     "profit": 1453.0,
+     "saving": 20595.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 24,
+     "proposals": 24,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 48,
+      "input_tokens": 474865,
+      "output_tokens": 7878,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 24,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 5921.107,
+      "twin_s": 0,
+      "decision_s": 5921.256,
+      "n_llm_calls": 48,
+      "n_twin_rollouts": 0,
+      "n_decisions": 24
+     },
+     "wall_s": 6046.0
+    },
+    "llmtwin": {
+     "profit": 1453.0,
+     "saving": 20595.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 11,
+     "proposals": 56,
+     "reprompts": 41,
+     "llm_usage": {
+      "calls": 56,
+      "input_tokens": 587779,
+      "output_tokens": 11838,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 4798.923,
+      "twin_s": 1940.433,
+      "decision_s": 6740.047,
+      "n_llm_calls": 56,
+      "n_twin_rollouts": 53,
+      "n_decisions": 15
+     },
+     "wall_s": 6908.1
+    },
+    "admit": {
+     "profit": 1454.0,
+     "saving": 20596.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 7,
+     "proposals": 11,
+     "reprompts": 3,
+     "llm_usage": {
+      "calls": 19,
+      "input_tokens": 200699,
+      "output_tokens": 6674,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 8,
+     "admit_rejections": 1,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 1636.481,
+      "twin_s": 681.895,
+      "decision_s": 3407.796,
+      "n_llm_calls": 11,
+      "n_twin_rollouts": 8,
+      "n_decisions": 8
+     },
+     "wall_s": 3569.8
+    },
+    "admit_nosim": {
+     "profit": 1430.0,
+     "saving": 20572.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 16,
+     "proposals": 28,
+     "reprompts": 10,
+     "llm_usage": {
+      "calls": 46,
+      "input_tokens": 492123,
+      "output_tokens": 15496,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 21,
+     "admit_rejections": 5,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 5471.741,
+      "twin_s": 0.066,
+      "decision_s": 8821.884,
+      "n_llm_calls": 28,
+      "n_twin_rollouts": 21,
+      "n_decisions": 18
+     },
+     "wall_s": 8957.3
+    }
+   }
+  },
+  {
+   "id": "D04",
+   "group": "pair_indep",
+   "faults": "reactor_pressure_sensor_low_bias + reflux_drum_leak",
+   "window_min": 120.0,
+   "lift_min": [
+    56.7,
+    56.7
+   ],
+   "probe_trip_min": 46.7,
+   "probe_sifs": [
+    "DR_L_LL",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 46.7,
+   "passive_sifs": [
+    "DR_L_LL",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -23344.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "DR_L_LL"
+   ],
+   "footprint_overlap": [
+    []
+   ],
+   "interaction": "reactor pressure transmitter vs reflux-drum inventory",
+   "configs": {
+    "lucky": {
+     "profit": -23463.0,
+     "saving": -119.0,
+     "trip_min": 48.0,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 8,
+     "proposals": 8,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 8,
+      "input_tokens": 81110,
+      "output_tokens": 1671,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 1018.839,
+      "twin_s": 0,
+      "decision_s": 1018.884,
+      "n_llm_calls": 8,
+      "n_twin_rollouts": 0,
+      "n_decisions": 8
+     },
+     "wall_s": 1070.0
+    },
+    "judge": {
+     "profit": -23463.0,
+     "saving": -119.0,
+     "trip_min": 48.0,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 8,
+     "proposals": 11,
+     "reprompts": 3,
+     "llm_usage": {
+      "calls": 22,
+      "input_tokens": 218986,
+      "output_tokens": 4003,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 3,
+     "judge_calls": 11,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 2801.418,
+      "twin_s": 0,
+      "decision_s": 2801.478,
+      "n_llm_calls": 22,
+      "n_twin_rollouts": 0,
+      "n_decisions": 8
+     },
+     "wall_s": 2849.8
+    },
+    "llmtwin": {
+     "profit": -23467.0,
+     "saving": -123.0,
+     "trip_min": 48.3,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 3,
+     "proposals": 24,
+     "reprompts": 18,
+     "llm_usage": {
+      "calls": 24,
+      "input_tokens": 254052,
+      "output_tokens": 5470,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 2196.94,
+      "twin_s": 675.917,
+      "decision_s": 2873.148,
+      "n_llm_calls": 24,
+      "n_twin_rollouts": 26,
+      "n_decisions": 6
+     },
+     "wall_s": 2938.9
+    },
+    "admit": {
+     "profit": -23425.0,
+     "saving": -81.0,
+     "trip_min": 47.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL",
+      "R_P_HH"
+     ],
+     "actions": 2,
+     "proposals": 27,
+     "reprompts": 19,
+     "llm_usage": {
+      "calls": 35,
+      "input_tokens": 411020,
+      "output_tokens": 12291,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 9,
+     "admit_rejections": 7,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 4366.681,
+      "twin_s": 388.215,
+      "decision_s": 6055.3,
+      "n_llm_calls": 27,
+      "n_twin_rollouts": 9,
+      "n_decisions": 8
+     },
+     "wall_s": 6118.5
+    },
+    "admit_nosim": {
+     "profit": -23425.0,
+     "saving": -81.0,
+     "trip_min": 47.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL",
+      "R_P_HH"
+     ],
+     "actions": 4,
+     "proposals": 21,
+     "reprompts": 13,
+     "llm_usage": {
+      "calls": 29,
+      "input_tokens": 332234,
+      "output_tokens": 12331,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 5,
+     "admit_rejections": 1,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 4174.642,
+      "twin_s": 0.013,
+      "decision_s": 5655.342,
+      "n_llm_calls": 21,
+      "n_twin_rollouts": 5,
+      "n_decisions": 8
+     },
+     "wall_s": 5710.7
+    }
+   }
+  },
+  {
+   "id": "C01",
+   "group": "pair_coupled",
+   "faults": "condenser_cooling_loss + reflux_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    30.4,
+    30.4
+   ],
+   "probe_trip_min": 20.4,
+   "probe_sifs": [
+    "COL_L_LL"
+   ],
+   "passive_trip_min": 20.4,
+   "passive_sifs": [
+    "COL_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -19707.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "COL_P_H",
+    "COL_P_HH",
+    "COL_TRAY_L",
+    "BTM_X_H",
+    "P201_TRIP"
+   ],
+   "footprint_overlap": [
+    [
+     "column_min_tray_holdup_kmol",
+     "distillate_x_acetone",
+     "drum_holdup_kmol",
+     "top_temperature_K"
+    ]
+   ],
+   "interaction": "both act on the column top: less condensation and no reflux -> column pressure and drum level",
+   "configs": {
+    "lucky": {
+     "profit": -21044.0,
+     "saving": -1337.0,
+     "trip_min": 23.6,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 4,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 39035,
+      "output_tokens": 628,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 524.469,
+      "twin_s": 0,
+      "decision_s": 524.494,
+      "n_llm_calls": 4,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 550.7
+    },
+    "judge": {
+     "profit": -21044.0,
+     "saving": -1337.0,
+     "trip_min": 23.6,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 5,
+     "reprompts": 1,
+     "llm_usage": {
+      "calls": 10,
+      "input_tokens": 96062,
+      "output_tokens": 1480,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 1,
+     "judge_calls": 5,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 1272.196,
+      "twin_s": 0,
+      "decision_s": 1272.228,
+      "n_llm_calls": 10,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 1296.7
+    },
+    "llmtwin": {
+     "profit": -21046.0,
+     "saving": -1339.0,
+     "trip_min": 23.6,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 3,
+     "proposals": 16,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 16,
+      "input_tokens": 164014,
+      "output_tokens": 3036,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 1336.165,
+      "twin_s": 147.485,
+      "decision_s": 1483.822,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 14,
+      "n_decisions": 4
+     },
+     "wall_s": 1519.5
+    },
+    "admit": {
+     "profit": -19707.0,
+     "saving": 0.0,
+     "trip_min": 20.4,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "COL_L_LL"
+     ],
+     "actions": 0,
+     "proposals": 16,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 20,
+      "input_tokens": 231496,
+      "output_tokens": 6834,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 5,
+     "admit_rejections": 5,
+     "alarms_listed_at_end": [
+      "COL_P_H",
+      "COL_P_HH",
+      "COL_TRAY_L",
+      "BTM_X_H",
+      "P201_TRIP"
+     ],
+     "timing": {
+      "llm_s": 2545.257,
+      "twin_s": 120.018,
+      "decision_s": 3181.141,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 5,
+      "n_decisions": 4
+     },
+     "wall_s": 3212.1
+    },
+    "admit_nosim": {
+     "profit": -21049.0,
+     "saving": -1342.0,
+     "trip_min": 23.6,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 2,
+     "proposals": 10,
+     "reprompts": 6,
+     "llm_usage": {
+      "calls": 14,
+      "input_tokens": 156382,
+      "output_tokens": 5623,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 2,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 2033.507,
+      "twin_s": 0.007,
+      "decision_s": 2737.243,
+      "n_llm_calls": 10,
+      "n_twin_rollouts": 2,
+      "n_decisions": 4
+     },
+     "wall_s": 2763.3
+    }
+   }
+  },
+  {
+   "id": "C02",
+   "group": "pair_coupled",
+   "faults": "h2_pcv_capacity_degradation + reactor_pressure_sensor_low_bias",
+   "window_min": 246.5,
+   "lift_min": [
+    186.5,
+    186.5
+   ],
+   "probe_trip_min": 176.5,
+   "probe_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 176.5,
+   "passive_sifs": [
+    "RB_L_HH",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 2975.0,
+   "passive_profit": -20052.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "RB_L_HH"
+   ],
+   "footprint_overlap": [
+    [
+     "cstr_pressure_bar"
+    ]
+   ],
+   "interaction": "both raise reactor pressure: the low-reading transmitter makes R_PIC close the degrading PCV",
+   "configs": {
+    "lucky": {
+     "profit": 3302.0,
+     "saving": 23354.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 52,
+     "proposals": 55,
+     "reprompts": 3,
+     "llm_usage": {
+      "calls": 55,
+      "input_tokens": 504822,
+      "output_tokens": 11403,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 7002.604,
+      "twin_s": 0,
+      "decision_s": 7002.891,
+      "n_llm_calls": 55,
+      "n_twin_rollouts": 0,
+      "n_decisions": 52
+     },
+     "wall_s": 7266.7
+    },
+    "judge": {
+     "profit": 3333.0,
+     "saving": 23385.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 54,
+     "proposals": 61,
+     "reprompts": 7,
+     "llm_usage": {
+      "calls": 119,
+      "input_tokens": 1075896,
+      "output_tokens": 20143,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 4,
+     "judge_calls": 58,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 11676.598,
+      "twin_s": 0,
+      "decision_s": 11677.011,
+      "n_llm_calls": 119,
+      "n_twin_rollouts": 0,
+      "n_decisions": 54
+     },
+     "wall_s": 11995.8
+    },
+    "llmtwin": {
+     "profit": 3263.0,
+     "saving": 23315.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 24,
+     "proposals": 164,
+     "reprompts": 123,
+     "llm_usage": {
+      "calls": 164,
+      "input_tokens": 1573017,
+      "output_tokens": 32378,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 22558.514,
+      "twin_s": 5738.256,
+      "decision_s": 28298.98,
+      "n_llm_calls": 164,
+      "n_twin_rollouts": 154,
+      "n_decisions": 41
+     },
+     "wall_s": 28648.4
+    },
+    "admit": {
+     "profit": 3203.0,
+     "saving": 23255.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 44,
+     "proposals": 57,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 102,
+      "input_tokens": 1007345,
+      "output_tokens": 35865,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 47,
+     "admit_rejections": 3,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 10038.296,
+      "twin_s": 3287.756,
+      "decision_s": 20556.883,
+      "n_llm_calls": 57,
+      "n_twin_rollouts": 47,
+      "n_decisions": 45
+     },
+     "wall_s": 20870.7
+    },
+    "admit_nosim": {
+     "profit": 3017.0,
+     "saving": 23069.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 45,
+     "proposals": 57,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 102,
+      "input_tokens": 1034931,
+      "output_tokens": 35099,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 48,
+     "admit_rejections": 3,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 5295.927,
+      "twin_s": 0.137,
+      "decision_s": 9311.57,
+      "n_llm_calls": 57,
+      "n_twin_rollouts": 48,
+      "n_decisions": 45
+     },
+     "wall_s": 9559.5
+    }
+   }
+  },
+  {
+   "id": "C03",
+   "group": "pair_coupled",
+   "faults": "reflux_drum_leak + distillate_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    56.8,
+    56.8
+   ],
+   "probe_trip_min": 46.8,
+   "probe_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_trip_min": 46.8,
+   "passive_sifs": [
+    "DR_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -23548.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "DR_L_LL",
+    "P202_TRIP"
+   ],
+   "footprint_overlap": [
+    [
+     "drum_holdup_kmol"
+    ]
+   ],
+   "interaction": "both act on the reflux-drum level in opposite directions (leak drains, lost distillate fills)",
+   "configs": {
+    "lucky": {
+     "profit": -23120.0,
+     "saving": 428.0,
+     "trip_min": 42.8,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 7,
+     "proposals": 7,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 7,
+      "input_tokens": 70109,
+      "output_tokens": 1285,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 923.531,
+      "twin_s": 0,
+      "decision_s": 923.567,
+      "n_llm_calls": 7,
+      "n_twin_rollouts": 0,
+      "n_decisions": 7
+     },
+     "wall_s": 966.9
+    },
+    "judge": {
+     "profit": -23442.0,
+     "saving": 106.0,
+     "trip_min": 45.5,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 8,
+     "proposals": 9,
+     "reprompts": 1,
+     "llm_usage": {
+      "calls": 17,
+      "input_tokens": 165275,
+      "output_tokens": 3040,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 8,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 2127.751,
+      "twin_s": 0,
+      "decision_s": 2127.804,
+      "n_llm_calls": 17,
+      "n_twin_rollouts": 0,
+      "n_decisions": 8
+     },
+     "wall_s": 2173.3
+    },
+    "llmtwin": {
+     "profit": -23764.0,
+     "saving": -216.0,
+     "trip_min": 48.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 24,
+     "reprompts": 18,
+     "llm_usage": {
+      "calls": 24,
+      "input_tokens": 248135,
+      "output_tokens": 4791,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 2079.199,
+      "twin_s": 661.925,
+      "decision_s": 2741.374,
+      "n_llm_calls": 24,
+      "n_twin_rollouts": 21,
+      "n_decisions": 6
+     },
+     "wall_s": 2809.9
+    },
+    "admit": {
+     "profit": -23548.0,
+     "saving": 0.0,
+     "trip_min": 46.8,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 0,
+     "proposals": 32,
+     "reprompts": 24,
+     "llm_usage": {
+      "calls": 40,
+      "input_tokens": 474834,
+      "output_tokens": 13809,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 9,
+     "admit_rejections": 9,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "P202_TRIP"
+     ],
+     "timing": {
+      "llm_s": 5287.917,
+      "twin_s": 404.315,
+      "decision_s": 6943.406,
+      "n_llm_calls": 32,
+      "n_twin_rollouts": 9,
+      "n_decisions": 8
+     },
+     "wall_s": 7003.7
+    },
+    "admit_nosim": {
+     "profit": -23548.0,
+     "saving": 0.0,
+     "trip_min": 46.8,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 2,
+     "proposals": 26,
+     "reprompts": 18,
+     "llm_usage": {
+      "calls": 34,
+      "input_tokens": 398620,
+      "output_tokens": 13016,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 8,
+     "admit_rejections": 6,
+     "alarms_listed_at_end": [
+      "DR_L_LL"
+     ],
+     "timing": {
+      "llm_s": 3814.35,
+      "twin_s": 0.024,
+      "decision_s": 4862.513,
+      "n_llm_calls": 26,
+      "n_twin_rollouts": 8,
+      "n_decisions": 8
+     },
+     "wall_s": 4909.5
+    }
+   }
+  },
+  {
+   "id": "T01",
+   "group": "triple_none",
+   "faults": "h2_pcv_capacity_degradation + distillate_pump_trip + bottoms_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    34.9,
+    34.9,
+    34.9
+   ],
+   "probe_trip_min": 24.9,
+   "probe_sifs": [
+    "DR_L_HH",
+    "R_P_HH"
+   ],
+   "passive_trip_min": 24.9,
+   "passive_sifs": [
+    "DR_L_HH",
+    "R_P_HH"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -19832.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "R_P_H",
+    "R_P_HH",
+    "DR_L_HH",
+    "P202_TRIP",
+    "P203_TRIP"
+   ],
+   "footprint_overlap": [
+    [],
+    [],
+    []
+   ],
+   "interaction": "reactor vent, drum level and reboiler level: three different loops",
+   "configs": {
+    "lucky": {
+     "profit": 1437.0,
+     "saving": 21269.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 22,
+     "proposals": 22,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 22,
+      "input_tokens": 219701,
+      "output_tokens": 4423,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 2764.636,
+      "twin_s": 0,
+      "decision_s": 2764.753,
+      "n_llm_calls": 22,
+      "n_twin_rollouts": 0,
+      "n_decisions": 22
+     },
+     "wall_s": 2892.1
+    },
+    "judge": {
+     "profit": 1437.0,
+     "saving": 21269.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 22,
+     "proposals": 22,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 44,
+      "input_tokens": 429970,
+      "output_tokens": 7223,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 22,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 4974.096,
+      "twin_s": 0,
+      "decision_s": 4974.229,
+      "n_llm_calls": 44,
+      "n_twin_rollouts": 0,
+      "n_decisions": 22
+     },
+     "wall_s": 5104.3
+    },
+    "llmtwin": {
+     "profit": 1440.0,
+     "saving": 21272.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 12,
+     "proposals": 58,
+     "reprompts": 43,
+     "llm_usage": {
+      "calls": 58,
+      "input_tokens": 611266,
+      "output_tokens": 12638,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 6738.627,
+      "twin_s": 2028.31,
+      "decision_s": 8767.635,
+      "n_llm_calls": 58,
+      "n_twin_rollouts": 52,
+      "n_decisions": 15
+     },
+     "wall_s": 8941.5
+    },
+    "admit": {
+     "profit": 1467.0,
+     "saving": 21299.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 12,
+     "proposals": 18,
+     "reprompts": 5,
+     "llm_usage": {
+      "calls": 31,
+      "input_tokens": 327554,
+      "output_tokens": 10158,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 15,
+     "admit_rejections": 3,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 2999.371,
+      "twin_s": 1032.661,
+      "decision_s": 5962.336,
+      "n_llm_calls": 18,
+      "n_twin_rollouts": 15,
+      "n_decisions": 13
+     },
+     "wall_s": 6120.4
+    },
+    "admit_nosim": {
+     "profit": 1471.0,
+     "saving": 21303.0,
+     "trip_min": null,
+     "status": "RUNNING",
+     "sifs": [
+      "R_P_HH"
+     ],
+     "actions": 23,
+     "proposals": 35,
+     "reprompts": 11,
+     "llm_usage": {
+      "calls": 59,
+      "input_tokens": 634061,
+      "output_tokens": 21295,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 28,
+     "admit_rejections": 5,
+     "alarms_listed_at_end": [],
+     "timing": {
+      "llm_s": 3977.46,
+      "twin_s": 0.093,
+      "decision_s": 6289.957,
+      "n_llm_calls": 35,
+      "n_twin_rollouts": 28,
+      "n_decisions": 24
+     },
+     "wall_s": 6410.4
+    }
+   }
+  },
+  {
+   "id": "T02",
+   "group": "triple_2plus1",
+   "faults": "condenser_cooling_loss + reactor_pressure_sensor_low_bias + reflux_pump_trip",
+   "window_min": 120.0,
+   "lift_min": [
+    30.4,
+    30.4,
+    30.4
+   ],
+   "probe_trip_min": 20.4,
+   "probe_sifs": [
+    "COL_L_LL"
+   ],
+   "passive_trip_min": 20.4,
+   "passive_sifs": [
+    "COL_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -19708.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "COL_P_H",
+    "COL_P_HH",
+    "COL_TRAY_L",
+    "BTM_X_H",
+    "P201_TRIP"
+   ],
+   "footprint_overlap": [
+    [],
+    [
+     "column_min_tray_holdup_kmol",
+     "distillate_x_acetone",
+     "drum_holdup_kmol",
+     "top_temperature_K"
+    ],
+    []
+   ],
+   "interaction": "condenser loss + reflux trip interact at the column top; the reactor pressure sensor bias is isolated",
+   "configs": {
+    "lucky": {
+     "profit": -21027.0,
+     "saving": -1319.0,
+     "trip_min": 22.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 4,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 40654,
+      "output_tokens": 603,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 511.244,
+      "twin_s": 0,
+      "decision_s": 511.267,
+      "n_llm_calls": 4,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 534.7
+    },
+    "judge": {
+     "profit": -21025.0,
+     "saving": -1317.0,
+     "trip_min": 22.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 3,
+     "proposals": 9,
+     "reprompts": 5,
+     "llm_usage": {
+      "calls": 16,
+      "input_tokens": 162358,
+      "output_tokens": 2411,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 4,
+     "judge_calls": 7,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 1919.61,
+      "twin_s": 0,
+      "decision_s": 1919.653,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 1942.2
+    },
+    "llmtwin": {
+     "profit": -21047.0,
+     "saving": -1339.0,
+     "trip_min": 23.7,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL",
+      "R_P_HH"
+     ],
+     "actions": 3,
+     "proposals": 16,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 16,
+      "input_tokens": 167581,
+      "output_tokens": 2940,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 1264.074,
+      "twin_s": 112.336,
+      "decision_s": 1376.551,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 11,
+      "n_decisions": 4
+     },
+     "wall_s": 1415.0
+    },
+    "admit": {
+     "profit": -19708.0,
+     "saving": -0.0,
+     "trip_min": 20.4,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "COL_L_LL"
+     ],
+     "actions": 0,
+     "proposals": 16,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 20,
+      "input_tokens": 238470,
+      "output_tokens": 6123,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 4,
+     "admit_rejections": 4,
+     "alarms_listed_at_end": [
+      "COL_P_H",
+      "COL_P_HH",
+      "COL_TRAY_L",
+      "BTM_X_H",
+      "P201_TRIP"
+     ],
+     "timing": {
+      "llm_s": 2684.154,
+      "twin_s": 81.768,
+      "decision_s": 3440.585,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 4,
+      "n_decisions": 4
+     },
+     "wall_s": 3469.5
+    },
+    "admit_nosim": {
+     "profit": -21046.0,
+     "saving": -1338.0,
+     "trip_min": 23.6,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 2,
+     "proposals": 10,
+     "reprompts": 6,
+     "llm_usage": {
+      "calls": 14,
+      "input_tokens": 158949,
+      "output_tokens": 4469,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 4,
+     "admit_rejections": 2,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 1802.951,
+      "twin_s": 0.012,
+      "decision_s": 2567.534,
+      "n_llm_calls": 10,
+      "n_twin_rollouts": 4,
+      "n_decisions": 4
+     },
+     "wall_s": 2590.7
+    }
+   }
+  },
+  {
+   "id": "T03",
+   "group": "triple_all",
+   "faults": "condenser_cooling_loss + reflux_pump_trip + reflux_drum_leak",
+   "window_min": 120.0,
+   "lift_min": [
+    29.3,
+    29.3,
+    29.3
+   ],
+   "probe_trip_min": 19.3,
+   "probe_sifs": [
+    "COL_L_LL"
+   ],
+   "passive_trip_min": 19.3,
+   "passive_sifs": [
+    "COL_L_LL"
+   ],
+   "passive_status": "SAFE_TRIP",
+   "nominal_profit": 1449.0,
+   "passive_profit": -20234.0,
+   "passive_off_spec_min": 0.0,
+   "alarms_listed_at_end_passive": [
+    "COL_P_H",
+    "COL_P_HH",
+    "COL_TRAY_L",
+    "BTM_X_H",
+    "P201_TRIP"
+   ],
+   "footprint_overlap": [
+    [
+     "column_min_tray_holdup_kmol",
+     "distillate_x_acetone",
+     "drum_holdup_kmol",
+     "top_temperature_K"
+    ],
+    [
+     "drum_holdup_kmol"
+    ],
+    [
+     "drum_holdup_kmol"
+    ]
+   ],
+   "interaction": "condenser, reflux and drum leak all act on the column-top pressure / drum inventory",
+   "configs": {
+    "lucky": {
+     "profit": -21062.0,
+     "saving": -828.0,
+     "trip_min": 18.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 4,
+     "reprompts": 0,
+     "llm_usage": {
+      "calls": 4,
+      "input_tokens": 39504,
+      "output_tokens": 646,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 528.111,
+      "twin_s": 0,
+      "decision_s": 528.133,
+      "n_llm_calls": 4,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 548.1
+    },
+    "judge": {
+     "profit": -21086.0,
+     "saving": -852.0,
+     "trip_min": 18.8,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 9,
+     "reprompts": 5,
+     "llm_usage": {
+      "calls": 16,
+      "input_tokens": 156592,
+      "output_tokens": 2673,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 3,
+     "judge_calls": 7,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 1908.871,
+      "twin_s": 0,
+      "decision_s": 1908.922,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 0,
+      "n_decisions": 4
+     },
+     "wall_s": 1929.0
+    },
+    "llmtwin": {
+     "profit": -21065.0,
+     "saving": -831.0,
+     "trip_min": 18.9,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 3,
+     "proposals": 16,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 16,
+      "input_tokens": 164682,
+      "output_tokens": 2594,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 0,
+     "admit_rejections": 0,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 1333.326,
+      "twin_s": 91.411,
+      "decision_s": 1424.89,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 13,
+      "n_decisions": 4
+     },
+     "wall_s": 1455.0
+    },
+    "admit": {
+     "profit": -20234.0,
+     "saving": 0.0,
+     "trip_min": 19.3,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "COL_L_LL"
+     ],
+     "actions": 0,
+     "proposals": 16,
+     "reprompts": 12,
+     "llm_usage": {
+      "calls": 20,
+      "input_tokens": 233776,
+      "output_tokens": 6252,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 6,
+     "admit_rejections": 6,
+     "alarms_listed_at_end": [
+      "COL_P_H",
+      "COL_P_HH",
+      "COL_TRAY_L",
+      "BTM_X_H",
+      "P201_TRIP"
+     ],
+     "timing": {
+      "llm_s": 2585.015,
+      "twin_s": 107.032,
+      "decision_s": 3342.44,
+      "n_llm_calls": 16,
+      "n_twin_rollouts": 6,
+      "n_decisions": 4
+     },
+     "wall_s": 3369.0
+    },
+    "admit_nosim": {
+     "profit": -21055.0,
+     "saving": -821.0,
+     "trip_min": 19.7,
+     "status": "SAFE_TRIP",
+     "sifs": [
+      "DR_L_LL"
+     ],
+     "actions": 4,
+     "proposals": 8,
+     "reprompts": 3,
+     "llm_usage": {
+      "calls": 13,
+      "input_tokens": 137729,
+      "output_tokens": 3999,
+      "cost_usd": 0.0
+     },
+     "judge_rejections": 0,
+     "judge_calls": 0,
+     "llm_errors": 0,
+     "admit_calls": 5,
+     "admit_rejections": 1,
+     "alarms_listed_at_end": [
+      "DR_L_LL",
+      "COL_P_H",
+      "COL_P_HH",
+      "BTM_X_H"
+     ],
+     "timing": {
+      "llm_s": 1454.32,
+      "twin_s": 0.014,
+      "decision_s": 2235.211,
+      "n_llm_calls": 8,
+      "n_twin_rollouts": 5,
+      "n_decisions": 5
+     },
+     "wall_s": 2257.0
+    }
+   }
+  }
+ ],
+ "totals": {
+  "scenarios": 20,
+  "passive_sif_trips": 18,
+  "passive_dry_outs": 0,
+  "probe_trips": 18,
+  "passive_trips": 18,
+  "nominal_profit": 34202.0,
+  "passive_profit": -364878.0
+ }
+}

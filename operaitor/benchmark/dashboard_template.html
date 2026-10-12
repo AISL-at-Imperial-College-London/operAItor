@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Acetone Plant Fault Campaign</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,6 +13,7 @@
   --bg: #f3f5f6; --panel: #ffffff; --ink: #1b2429; --muted: #5c6a72; --line: #d9e0e4; --soft: #e9eef1;
   --accent: #2a6889; --accent-soft: #dcebf3;
   --passive: #b4573f; --agents: #2a6889; --lucky: #b07d12; --judge: #7a4fa8; --llmtwin: #1f8a7a; --admit: #3a5fb0; --admit_nosim: #b0476e; --nominal: #8a979e;
+  --m0: #2a6889; --m1: #c0612b; --m2: #2f7a4c; --m3: #7a4fa8; --m4: #8a6d1e; --m5: #1f8a7a; --m6: #b0476e; --m7: #5c6a72;
   --good: #2f7a4c; --good-soft: #dff0e5; --warn: #a86b12; --warn-soft: #f6ebd5; --bad: #b3342e; --bad-soft: #f6dedc;
   --f-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --f-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -21,16 +24,19 @@
   --bg: #12181c; --panel: #192227; --ink: #e3eaee; --muted: #93a3ab; --line: #2b383f; --soft: #212c32;
   --accent: #6fb0d4; --accent-soft: #1f3a49;
   --passive: #e08a70; --agents: #6fb0d4; --lucky: #e3b54f; --judge: #b48ee0; --llmtwin: #5fcbb8; --admit: #8fb0f0; --admit_nosim: #e58bb0; --nominal: #74838b;
+  --m0: #6fb0d4; --m1: #ef9a63; --m2: #6cc391; --m3: #b48ee0; --m4: #d8b75a; --m5: #5fcbb8; --m6: #e58bb0; --m7: #93a3ab;
   --good: #6cc391; --good-soft: #1d3527; --warn: #e0a64a; --warn-soft: #3a2e17; --bad: #ef7d74; --bad-soft: #43221f;
   color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #12181c; --panel: #192227; --ink: #e3eaee; --muted: #93a3ab; --line: #2b383f; --soft: #212c32;
   --accent: #6fb0d4; --accent-soft: #1f3a49;
   --passive: #e08a70; --agents: #6fb0d4; --lucky: #e3b54f; --judge: #b48ee0; --llmtwin: #5fcbb8; --admit: #8fb0f0; --admit_nosim: #e58bb0; --nominal: #74838b;
+  --m0: #6fb0d4; --m1: #ef9a63; --m2: #6cc391; --m3: #b48ee0; --m4: #d8b75a; --m5: #5fcbb8; --m6: #e58bb0; --m7: #93a3ab;
   --good: #6cc391; --good-soft: #1d3527; --warn: #e0a64a; --warn-soft: #3a2e17; --bad: #ef7d74; --bad-soft: #43221f;
   color-scheme: dark; }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); }
 .wrap { max-width: 1320px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 48px; display: grid; gap: 20px; }
 h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: .01em; }
@@ -147,6 +153,7 @@ ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 84
   <nav class="tabs" role="tablist" aria-label="Dashboard sections">
     <button role="tab" id="tab-overview" aria-controls="overview">Overview</button>
     <button role="tab" id="tab-scenarios" aria-controls="scenarios">Scenarios</button>
+    <button role="tab" id="tab-models" aria-controls="models" hidden>Models</button>
     <button role="tab" id="tab-checks" aria-controls="checks">Controllers &amp; physics</button>
   </nav>
 
@@ -180,6 +187,32 @@ ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 84
       <div class="table-wrap"><table id="scenTable"></table></div>
     </div>
     <div id="detail" class="pane"></div>
+  </section>
+
+  <!-- ===================================================== MODELS -->
+  <section class="pane" id="models" role="tabpanel" aria-labelledby="tab-models" hidden>
+    <div class="panel">
+      <h2>LLMs compared</h2>
+      <p class="muted small">The same 20 scenarios, fault-lift times and economics for every LLM; only the model behind the agents changes. Open models ran locally through Ollama (4-bit quantised, 16k context, temperature 0) on one 8 GB laptop GPU.</p>
+      <div class="table-wrap"><table id="modelTable"></table></div>
+    </div>
+    <div class="panel">
+      <h2>Plant stops per configuration</h2>
+      <p class="muted small">Plant stops out of the runs done, and the saving vs no agents below. Fewer stops is better; bold marks the fewest for a configuration among finished campaigns. Without agents the plant stops in <span id="mPassive"></span> scenarios.</p>
+      <div class="table-wrap"><table id="modelStops"></table></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>Saving vs no agents</h3><div class="legend" id="mLegend"></div>
+        <div class="chart-box"><canvas id="mSaving" aria-label="Saving versus no agents per configuration for each LLM"></canvas></div></div>
+      <div class="panel"><h3>Plant stops (out of 20)</h3><div class="legend" id="mLegend2"></div>
+        <div class="chart-box"><canvas id="mStopsChart" aria-label="Plant stops per configuration for each LLM"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="detail-head"><h2>Scenario by scenario</h2>
+        <div class="controls"><label for="mMode" class="small muted">Configuration</label><select id="mMode"></select></div></div>
+      <div class="table-wrap"><table id="modelScen"></table></div>
+    </div>
+    <div class="panel"><h3>How to read the comparison</h3><ul class="plain" id="mNotes"></ul></div>
   </section>
 
   <!-- ===================================================== CHECKS -->
@@ -261,7 +294,10 @@ $("#kpis").innerHTML = [
 ].map(([l, v, n]) => `<div class="kpi"><div class="label">${esc(l)}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join("");
 
 /* ------------------------------------------------------------ tabs */
-const TABS = ["overview", "scenarios", "checks"];
+const M = D.models || [];
+const TABS = ["overview", "scenarios", ...(M.length > 1 ? ["models"] : []), "checks"];
+if (M.length > 1) { $("#tab-models").hidden = false;
+  $("#protocol").textContent += ` Overview and Scenarios show the agents running on ${M[0].name}; the Models tab compares ${M.length} LLMs on the same protocol.`; }
 const charts = {};
 function showTab(name) {
   if (!TABS.includes(name)) name = "overview";
@@ -659,15 +695,82 @@ function renderLoopCharts() {
   for (const r of L.disturbances) { const s = L.series[`${r.loop}_dist_${r.target}`]; if (s) loopChart("dc_" + r.target, s, [{ x: 5, label: "disturbance", color: css("--muted"), dash: true }]); }
 }
 
+/* ------------------------------------------------------------ models */
+const mcol = (i) => css("--m" + (i % 8));
+const pct = (a, b) => b ? (100 * a / b).toFixed(1) + " %" : "—";
+let mMode = "admit";
+function renderModels() {
+  if (M.length < 2) return;
+  $("#mPassive").textContent = `${T.passive_trips} of ${T.scenarios}`;
+  const head = `<thead><tr><th>Model</th><th class="num">Parameters</th><th>Weights</th><th>Licence</th><th class="num">Runs</th>
+    <th class="num">LLM calls</th><th class="num">Malformed replies</th><th class="num">Fewest stops</th><th class="num">Mean / decision</th></tr></thead>`;
+  const body = M.map((e, i) => {
+    const cs = Object.values(e.configs);
+    const calls = cs.reduce((a, c) => a + c.llm_calls, 0), errs = cs.reduce((a, c) => a + c.llm_errors, 0);
+    const done = cs.filter((c) => c.complete), fewest = done.length ? Math.min(...done.map((c) => c.trips)) : null;
+    const dec = cs.filter((c) => c.mean_decision_s != null);
+    const mean = dec.length ? dec.reduce((a, c) => a + c.mean_decision_s, 0) / dec.length : null;
+    return `<tr><td><span class="swatch" style="--c:var(--m${i % 8})"></span>${esc(e.name)}${e.runs_done < 100 ? ` <span class="pill warn">in progress</span>` : ""}</td>
+      <td class="num">${esc(e.params)}</td><td class="mono small">${esc(e.source)}</td><td class="small">${esc(e.licence)}</td>
+      <td class="num">${e.runs_done}/100</td><td class="num">${calls.toLocaleString("en-US")}</td>
+      <td class="num ${calls && errs / calls > 0.05 ? "neg" : ""}">${errs} (${pct(errs, calls)})</td>
+      <td class="num">${fewest == null ? "—" : fewest + " / 20"}</td><td class="num">${mean == null ? "—" : mean.toFixed(0) + " s"}</td></tr>`;
+  }).join("");
+  $("#modelTable").innerHTML = head + "<tbody>" + body + "</tbody>";
+
+  const modes = AGENT_MODES.filter((m) => M.some((e) => e.configs[m]));
+  const cell = (c, strong) => c
+    ? `<td class="num"${strong ? ' style="font-weight:700"' : ""}>${c.trips}<span class="muted"> / ${c.n}</span><div class="small ${c.saving >= 0 ? "pos" : "neg"}">${money(c.saving)}</div></td>`
+    : `<td class="num muted">not run yet</td>`;
+  $("#modelStops").innerHTML = `<thead><tr><th>Configuration</th>${M.map((e, i) => `<th class="num"><span class="swatch" style="--c:var(--m${i % 8})"></span>${esc(e.name)}</th>`).join("")}</tr></thead><tbody>` +
+    modes.map((m) => {
+      const fin = M.map((e) => e.configs[m]).filter((c) => c?.complete), best = fin.length ? Math.min(...fin.map((c) => c.trips)) : null;
+      return `<tr><td><span class="swatch" style="--c:var(--${m})"></span>${esc(SHORT[m])}</td>${M.map((e) => { const c = e.configs[m];
+        return cell(c, c?.complete && c.trips === best); }).join("")}</tr>`;
+    }).join("") + "</tbody>";
+
+  const leg = M.map((e, i) => `<span style="--c:var(--m${i % 8})">${esc(e.name)}</span>`).join("");
+  $("#mLegend").innerHTML = leg; $("#mLegend2").innerHTML = leg;
+  const bar = (key, yTitle, fmt) => {
+    const o = baseOpts("", yTitle); o.parsing = true;
+    o.scales.x = { type: "category", grid: { display: false }, ticks: { color: css("--muted") } };
+    o.interaction = { mode: "index", intersect: false };
+    o.plugins.tooltip.callbacks = { label: (c) => `${c.dataset.label}: ${c.raw == null ? "in progress" : fmt(c.raw)}` };
+    return { type: "bar", data: { labels: modes.map((m) => SHORT[m]), datasets: M.map((e, i) => ({ label: e.name,
+      data: modes.map((m) => e.configs[m]?.complete ? e.configs[m][key] : null), backgroundColor: mcol(i), borderRadius: 2 })) }, options: o };
+  };
+  mk("mSaving", bar("saving", "USD over the 20 windows", money));
+  const sc = bar("trips", "plant stops", (x) => x + " / 20"); sc.options.scales.y.min = 0; sc.options.scales.y.max = 20;
+  mk("mStopsChart", sc);
+
+  if (!modes.includes(mMode)) mMode = modes[0];
+  $("#mMode").innerHTML = modes.map((m) => `<option value="${m}" ${m === mMode ? "selected" : ""}>${esc(LABEL[m])}</option>`).join("");
+  const res = (r) => r == null ? `<span class="pill none">not run yet</span>`
+    : r.trip_min == null ? `<span class="pill ok">no stop</span>` : `<span class="pill bad">stop · ${r.trip_min.toFixed(1)} min</span>`;
+  $("#modelScen").innerHTML = `<thead><tr><th>Scenario</th><th>Faults</th><th>No agents</th>${M.map((e, i) => `<th><span class="swatch" style="--c:var(--m${i % 8})"></span>${esc(e.name)}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map((r) => `<tr><td class="mono">${r.id}</td><td class="small">${esc(r.faults.replace(/_/g, " "))}</td><td>${res({ trip_min: r.passive_trip_min })}</td>${M.map((e) => `<td>${res(e.configs[mMode]?.runs?.[r.id])}</td>`).join("")}</tr>`).join("") + "</tbody>";
+
+  $("#mNotes").innerHTML = [
+    "Malformed replies are agent calls whose answer was not a valid JSON plan (cut off, or text around the JSON). The agent asks again, so they cost time and can leave the plant without a correction.",
+    "Mean / decision is wall-clock time from detection to dispatch, averaged over the configurations. For the open models it includes waiting in the GPU queue, because ten runs shared one GPU; one agent call alone takes about 4 s (Llama 3.2) to 11 s (Qwen3, Mistral).",
+    "Charts leave out configurations whose campaign is still in progress: they cover fewer than 20 scenarios and are not comparable yet.",
+    "GPT-5 nano ran through the OpenAI API (reasoning effort low). Qwen3 ran with its thinking mode off.",
+    "One run per scenario and configuration, so differences of one or two stops are within the run-to-run variation of the LLM.",
+    ...(M.some((e) => e.protocol === "v2") ? ["Rows marked v2 use the event-triggered protocol: the agents decide only when an alarm is active or SPE stays above its limit, once per fault (a new safety alarm or a newly failed pump opens a new decision), with plain-language rejection feedback, seeded decoding and every LLM reply recorded for replay. v1 rows re-decide every 5 minutes while a fault is detected."] : []),
+  ].map((t) => `<li>${esc(t)}</li>`).join("");
+}
+$("#mMode").addEventListener("change", (ev) => { mMode = ev.target.value; renderModels(); });
+
 /* ------------------------------------------------------------ boot */
 try { const s = localStorage.getItem("fc-scen"); if (s && D.scenarios[s]) selected = s; } catch (e) {}
 renderConfigTable(); renderStopCauses(); renderScenTable(); renderChecks();
-function renderCharts() { renderOverview(); drawVar(selected); drawCum(selected); if (charts.loopsBuilt) renderLoopCharts(); }
+function renderCharts() { renderOverview(); renderModels(); drawVar(selected); drawCum(selected); if (charts.loopsBuilt) renderLoopCharts(); }
 let start = location.hash.slice(1);
 if (!TABS.includes(start)) { try { start = localStorage.getItem("fc-tab") || "overview"; } catch (e) { start = "overview"; } }
 renderDetail(selected);
 showTab(start);
 renderOverview();
+renderModels();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCharts);
 new MutationObserver(renderCharts).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 </script>

@@ -12,7 +12,13 @@ Every provider goes through the OpenAI-compatible API (langchain-openai):
     endpoint and a usage meter through context variables, so each visitor's agents use their own
     connection and are metered separately. ``PLANT_HOSTED=1``: only visitor-connected LLMs are used.
 
-PLANT_LLM_MAX_RETRIES sets retries on rate limits / timeouts (default 2).
+PLANT_LLM_MAX_RETRIES sets retries on rate limits / timeouts (default 2). PLANT_LLM_HARD_TIMEOUT
+(default 600 s) is a hard limit on one agent call, including retries and queueing, so a hung
+server cannot stall a run. PLANT_OLLAMA_THINK=0 turns off the thinking mode of Ollama models
+that have one (qwen3, deepseek-r1); PLANT_OLLAMA_TIMEOUT overrides the HTTP timeout of Ollama
+calls (requests wait in Ollama's queue when many runs share one GPU).
+PLANT_OLLAMA_NUM_PREDICT (default 2048) caps a reply: in JSON mode small models can loop on
+whitespace until the context is full.
 
 DEFAULT_MODEL is the cheapest OpenAI text model on the pricing page when this
 was written (gpt-5-nano, $0.05 / $0.40 per 1M input / output tokens,
@@ -23,6 +29,7 @@ down; override with PLANT_REASONING_EFFORT).
 """
 from __future__ import annotations
 
+import asyncio
 import contextvars
 import json
 import os
@@ -173,9 +180,47 @@ def _ollama(model: str, root: str | None, timeout: float, temperature: float, js
     except ImportError as exc:
         raise RuntimeError('Ollama models need langchain-ollama (pip install "operaitor[llm]")') from exc
     from .providers import OLLAMA_LOCAL
+    if os.environ.get("PLANT_OLLAMA_THINK") == "0":
+        extra.setdefault("reasoning", False)
+    if os.environ.get("PLANT_LLM_SEED"):
+        extra.setdefault("seed", int(os.environ["PLANT_LLM_SEED"]))
     return ChatOllama(model=model, base_url=(root or OLLAMA_LOCAL).rstrip("/"), temperature=temperature,
                       num_ctx=int(os.environ.get("PLANT_OLLAMA_NUM_CTX", "16384")),
-                      client_kwargs={"timeout": timeout}, **({"format": "json"} if json_mode else {}), **extra)
+                      num_predict=int(os.environ.get("PLANT_OLLAMA_NUM_PREDICT", "2048")),
+                      client_kwargs={"timeout": float(os.environ.get("PLANT_OLLAMA_TIMEOUT", timeout))}, **({"format": "json"} if json_mode else {}), **extra)
+
+
+async def ainvoke(llm: Any, messages: list) -> Any:
+    """``llm.ainvoke`` with a hard wall-clock limit (PLANT_LLM_HARD_TIMEOUT, default 600 s).
+
+    PLANT_LLM_CACHE=<dir>: record / replay. Every reply is stored under a hash of the model, its
+    settings and the messages; the same request is answered from the store (no model call), so a
+    campaign can be replayed exactly and audited."""
+    cache = os.environ.get("PLANT_LLM_CACHE")
+    path = None
+    if cache:
+        import hashlib
+        inner = getattr(llm, "bound", llm)
+        ident = {k: getattr(inner, k, None) for k in ("model", "model_name", "temperature", "seed", "num_ctx",
+                                                      "num_predict", "reasoning", "format")}
+        ident["kwargs"] = getattr(llm, "kwargs", None)
+        blob = json.dumps({"llm": ident, "messages": [list(m) if isinstance(m, tuple) else str(m) for m in messages]},
+                          sort_keys=True, default=str)
+        path = Path(cache) / (hashlib.sha256(blob.encode()).hexdigest() + ".json")
+        if path.exists():
+            from langchain_core.messages import AIMessage
+            rec = json.loads(path.read_text(encoding="utf-8"))
+            return AIMessage(content=rec["content"], usage_metadata=rec.get("usage") or None,
+                             response_metadata={"replayed": True})
+    msg = await asyncio.wait_for(llm.ainvoke(messages), float(os.environ.get("PLANT_LLM_HARD_TIMEOUT", "600")))
+    if path is not None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        rec = {"content": msg.content, "usage": dict(getattr(msg, "usage_metadata", None) or {}),
+               "request": json.loads(blob)}
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(rec, default=str), encoding="utf-8")
+        tmp.replace(path)
+    return msg
 
 
 # ----------------------------------------------------------------------------- usage / cost

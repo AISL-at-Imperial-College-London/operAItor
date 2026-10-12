@@ -19,7 +19,7 @@ from operaitor.plant.alarms import default_alarm_definitions
 from operaitor.plant.safety import SafetyConfig
 
 from .action import slim_observation
-from .llm import DEFAULT_MODEL, USAGE, make_llm, message_text, parse_json_object
+from .llm import DEFAULT_MODEL, USAGE, ainvoke, make_llm, message_text, parse_json_object
 
 JUDGE_SYSTEM_PROMPT = """
 You are the **Validation Agent (judge)** for an integrated isopropanol→acetone plant: an
@@ -83,7 +83,7 @@ class LLMJudge:
         }
         t0 = time.perf_counter()
         try:
-            msg = await self.llm.ainvoke([("system", JUDGE_SYSTEM_PROMPT), ("human", json.dumps(user, default=str))])
+            msg = await ainvoke(self.llm, [("system", JUDGE_SYSTEM_PROMPT), ("human", json.dumps(user, default=str))])
             text = message_text(msg)
             self.last_usage = {**USAGE.record("judge", self.model, msg), "latency_s": time.perf_counter() - t0}
             out = parse_json_object(text)

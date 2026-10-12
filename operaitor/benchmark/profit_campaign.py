@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import json
 import os
@@ -284,11 +285,14 @@ async def run_scenario(scn: dict, mode: str, sched: dict, window: float, verbose
             "decisions": len({e.get("cycle") for e in log if e.get("stage") == "node"}),
             "actions": [{"t": e["time_min"], "kind": e.get("kind"), "commands": (e.get("plan") or {}).get("commands"),
                          "diagnosis": e.get("diagnosis")} for e in applied],
-            "validations": [{"t": e["time_min"], "cycle": e.get("cycle"), "accepted": e.get("accepted"),
-                             "commands": (e.get("plan") or {}).get("commands"),
+            "validations": [{"t": e["time_min"], "cycle": e.get("cycle"), "attempt": e.get("attempt"),
+                             "accepted": e.get("accepted"), "commands": (e.get("plan") or {}).get("commands"),
+                             **{k: e[k] for k in ("failure_type", "admit_codes", "verdict") if e.get(k)},
                              "failed": [c["check"] + ": " + str(c.get("detail"))[:120]
                                         for c in e.get("checks", []) if not c["ok"]]}
                             for e in log if e.get("stage") == "validation"],
+            "failure_types": dict(Counter(e["failure_type"] for e in log
+                                          if e.get("stage") == "validation" and e.get("failure_type"))),
             "reprompts": sum(1 for e in log if e.get("stage") == "reprompt"),
             "fallbacks": sum(1 for e in log if e.get("stage") == "fallback"),
             "alarm_acks": [{"t": e["time_min"], "alarms": e.get("alarms"), "reason": e.get("reason")}
@@ -375,10 +379,12 @@ def phase_probe(n: int, ids: list[str]) -> None:
     _pool(jobs, n)
 
 
-def phase_compare(n: int, ids: list[str], modes=("lucky", "judge", "llmtwin", "passive")) -> None:
+def phase_compare(n: int, ids: list[str], modes=("lucky", "judge", "llmtwin", "passive"), resume: bool = False) -> None:
     jobs = []
     for mode in modes:  # agents first: they take longest
         for sid in ids:
+            if resume and _load(sid, mode) is not None:
+                continue
             probe = _load(sid, "probe")
             if probe is None:
                 print(f"{sid}: run the probe phase first")
@@ -414,7 +420,8 @@ def footprint(run: dict, onset: float, span: float = 15.0) -> set[str]:
     return out
 
 
-def report() -> dict:
+def report(write: bool = True) -> dict:
+    """Tables of every finished run in RUNS; ``write`` also saves profit_campaign.json and PROFIT_CAMPAIGN.md."""
     nominal = _load("NOMINAL", "nominal")
     single_fp = {}
     for scn in SCENARIOS:
@@ -460,7 +467,7 @@ def report() -> dict:
                             "reprompts": ag.get("reprompts"), "llm_usage": ag.get("llm_usage"),
                             "judge_rejections": sum(1 for j in ag.get("judge", []) if not j.get("accept")),
                             "judge_calls": len(ag.get("judge", [])), "llm_errors": len(ag.get("llm_errors", [])),
-                            "admit_calls": len(ag.get("admit", [])),
+                            "admit_calls": len(ag.get("admit", [])), "failure_types": ag.get("failure_types") or {},
                             "admit_rejections": sum(1 for j in ag.get("admit", []) if not j.get("admissible")),
                             "alarms_listed_at_end": [x["id"] for x in run["alarms_listed_at_end"]],
                             "timing": {k: v for k, v in (ag.get("timing") or {}).items()
@@ -478,6 +485,7 @@ def report() -> dict:
                              "saving": sum(v["saving"] for v in per.values()),
                              "llm_calls": sum(u["calls"] for u in usage), "llm_cost_usd": round(sum(u["cost_usd"] for u in usage), 4),
                              "llm_tokens": sum(u["input_tokens"] + u["output_tokens"] for u in usage),
+                             "failure_types": dict(sum((Counter(v.get("failure_types") or {}) for v in per.values()), Counter())),
                              **_timing_totals([v for v in per.values()])}
     out = {"prices": prices_dict(), "configs": configs, "mode_labels": MODE_LABEL,
            "protocol": {"onset_min": ONSET, "lift_after_trip_min": LIFT_AFTER_TRIP, "lift_no_trip_min": LIFT_NO_TRIP,
@@ -485,6 +493,8 @@ def report() -> dict:
                         "agent_modes": AGENT_MODES},
            "single_fault_footprints": {k: sorted(v) for k, v in single_fp.items()},
            "rows": rows, "totals": totals}
+    if not write:
+        return out
     OUT.mkdir(exist_ok=True)
     (OUT / "profit_campaign.json").write_text(json.dumps(out, indent=1, default=str), encoding="utf-8")
     _write_markdown(out)
@@ -557,6 +567,15 @@ def _write_markdown(out: dict) -> None:
                      f"{c['decision_s'] / 60:.1f} min | {c['mean_decision_s'] or 0:.1f} s | "
                      f"{c['mean_llm_latency_s'] or 0:.1f} s | {c['twin_s'] / 60:.1f} min |")
         L.append("")
+        kinds = sorted({k for c in out["configs"].values() for k in c.get("failure_types", {})})
+        if kinds:
+            L += ["## Rejected proposals by failure type", "",
+                  "| configuration | decisions | " + " | ".join(k.replace("_", " ") for k in kinds) + " |",
+                  "|---|---:|" + "---:|" * len(kinds)]
+            for mode, c in out["configs"].items():
+                ft = c.get("failure_types", {})
+                L.append(f"| {c['label']} | {c.get('decisions', '—')} | " + " | ".join(str(ft.get(k, 0)) for k in kinds) + " |")
+            L.append("")
     (OUT / "PROFIT_CAMPAIGN.md").write_text("\n".join(L), encoding="utf-8")
 
 
@@ -569,6 +588,7 @@ def main() -> None:
     ap.add_argument("--ids", default="", help="comma-separated scenario ids (default: all)")
     ap.add_argument("--model", default="", help="LLM for the lucky / judge / llmtwin modes (default gpt-5-nano)")
     ap.add_argument("--base-url", default="", help="OpenAI-compatible local server, e.g. http://localhost:1234/v1")
+    ap.add_argument("--resume", action="store_true", help="compare: skip runs that already have a result file")
     a = ap.parse_args()
     ids = [s for s in a.ids.split(",") if s] or [s["id"] for s in SCENARIOS]
     if a.model:  # inherited by the worker processes
@@ -581,7 +601,7 @@ def main() -> None:
     elif a.phase == "probe":
         phase_probe(a.jobs, ids)
     elif a.phase == "compare":
-        phase_compare(a.jobs, ids, tuple(a.rest) or ("lucky", "judge", "llmtwin", "passive"))
+        phase_compare(a.jobs, ids, tuple(a.rest) or ("lucky", "judge", "llmtwin", "passive"), a.resume)
     elif a.phase == "report":
         out = report()
         print((OUT / "PROFIT_CAMPAIGN.md").read_text(encoding="utf-8"))

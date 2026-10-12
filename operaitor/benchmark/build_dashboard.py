@@ -4,6 +4,8 @@
 
 Reads benchmark_results/profit_campaign.json (run `py -3 -m operaitor.benchmark.profit_campaign report` first),
 the per-run files in benchmark_results/runs/, loop_tests.json. Trajectories are downsampled to 1-min points.
+Other LLMs run on the same protocol (benchmark_results/open_models/<model>/runs/) appear in a Models tab,
+including models whose campaign is still running.
 """
 from __future__ import annotations
 
@@ -16,6 +18,17 @@ from .profit_campaign import AGENT_MODES, FOOTPRINT_SCALE, MODE_LABEL, OUT, RUNS
 TEMPLATE = Path(__file__).with_name("dashboard_template.html")
 TARGET = OUT / "fault_campaign_dashboard.html"
 VARS = list(FOOTPRINT_SCALE)
+OPEN_MODELS = OUT / "open_models"
+OPEN_MODELS_V2 = OUT / "open_models_v2"   # protocol v2: event-triggered, one decision per fault
+# model name as the agents saw it -> display name, parameters, where to get it, licence
+MODEL_INFO = {
+    "gpt-5-nano": ("GPT-5 nano", "not disclosed", "OpenAI API", "proprietary"),
+    "llama3.2:latest": ("Llama 3.2 3B Instruct", "3.2B", "meta-llama/Llama-3.2-3B-Instruct", "Llama 3.2 Community"),
+    "qwen3:8b": ("Qwen3 8B, thinking off", "8.2B", "Qwen/Qwen3-8B", "Apache-2.0"),
+    "mistral:7b": ("Mistral 7B Instruct v0.3", "7.2B", "mistralai/Mistral-7B-Instruct-v0.3", "Apache-2.0"),
+    "cas/ministral-8b-instruct-2410_q4km:latest": ("Ministral 8B Instruct 2410", "8.0B",
+                                                    "mistralai/Ministral-8B-Instruct-2410", "Mistral Research"),
+}
 
 def _series(run: dict) -> dict:
     ticks = [tk for tk in run["ticks"] if abs(tk["t"] - round(tk["t"])) < 1e-6]  # 1-min points
@@ -79,6 +92,55 @@ def _run_summary(run: dict) -> dict:
     return out
 
 
+def _model_entry(root: Path, camp: dict | None = None, protocol: str = "v1") -> dict | None:
+    """One model's results on the campaign protocol, from the run files in ``root``/runs (finished runs only)."""
+    from . import profit_campaign as pc
+    runs = root / "runs"
+    if camp is None:
+        if not (runs / "NOMINAL_nominal.json").exists():
+            return None
+        saved = pc.OUT, pc.RUNS
+        pc.OUT, pc.RUNS = root, runs
+        try:
+            camp = pc.report(write=False)
+        finally:
+            pc.OUT, pc.RUNS = saved
+    model = None
+    for f in sorted(runs.glob("*.json")):
+        if f.stem.split("_", 1)[1] in AGENT_MODES:
+            model = (json.loads(f.read_text(encoding="utf-8")).get("agent") or {}).get("llm_model")
+            if model:
+                break
+    if model is None or not camp.get("configs"):
+        return None
+    name, params, source, licence = MODEL_INFO.get(model, (model, "?", "?", "?"))
+    configs = {}
+    for m, c in camp["configs"].items():
+        per = {r["id"]: r["configs"][m] for r in camp["rows"] if m in r["configs"]}
+        configs[m] = {"n": c["n"], "complete": c["complete"], "trips": c["trips"], "saving": c["saving"], "profit": c["profit"],
+                      "llm_calls": c["llm_calls"], "llm_errors": sum(v["llm_errors"] for v in per.values()),
+                      "llm_cost_usd": c["llm_cost_usd"], "mean_decision_s": c.get("mean_decision_s"),
+                      "mean_llm_latency_s": c.get("mean_llm_latency_s"),
+                      "runs": {sid: {"trip_min": v["trip_min"], "saving": v["saving"]} for sid, v in per.items()}}
+    if protocol != "v1":
+        name += f" · {protocol}"
+    return {"model": model, "protocol": protocol, "name": name, "params": params, "source": source, "licence": licence,
+            "runs_done": sum(c["n"] for c in configs.values()), "configs": configs}
+
+
+def _models(camp: dict) -> list[dict]:
+    """This campaign's model first, then every other model run on the same protocol."""
+    out = [e for e in [_model_entry(OUT, camp)] if e]
+    for root, proto in ((OPEN_MODELS, "v1"), (OPEN_MODELS_V2, "v2")):
+        if root.is_dir():
+            for d in sorted(root.iterdir()):
+                e = _model_entry(d, protocol=proto) if d.is_dir() else None
+                if e and all((e["model"], e["protocol"]) != (x["model"], x["protocol"]) for x in out):
+                    out.append(e)
+    order = list(MODEL_INFO)
+    return out[:1] + sorted(out[1:], key=lambda e: (e["protocol"], order.index(e["model"]) if e["model"] in order else len(order)))
+
+
 def build(status: dict | None = None) -> Path:
     camp = json.loads((OUT / "profit_campaign.json").read_text(encoding="utf-8"))
     nominal = json.loads((RUNS / "NOMINAL_nominal.json").read_text(encoding="utf-8"))
@@ -96,7 +158,7 @@ def build(status: dict | None = None) -> Path:
         loops["series"] = json.loads((OUT / "loop_series.json").read_text(encoding="utf-8"))
     data = {"campaign": camp, "scenarios": scen, "order": [s["id"] for s in SCENARIOS], "mode_labels": MODE_LABEL,
             "status": status or {},
-            "nominal": _series(nominal), "loops": loops,
+            "nominal": _series(nominal), "loops": loops, "models": _models(camp),
             "prices": {"trip_penalty": PRICES.trip_penalty_usd, "acetone_usd_t": PRICES.acetone_usd_t,
                        "ipa_usd_t": PRICES.ipa_usd_t, "spec": PRICES.product_spec_x,
                        "steam_usd_GJ": PRICES.steam_usd_GJ, "h2_usd_kg": PRICES.h2_fuel_usd_kg,

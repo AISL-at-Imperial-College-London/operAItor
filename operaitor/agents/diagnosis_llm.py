@@ -24,7 +24,7 @@ import json
 import time
 from typing import Any
 
-from .llm import DEFAULT_MODEL, USAGE, make_llm, message_text, parse_json_object
+from .llm import DEFAULT_MODEL, USAGE, ainvoke, make_llm, message_text, parse_json_object
 
 DIAGNOSIS_SYSTEM_PROMPT = """
 You are the **Fault Diagnosis Agent** for an integrated isopropanol→acetone plant: an endothermic
@@ -116,7 +116,7 @@ class LLMDiagnoser:
     async def diagnose(self, detection: dict, heuristic: dict, observation: dict | None = None) -> dict:
         t0 = time.perf_counter()
         try:
-            msg = await self.llm.ainvoke([("system", DIAGNOSIS_SYSTEM_PROMPT),
+            msg = await ainvoke(self.llm, [("system", DIAGNOSIS_SYSTEM_PROMPT),
                                           ("human", json.dumps(self.payload(detection, heuristic, observation), default=str))])
             text = message_text(msg)
             self.last_usage = {**USAGE.record("diagnosis", self.model, msg), "latency_s": time.perf_counter() - t0}

@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 from typing import Protocol
 
-from .llm import DEFAULT_MODEL, USAGE, make_llm, message_text, parse_json_object
+from .llm import DEFAULT_MODEL, USAGE, ainvoke, make_llm, message_text, parse_json_object
 
 _LEVER_FOR_ACTION = {
     "action_START_SPARE": "START_SPARE",
@@ -115,6 +115,6 @@ class LLMPlanner:
                    "rules": context["detection"]["rules"],
                    "kg_evidence": context.get("knowledge") or [],
                    "snapshot": context.get("snapshot")}
-        msg = await self.llm.ainvoke([("system", PLANNER_PROMPT), ("human", json.dumps(payload, default=str))])
+        msg = await ainvoke(self.llm, [("system", PLANNER_PROMPT), ("human", json.dumps(payload, default=str))])
         self.last_usage = USAGE.record("planning", self.model, msg)
         return parse_json_object(message_text(msg))

@@ -28,6 +28,7 @@ import asyncio
 import copy
 from dataclasses import dataclass, field, replace
 import json
+import os
 import time
 from typing import Any, Awaitable, Callable, Literal, TypedDict
 
@@ -68,6 +69,10 @@ class AgentConfig:
     # monitoring
     persistence: int = 3
     cooldown_min: float = 5.0
+    trigger: Literal["cooldown", "event"] = "cooldown"  # "event": once per fault episode (alarm or SPE)
+    episode_clear_min: float = 5.0
+    feedback: Literal["v1", "v2"] = "v1"   # "v2": plain-language verdict + every rejected plan of the decision
+    admit_dedup: Literal["commands", "record"] = "commands"  # "record": same commands with a changed record is re-checked
     max_actions: int = 3
     # proposal / twin / validation (minutes)
     reprompt_max: int = 3
@@ -113,10 +118,94 @@ PRESETS: dict[str, dict] = {
 }
 
 
+# Campaign protocol v2 (PLANT_PROTOCOL=v2): event-triggered decisions, plain feedback, ADMIT record dedup.
+PROTOCOL_V2 = dict(trigger="event", feedback="v2", admit_dedup="record")
+
+
 def make_config(preset: str, **overrides) -> AgentConfig:
     if preset not in PRESETS:
         raise ValueError(f"unknown agent preset {preset!r}; choose from {sorted(PRESETS)}")
-    return AgentConfig(name=preset, **{**PRESETS[preset], **overrides})
+    proto = PROTOCOL_V2 if os.environ.get("PLANT_PROTOCOL") == "v2" else {}
+    return AgentConfig(name=preset, **{**PRESETS[preset], **proto, **overrides})
+
+
+def attempt_key(plan: dict, records: list | None, cfg: AgentConfig, with_record: bool = False) -> str:
+    """What makes two proposals 'the same' within a decision: the commands, plus the action record when
+    ``with_record`` (ADMIT, admit_dedup="record", the earlier rejection was about the record only)."""
+    key = {"commands": plan.get("commands")}
+    if with_record and cfg.admit and cfg.admit_dedup == "record":
+        key["records"] = records
+    return json.dumps(key, sort_keys=True, default=str)
+
+
+RECORD_TIERS = ("AAS-T0", "AAS-T1", "AAS-T2", "AAS-T3")  # violations a corrected action record can fix
+
+
+def is_repeat(state: dict, cfg: AgentConfig) -> bool:
+    tried = state.get("tried") or []
+    plan, recs = state["plan"], state.get("records")
+    return attempt_key(plan, recs, cfg) in tried or attempt_key(plan, recs, cfg, with_record=True) in tried
+
+
+FAILURE_TYPES = ("malformed_reply", "no_commands", "not_executable", "repeat", "judge_rejected",
+                 "twin_trip", "twin_not_restored", "admit_rejected")
+
+
+def failure_type(state: dict, m: dict) -> str:
+    """Why a proposal was rejected, as one of FAILURE_TYPES."""
+    plan = state.get("plan") or {}
+    r = m.get("rollout")
+    if r == "duplicate":
+        return "repeat"
+    if r == "invalid_plan":
+        if str(plan.get("reasoning", "")).startswith("[LLM call failed"):
+            return "malformed_reply"
+        return "no_commands" if not plan.get("commands") else "not_executable"
+    if r == "judged":
+        return "judge_rejected"
+    if r == "admit":
+        return "admit_rejected"
+    ts = m.get("terminal_status")
+    return "twin_trip" if ts and ts not in ("RUNNING", "OK") else "twin_not_restored"
+
+
+def plain_verdict(state: dict, cfg: AgentConfig) -> str:
+    """One sentence a model cannot miss: the proposal was rejected, and why."""
+    ev, m, plan = state["evaluation"], state.get("twin") or {}, state.get("plan") or {}
+    head = f"REJECTED: attempt {state['attempts']} of {cfg.reprompt_max + 1}. "
+    if m.get("rollout") == "duplicate":
+        why = "It repeats a proposal already rejected in this decision; propose something different."
+    elif m.get("rollout") == "invalid_plan":
+        if str(plan.get("reasoning", "")).startswith("[LLM call failed"):
+            why = ("Your reply was not a valid JSON object. Return only the JSON object with every field "
+                   "filled in with your own content; do not copy the format description.")
+        elif not plan.get("commands"):
+            why = ("Your reply contained no commands. Give at least one command from the catalog, or "
+                   "NO_ACTION with the reason.")
+        else:
+            why = "The plant cannot execute it: " + "; ".join(state.get("errors") or [])[:400]
+    elif m.get("rollout") == "judged":
+        why = f"The reviewing engineer rejected it: {m.get('reason', '')}"[:500]
+        if m.get("suggestion"):
+            why += f" Suggestion: {m['suggestion']}"[:300]
+    elif m.get("rollout") == "admit":
+        viol = [v for r in m.get("records", []) if not r["admissible"] for v in r["violations"]]
+        bad = "; ".join(f"{v['code']} ({v['message'][:160]})" for v in viol[:4])
+        if all(v["code"].startswith(RECORD_TIERS) for v in viol):
+            why = ("ADMIT rejected the action record: " + bad +
+                   ". If the commands are right, resubmit them with the record fixed; otherwise choose other commands.")
+        else:
+            why = ("ADMIT rejected the commands: the projected plant response is unsafe: " + bad +
+                   ". Resubmitting the same commands will be rejected again; choose different commands.")
+    else:
+        ts = m.get("terminal_status")
+        if ts and ts not in ("RUNNING", "OK"):
+            why = f"The plant simulation with this plan ends in {ts}."
+        elif m.get("time_to_restore_min") is None:
+            why = "The plant simulation shows the faulty variables do not return within their limits in time."
+        else:
+            why = "The plant simulation shows it does not meet the acceptance criterion: " + str(ev.get("fail_reason"))
+    return head + why
 
 
 def make_action_agent(cfg: AgentConfig):
@@ -532,7 +621,7 @@ def build_recovery_graph(ctx: RunContext):
                 "action": action, "errors": errors, "records": records}
 
     async def twin_evaluate(state: RecoveryState) -> dict:
-        if state["plan"]["commands"] in (state.get("tried") or []):
+        if is_repeat(state, cfg):
             reason = "identical to a proposal already rejected in this decision"
             await emit({"event": "twin_skipped", "t": state["detection"]["time_min"], "reason": reason})
             return {"twin": {"rollout": "duplicate", "reason": reason}}
@@ -612,11 +701,20 @@ def build_recovery_graph(ctx: RunContext):
             else:
                 cands.append({"plan": state["plan"], "action": state["action"], "key": consequence_key(m),
                               "safe_ok": v["safe_ok"]})
+        extra = {}
+        if not v["accepted"]:
+            extra["failure_type"] = failure_type(state, m)
+            if m.get("rollout") == "admit":
+                extra["admit_codes"] = [x["code"] for r in m["records"] if not r["admissible"] for x in r["violations"]]
+            if cfg.feedback == "v2":
+                extra["verdict"] = plain_verdict({**state, "evaluation": v}, cfg)
         await emit({"event": "validation", "t": state["detection"]["time_min"], "plan": state["plan"],
-                    "attempt": state["attempts"], **v})
+                    "attempt": state["attempts"], **v, **extra})
         tried = list(state.get("tried") or [])
         if not v["accepted"]:
-            tried.append(state["plan"]["commands"])
+            record_only = m.get("rollout") == "admit" and all(
+                x["code"].startswith(RECORD_TIERS) for r in m["records"] if not r["admissible"] for x in r["violations"])
+            tried.append(attempt_key(state["plan"], state.get("records"), cfg, with_record=record_only))
         return {"evaluation": v, "safe_candidates": cands, "tried": tried, **out}
 
     async def reprompt(state: RecoveryState) -> dict:
@@ -630,6 +728,9 @@ def build_recovery_graph(ctx: RunContext):
             fb["admit_violations"] = [{"command": r["command"], "action": r["action"], "violations": r["violations"]}
                                       for r in m["records"] if not r["admissible"]]
             fb["admit_remedies"] = m.get("remedies")
+        if cfg.feedback == "v2":
+            fb = {"verdict": plain_verdict(state, cfg),
+                  "already_rejected": [json.loads(k)["commands"] for k in state.get("tried") or []], **fb}
         await emit({"event": "reprompt", "t": state["detection"]["time_min"], "attempt": state["attempts"],
                     "reprompt_max": cfg.reprompt_max, "feedback": fb, "rejected_plan": state["plan"]})
         return {"feedback": json.dumps(fb, default=str)}

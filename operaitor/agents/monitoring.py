@@ -95,6 +95,7 @@ def process_trends(history: list) -> dict:
 class MonitorMemory:
     """Cross-cycle state the stateless graph needs (debounce and cooldown)."""
     consecutive_pca: int = 0
+    consecutive_spe: int = 0
     last_action_min: float | None = None
     last_signature: str | None = None
     wait_until_min: float | None = None   # verification window: twin-predicted recovery time
@@ -102,6 +103,11 @@ class MonitorMemory:
     pending_trains: set[str] = field(default_factory=set)
     handled_p1: set[str] = field(default_factory=set)     # priority-1 alarms already seen at a decision
     pending_p1: set[str] = field(default_factory=set)
+    # event trigger: one decision per fault episode
+    episode_active: bool = False
+    quiet_since_min: float | None = None                   # trigger condition false since
+    handled_alarms: set[str] = field(default_factory=set) # alarms already seen at a decision in this episode
+    pending_alarms: set[str] = field(default_factory=set)
     history: list = field(default_factory=list)           # (t, key measurements) over the last TREND_MIN
 
     def reset(self) -> None:
@@ -114,6 +120,10 @@ class MonitorMemory:
         self.handled_p1.clear()
         self.pending_p1.clear()
         self.history.clear()
+        self.episode_active = False
+        self.quiet_since_min = None
+        self.handled_alarms.clear()
+        self.pending_alarms.clear()
 
 
 class MonitoringAgent:
@@ -121,8 +131,15 @@ class MonitoringAgent:
 
     def __init__(self, pca: PCAMonitor | None = None, *, persistence: int = 3,
                  cooldown_min: float = 5.0, extra_detectors: list[Detector] | None = None,
-                 rules_trigger: bool = True, quality_needs_pca: bool = True):
+                 rules_trigger: bool = True, quality_needs_pca: bool = True,
+                 trigger: str = "cooldown", episode_clear_min: float = 5.0):
         self.pca = pca
+        # "cooldown" (v1): re-decide every cooldown_min while a fault is detected.
+        # "event" (v2): decide when an alarm is active or SPE stays above its limit, once per fault
+        # episode; a new priority-1 alarm or a newly failed pump opens a new decision. The episode ends after the
+        # trigger has been quiet for episode_clear_min.
+        self.trigger = trigger
+        self.episode_clear_min = episode_clear_min
         self.persistence = persistence
         self.cooldown_min = cooldown_min
         self.rules_trigger = rules_trigger  # False: rules only inform diagnosis (PCA-only ablation)
@@ -182,6 +199,24 @@ class MonitoringAgent:
         should_act = fault and not rules["plant_trip"] and (cooled or new_hard_fault)
         mem.pending_trains = set(rules["failed_trains"])
         mem.pending_p1 = p1
+        if self.trigger == "event":
+            mem.consecutive_spe = mem.consecutive_spe + 1 if score is not None and score.spe > score.spe_limit else 0
+            alarms = set(rules["active_alarms"])
+            triggered = bool(alarms) or mem.consecutive_spe >= self.persistence
+            if triggered:
+                mem.quiet_since_min = None
+            elif mem.episode_active:
+                mem.quiet_since_min = now if mem.quiet_since_min is None else mem.quiet_since_min
+                if now - mem.quiet_since_min >= self.episode_clear_min - 1e-9:
+                    mem.episode_active = False
+                    mem.handled_alarms.clear()
+            # within an episode only hard new evidence opens a new decision: a new priority-1 (safety)
+            # alarm or a newly failed pump; further alarms of the same cascade do not
+            new_event = (not mem.episode_active or bool(p1 - mem.handled_p1)
+                         or bool(set(rules["failed_trains"]) - mem.handled_trains))
+            fault = triggered
+            should_act = triggered and new_event and not rules["plant_trip"]
+            mem.pending_alarms = alarms
 
         mem.history = [h for h in mem.history if h[0] > now - TREND_MIN] + [(now, dict(obs["measurements"]))]
         detection = {
@@ -204,3 +239,5 @@ class MonitoringAgent:
         mem.wait_until_min = time_min + wait_min if wait_min else None
         mem.handled_trains |= mem.pending_trains
         mem.handled_p1 |= mem.pending_p1
+        mem.handled_alarms |= mem.pending_alarms
+        mem.episode_active = True

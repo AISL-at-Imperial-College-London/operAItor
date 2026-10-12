@@ -50,7 +50,7 @@ class AsyncSupervisor:
         if pca is None and Path(DEFAULT_MODEL_PATH).exists():
             pca = PCAMonitor.load(DEFAULT_MODEL_PATH)
         self.monitor = MonitoringAgent(pca if self.cfg.use_pca else None, persistence=self.cfg.persistence,
-                                       cooldown_min=self.cfg.cooldown_min, rules_trigger=self.cfg.rules_trigger, quality_needs_pca=self.cfg.quality_needs_pca)
+                                       cooldown_min=self.cfg.cooldown_min, rules_trigger=self.cfg.rules_trigger, quality_needs_pca=self.cfg.quality_needs_pca, trigger=self.cfg.trigger, episode_clear_min=self.cfg.episode_clear_min)
         self.action_agent = action_agent or make_action_agent(self.cfg)
         self.planner = planner or make_planner(self.cfg)
         self.pending: dict[int, dict] = {}

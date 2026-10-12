@@ -95,7 +95,7 @@ async def run_episode(scenario: str, cfg: AgentConfig, *, horizon_min: float = 6
         return {"status": "applied"}
 
     monitor = MonitoringAgent(pca if cfg.use_pca else None, persistence=cfg.persistence,
-                              cooldown_min=cfg.cooldown_min, rules_trigger=cfg.rules_trigger, quality_needs_pca=cfg.quality_needs_pca)
+                              cooldown_min=cfg.cooldown_min, rules_trigger=cfg.rules_trigger, quality_needs_pca=cfg.quality_needs_pca, trigger=cfg.trigger, episode_clear_min=cfg.episode_clear_min)
     ctx = RunContext(cfg, monitor, kg if cfg.use_kg else None, planner or make_planner(cfg),
                      action_agent or make_action_agent(cfg), snapshot_env, dispatch, emit)
     graph = build_recovery_graph(ctx)
