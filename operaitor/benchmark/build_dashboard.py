@@ -120,6 +120,7 @@ def _model_entry(root: Path, camp: dict | None = None, protocol: str = "v1") -> 
         configs[m] = {"n": c["n"], "complete": c["complete"], "trips": c["trips"], "saving": c["saving"], "profit": c["profit"],
                       "llm_calls": c["llm_calls"], "llm_errors": sum(v["llm_errors"] for v in per.values()),
                       "llm_cost_usd": c["llm_cost_usd"], "mean_decision_s": c.get("mean_decision_s"),
+                      "failure_types": c.get("failure_types") or {}, "decisions": c.get("n_decisions"),
                       "mean_llm_latency_s": c.get("mean_llm_latency_s"),
                       "runs": {sid: {"trip_min": v["trip_min"], "saving": v["saving"]} for sid, v in per.items()}}
     if protocol != "v1":

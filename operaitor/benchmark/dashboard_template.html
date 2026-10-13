@@ -192,6 +192,16 @@ ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 84
   <!-- ===================================================== MODELS -->
   <section class="pane" id="models" role="tabpanel" aria-labelledby="tab-models" hidden>
     <div class="panel">
+      <h2>Key findings</h2>
+      <p class="muted small">Computed from the runs below unless marked “audit”. One run per scenario and configuration: treat differences of one or two plant stops as noise.</p>
+      <ol class="plain" id="mFindings"></ol>
+    </div>
+    <div class="panel" id="mProtoPanel" hidden>
+      <h2>Protocol v1 vs v2</h2>
+      <p class="muted small">v1 re-decides every 5 minutes while a fault is detected; v2 decides once per fault episode (alarm or SPE trigger; a new safety alarm or a newly failed pump opens a new decision), with plain-language feedback and the ADMIT record re-check. Same 20 scenarios and economics.</p>
+      <div class="table-wrap"><table id="mProto"></table></div>
+    </div>
+    <div class="panel">
       <h2>LLMs compared</h2>
       <p class="muted small">The same 20 scenarios, fault-lift times and economics for every LLM; only the model behind the agents changes. Open models ran locally through Ollama (4-bit quantised, 16k context, temperature 0) on one 8 GB laptop GPU.</p>
       <div class="table-wrap"><table id="modelTable"></table></div>
@@ -206,6 +216,13 @@ ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 84
         <div class="chart-box"><canvas id="mSaving" aria-label="Saving versus no agents per configuration for each LLM"></canvas></div></div>
       <div class="panel"><h3>Plant stops (out of 20)</h3><div class="legend" id="mLegend2"></div>
         <div class="chart-box"><canvas id="mStopsChart" aria-label="Plant stops per configuration for each LLM"></canvas></div></div>
+    </div>
+    <div class="panel" id="mFailPanel" hidden>
+      <h2>Why proposals were rejected (v2)</h2>
+      <p class="muted small">Every rejected proposal of the v2 campaigns, by failure type, summed over the five configurations. Each rejection was fed back to the model in plain language before it tried again (up to 4 proposals per decision).</p>
+      <div class="legend" id="mFailLegend"></div>
+      <div class="chart-box"><canvas id="mFail" aria-label="Rejected proposals by failure type for each v2 campaign"></canvas></div>
+      <div class="table-wrap"><table id="mFailTable"></table></div>
     </div>
     <div class="panel">
       <div class="detail-head"><h2>Scenario by scenario</h2>
@@ -761,16 +778,109 @@ function renderModels() {
 }
 $("#mMode").addEventListener("change", (ev) => { mMode = ev.target.value; renderModels(); });
 
+/* ------------------------------------------------------------ findings */
+const FAIL = { malformed_reply: ["malformed reply", "--bad"], no_commands: ["no commands", "--warn"],
+  not_executable: ["not executable", "--passive"], repeat: ["repeat of a rejected plan", "--nominal"],
+  judge_rejected: ["LLM judge rejected", "--judge"], twin_not_restored: ["twin: plant not restored", "--llmtwin"],
+  twin_trip: ["twin: plant would trip", "--lucky"], admit_rejected: ["ADMIT rejected", "--admit_nosim"] };
+const tot = (e, k) => Object.values(e.configs).reduce((a, c) => a + (c[k] || 0), 0);
+const done = (e) => e.runs_done >= 100;
+const bestOf = (e) => Object.entries(e.configs).filter(([, c]) => c.complete)
+  .sort((a, b) => a[1].trips - b[1].trips || b[1].saving - a[1].saving)[0];
+const ftOf = (e) => Object.values(e.configs).reduce((a, c) => { for (const [k, v] of Object.entries(c.failure_types || {})) a[k] = (a[k] || 0) + v; return a; }, {});
+function renderFindings() {
+  if (M.length < 2) return;
+  const full = M.filter(done), v2 = full.filter((e) => e.protocol === "v2");
+  const pairs = [...new Set(full.map((e) => e.model))].map((m) => [full.find((e) => e.model === m && e.protocol !== "v2"),
+    full.find((e) => e.model === m && e.protocol === "v2")]).filter(([a, b]) => a && b);
+  const F = [];
+  // 1. best result overall
+  const all = full.flatMap((e) => Object.entries(e.configs).filter(([, c]) => c.complete).map(([m, c]) => ({ e, m, c })))
+    .sort((a, b) => a.c.trips - b.c.trips || b.c.saving - a.c.saving);
+  if (all.length) F.push(`<b>Best result:</b> ${esc(all[0].e.name)} with ${esc(SHORT[all[0].m])}: ${all[0].c.trips} plant stops of 20 and ${money(all[0].c.saving)} saved, against ${T.passive_trips} stops with no agents. ` +
+    (full.every((e) => bestOf(e)[1].trips * 2 <= T.passive_trips) ? `Every finished LLM campaign has at least one configuration that halves the stops of the plant without agents.` : ``));
+  // 2. v2 efficiency
+  if (pairs.length) {
+    const r = pairs.map(([a, b]) => ({ name: a.name, x: tot(a, "llm_calls") / Math.max(1, tot(b, "llm_calls")), s1: bestOf(a)?.[1].trips, s2: bestOf(b)?.[1].trips }));
+    F.push(`<b>Protocol v2 is ${Math.min(...r.map((x) => x.x)).toFixed(1)}–${Math.max(...r.map((x) => x.x)).toFixed(1)}× cheaper in LLM calls</b> (${r.map((x) => `${esc(x.name)} ${x.x.toFixed(1)}×`).join(", ")}) ` +
+      `with the best configuration of each model unchanged or close (fewest stops v1 → v2: ${r.map((x) => `${x.s1} → ${x.s2}`).join(", ")}). ` +
+      `Deciding once per fault instead of every 5 minutes removes most calls without losing safety.`);
+  }
+  // 3. validation matters most for the weakest model
+  const gaps = v2.filter((e) => e.configs.lucky?.complete).map((e) => { const b = bestOf(e); return { e, lucky: e.configs.lucky.trips, best: b[1].trips, m: b[0] }; })
+    .sort((a, b) => (b.lucky - b.best) - (a.lucky - a.best));
+  if (gaps.length && gaps[0].lucky > gaps[0].best) F.push(`<b>Checking matters most for weak models.</b> ${esc(gaps[0].e.name)} stops the plant ${gaps[0].lucky} times when its actions are applied unchecked, but only ${gaps[0].best} times with ${esc(SHORT[gaps[0].m])}. ` +
+    `For the other v2 models the gap is ${gaps.slice(1).map((g) => `${g.lucky} → ${g.best}`).join(", ") || "small"}: strong models need the gate less, weak models depend on it.`);
+  // 4. ADMIT
+  const admitBest = v2.filter((e) => { const b = bestOf(e)?.[1].trips; return ["admit", "admit_nosim"].some((m) => e.configs[m]?.complete && e.configs[m].trips === b); });
+  if (v2.length) F.push(`<b>ADMIT is the most consistent check:</b> an ADMIT configuration has the fewest stops (or ties for it) for ${admitBest.length} of ${v2.length} v2 models (${admitBest.map((e) => esc(e.name)).join(", ")}). ` +
+    (() => { const both = v2.filter((e) => e.configs.admit?.complete && e.configs.admit_nosim?.complete);
+      const le = both.filter((e) => e.configs.admit_nosim.trips <= e.configs.admit.trips);
+      return `ADMIT without simulation (no T4 projection) has as few stops as ADMIT with simulation or fewer for ${le.length} of ${both.length} v2 models ` +
+        `(${both.map((e) => `${esc(e.name)} ${e.configs.admit.trips} → ${e.configs.admit_nosim.trips}`).join(", ")}): the record, evidence and authority gates catch most bad actions without the extra compute.`; })());
+  // 5. LLM judge
+  const judge = full.filter((e) => e.configs.judge?.complete).map((e) => ({ e, j: e.configs.judge.trips, b: bestOf(e)[1].trips })).sort((a, b) => (b.j - b.b) - (a.j - a.b));
+  if (judge.length) F.push(`<b>The LLM judge is the least predictable check:</b> it depends on the judging model. Worst case ${esc(judge[0].e.name)}: ${judge[0].j} stops with the judge vs ${judge[0].b} with its best configuration. ` +
+    `A small model judging a small model rejects good actions or waves bad ones through (audit: Mistral's judge rejected none of 248 v1 proposals).`);
+  // 6. digital twin
+  const ft2 = v2.map(ftOf), nr = ft2.reduce((a, f) => a + (f.twin_not_restored || 0), 0), tt = ft2.reduce((a, f) => a + (f.twin_trip || 0), 0);
+  if (nr + tt) F.push(`<b>The digital twin is the strictest check:</b> across the v2 campaigns it rejected ${nr} proposals because the simulated plant did not recover in time and ${tt} because it would still trip. ` +
+    `Models often re-propose the plan the twin just rejected (audit, v1: about 130 of every ~143 twin actions per model were fallbacks — the best rejected candidate, applied because it beats doing nothing).`);
+  // 7. failure profile per model
+  if (v2.length) F.push(`<b>Each model fails differently</b> (most frequent v2 rejection): ${v2.map((e) => { const f = Object.entries(ftOf(e)).sort((a, b) => b[1] - a[1])[0]; return f ? `${esc(e.name)}: ${esc(FAIL[f[0]]?.[0] || f[0])} (${f[1]})` : ""; }).filter(Boolean).join("; ")}. ` +
+    `GPT-5 nano's rejections come mostly from ADMIT's record requirements (steps, evidence); the open models more often fail before any check can help, ` +
+    `by proposing commands the plant cannot run or repeating a plan already rejected, even though each rejection was explained to them.`);
+  // 8. cost
+  const g = pairs.find(([a]) => a.model === "gpt-5-nano");
+  if (g) F.push(`<b>Cost:</b> the GPT-5 nano campaign cost $${tot(g[0], "llm_cost_usd").toFixed(2)} under v1 and $${tot(g[1], "llm_cost_usd").toFixed(2)} under v2 (100 runs each). The open models ran free on a laptop GPU through Ollama.`);
+  // audit notes (not recomputable from the summary data)
+  F.push(`<b>Audit — small models and prompts:</b> under v1, Llama 3.2 copied the reply template (“brief KG-grounded justification”) and sent commands in only 14 of 322 unvalidated decisions. ` +
+    `v2 tells the model not to copy the format and explains each rejection in plain language; Llama 3.2 then acts, which is why its unchecked runs got worse and its ADMIT runs better.`);
+  F.push(`<b>Audit — ADMIT resubmissions:</b> v1 treated a resubmission with the same commands as a repeat even when the action record had been corrected, so fixed records were discarded unchecked. ` +
+    `v2 re-checks a corrected record after record-level rejections (T0–T3) only; a T4 rejection (unsafe projected plant response) still blocks the commands.`);
+  F.push(`<b>Audit — where the time goes:</b> in v1 about 90 % of run time was waiting for the LLM (≈12k-token prompts on one 8 GB GPU, ~16 decisions per run); the plant simulation alone takes about 30 minutes for all 20 scenarios. ` +
+    `v2 runs took 2–4.5 h per model instead of 9–17 h.`);
+  $("#mFindings").innerHTML = F.map((t) => `<li>${t}</li>`).join("");
+
+  if (pairs.length) {
+    $("#mProtoPanel").hidden = false;
+    $("#mProto").innerHTML = `<thead><tr><th>Model</th><th class="num">LLM calls v1</th><th class="num">LLM calls v2</th><th class="num">Fewer calls</th>
+      <th class="num">Fewest stops v1 → v2</th><th class="num">Best saving v1 → v2</th><th class="num">Malformed replies v1 → v2</th><th class="num">API cost v1 → v2</th></tr></thead><tbody>` +
+      pairs.map(([a, b]) => { const ba = bestOf(a)[1], bb = bestOf(b)[1], ca = tot(a, "llm_calls"), cb = tot(b, "llm_calls");
+        const c1 = tot(a, "llm_cost_usd"), c2 = tot(b, "llm_cost_usd");
+        return `<tr><td>${esc(a.name)}</td><td class="num">${ca.toLocaleString("en-US")}</td><td class="num">${cb.toLocaleString("en-US")}</td>
+          <td class="num pos">${(ca / Math.max(1, cb)).toFixed(1)}×</td><td class="num">${ba.trips} → ${bb.trips}</td>
+          <td class="num">${money(ba.saving)} → ${money(bb.saving)}</td>
+          <td class="num">${pct(tot(a, "llm_errors"), ca)} → ${pct(tot(b, "llm_errors"), cb)}</td>
+          <td class="num">${c1 + c2 > 0 ? `$${c1.toFixed(2)} → $${c2.toFixed(2)}` : "free (local)"}</td></tr>`; }).join("") + "</tbody>";
+  }
+  if (v2.length) {
+    $("#mFailPanel").hidden = false;
+    const kinds = Object.keys(FAIL).filter((k) => v2.some((e) => ftOf(e)[k]));
+    $("#mFailLegend").innerHTML = kinds.map((k) => `<span style="--c:var(${FAIL[k][1]})">${esc(FAIL[k][0])}</span>`).join("");
+    const o = baseOpts("", ""); o.parsing = true; o.indexAxis = "y";
+    o.scales.x = { stacked: true, grid: { color: css("--soft") }, ticks: { color: css("--muted") }, title: { display: true, text: "rejected proposals", color: css("--muted") } };
+    o.scales.y = { stacked: true, type: "category", grid: { display: false }, ticks: { color: css("--muted") } };
+    o.interaction = { mode: "index", intersect: false };
+    mk("mFail", { type: "bar", data: { labels: v2.map((e) => e.name), datasets: kinds.map((k) => ({ label: FAIL[k][0],
+      data: v2.map((e) => ftOf(e)[k] || 0), backgroundColor: css(FAIL[k][1]) })) }, options: o });
+    $("#mFailTable").innerHTML = `<thead><tr><th>Model</th><th>Configuration</th><th class="num">Decisions</th>${kinds.map((k) => `<th class="num">${esc(FAIL[k][0])}</th>`).join("")}</tr></thead><tbody>` +
+      v2.flatMap((e) => AGENT_MODES.filter((m) => e.configs[m]).map((m) => { const f = e.configs[m].failure_types || {};
+        return `<tr><td>${esc(e.name)}</td><td>${esc(SHORT[m])}</td><td class="num">${e.configs[m].decisions ?? "—"}</td>${kinds.map((k) => `<td class="num">${f[k] || ""}</td>`).join("")}</tr>`; })).join("") + "</tbody>";
+  }
+}
+
 /* ------------------------------------------------------------ boot */
 try { const s = localStorage.getItem("fc-scen"); if (s && D.scenarios[s]) selected = s; } catch (e) {}
 renderConfigTable(); renderStopCauses(); renderScenTable(); renderChecks();
-function renderCharts() { renderOverview(); renderModels(); drawVar(selected); drawCum(selected); if (charts.loopsBuilt) renderLoopCharts(); }
+function renderCharts() { renderOverview(); renderModels(); renderFindings(); drawVar(selected); drawCum(selected); if (charts.loopsBuilt) renderLoopCharts(); }
 let start = location.hash.slice(1);
 if (!TABS.includes(start)) { try { start = localStorage.getItem("fc-tab") || "overview"; } catch (e) { start = "overview"; } }
 renderDetail(selected);
 showTab(start);
 renderOverview();
 renderModels();
+renderFindings();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCharts);
 new MutationObserver(renderCharts).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 </script>
