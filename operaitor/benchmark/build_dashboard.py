@@ -142,22 +142,40 @@ def _models(camp: dict) -> list[dict]:
     return out[:1] + sorted(out[1:], key=lambda e: (e["protocol"], order.index(e["model"]) if e["model"] in order else len(order)))
 
 
-def build(status: dict | None = None) -> Path:
-    camp = json.loads((OUT / "profit_campaign.json").read_text(encoding="utf-8"))
-    nominal = json.loads((RUNS / "NOMINAL_nominal.json").read_text(encoding="utf-8"))
+def _scenarios(runs_dir: Path) -> dict:
     scen = {}
     for s in SCENARIOS:
         sid = s["id"]
-        runs = {m: json.loads((RUNS / f"{sid}_{m}.json").read_text(encoding="utf-8"))
-                for m in ("probe", "passive", *AGENT_MODES) if (RUNS / f"{sid}_{m}.json").exists()}
+        runs = {m: json.loads((runs_dir / f"{sid}_{m}.json").read_text(encoding="utf-8"))
+                for m in ("probe", "passive", *AGENT_MODES) if (runs_dir / f"{sid}_{m}.json").exists()}
         scen[sid] = {"id": sid, "group": s["group"], "interaction": s.get("interaction"),
                      "faults": [{"fault": f["fault"], "at_min": f["at_min"]} for f in s["faults"]],
                      "probe": {k: runs["probe"][k] for k in ("status", "trip_min", "sifs", "sif_first_min")},
                      "runs": {m: _run_summary(r) for m, r in runs.items() if m != "probe"}}
+    return scen
+
+
+# The main dashboard's Overview / Scenarios show the main LLM under the current protocol (v2) by default,
+# and the original campaign (v1) on request; both are embedded.
+MAIN_V2 = OUT / "open_models_v2" / "gpt-5-nano"
+
+
+def build(status: dict | None = None) -> Path:
+    camp = json.loads((OUT / "profit_campaign.json").read_text(encoding="utf-8"))
+    nominal = json.loads((RUNS / "NOMINAL_nominal.json").read_text(encoding="utf-8"))
+    scen = _scenarios(RUNS)
+    views = {}
+    if (MAIN_V2 / "profit_campaign.json").exists():
+        v2 = json.loads((MAIN_V2 / "profit_campaign.json").read_text(encoding="utf-8"))
+        views = {"v2": {"campaign": v2, "scenarios": _scenarios(MAIN_V2 / "runs"), "label": "protocol v2 (current)"},
+                 "v1": {"campaign": camp, "scenarios": scen, "label": "protocol v1"}}
     loops = json.loads((OUT / "loop_tests.json").read_text(encoding="utf-8")) if (OUT / "loop_tests.json").exists() else {}
     if (OUT / "loop_series.json").exists():
         loops["series"] = json.loads((OUT / "loop_series.json").read_text(encoding="utf-8"))
-    data = {"campaign": camp, "scenarios": scen, "order": [s["id"] for s in SCENARIOS], "mode_labels": MODE_LABEL,
+    # with views, the campaigns live only in "views" (the page picks one); top level stays for single-view builds
+    data = {"campaign": None if views else camp, "scenarios": None if views else scen, "views": views,
+            "default_view": "v2" if views else None,
+            "order": [s["id"] for s in SCENARIOS], "mode_labels": MODE_LABEL,
             "status": status or {},
             "nominal": _series(nominal), "loops": loops, "models": _models(camp),
             "prices": {"trip_penalty": PRICES.trip_penalty_usd, "acetone_usd_t": PRICES.acetone_usd_t,
