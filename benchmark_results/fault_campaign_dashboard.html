@@ -192,6 +192,13 @@ ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 84
   <!-- ===================================================== MODELS -->
   <section class="pane" id="models" role="tabpanel" aria-labelledby="tab-models" hidden>
     <div class="panel">
+      <div class="detail-head"><h2>Protocol</h2>
+        <div class="controls"><label for="mProtoSel" class="small muted">Show</label>
+          <select id="mProtoSel"><option value="both">Both protocols (v1 and v2 side by side)</option>
+            <option value="v1">v1 only: re-decide every 5 min</option><option value="v2">v2 only: once per fault</option></select></div></div>
+      <p class="muted small" id="mProtoNote"></p>
+    </div>
+    <div class="panel">
       <h2>Key findings</h2>
       <p class="muted small">Computed from the runs below unless marked “audit”. One run per scenario and configuration: treat differences of one or two plant stops as noise.</p>
       <ol class="plain" id="mFindings"></ol>
@@ -312,6 +319,7 @@ $("#kpis").innerHTML = [
 
 /* ------------------------------------------------------------ tabs */
 const M = D.models || [];
+M.forEach((e, i) => { e._i = i; e.protocol = e.protocol || "v1"; });
 const TABS = ["overview", "scenarios", ...(M.length > 1 ? ["models"] : []), "checks"];
 if (M.length > 1) { $("#tab-models").hidden = false;
   $("#protocol").textContent += ` Overview and Scenarios show the agents running on ${M[0].name}; the Models tab compares ${M.length} LLMs on the same protocol.`; }
@@ -714,20 +722,30 @@ function renderLoopCharts() {
 
 /* ------------------------------------------------------------ models */
 const mcol = (i) => css("--m" + (i % 8));
+let PROTO = "both";
+try { PROTO = localStorage.getItem("fc-proto") || "both"; } catch (e) {}
+const modelKeys = [...new Set((D.models || []).map((e) => e.model))];
+const colourIdx = (e) => modelKeys.indexOf(e.model) % 8;          // one colour per LLM, v1 and v2 alike
+const nameOf = (e) => e.name + (PROTO === "both" && e.protocol === "v1" ? " · v1" : "");
+function viewModels() {
+  const ms = (D.models || []).filter((e) => PROTO === "both" || e.protocol === PROTO);
+  return [...ms].sort((a, b) => modelKeys.indexOf(a.model) - modelKeys.indexOf(b.model) || a.protocol.localeCompare(b.protocol));
+}
 const pct = (a, b) => b ? (100 * a / b).toFixed(1) + " %" : "—";
 let mMode = "admit";
 function renderModels() {
-  if (M.length < 2) return;
+  if (D.models?.length < 2) return;
+  const M = viewModels();
   $("#mPassive").textContent = `${T.passive_trips} of ${T.scenarios}`;
   const head = `<thead><tr><th>Model</th><th class="num">Parameters</th><th>Weights</th><th>Licence</th><th class="num">Runs</th>
     <th class="num">LLM calls</th><th class="num">Malformed replies</th><th class="num">Fewest stops</th><th class="num">Mean / decision</th></tr></thead>`;
-  const body = M.map((e, i) => {
+  const body = M.map((e) => {
     const cs = Object.values(e.configs);
     const calls = cs.reduce((a, c) => a + c.llm_calls, 0), errs = cs.reduce((a, c) => a + c.llm_errors, 0);
     const done = cs.filter((c) => c.complete), fewest = done.length ? Math.min(...done.map((c) => c.trips)) : null;
     const dec = cs.filter((c) => c.mean_decision_s != null);
     const mean = dec.length ? dec.reduce((a, c) => a + c.mean_decision_s, 0) / dec.length : null;
-    return `<tr><td><span class="swatch" style="--c:var(--m${i % 8})"></span>${esc(e.name)}${e.runs_done < 100 ? ` <span class="pill warn">in progress</span>` : ""}</td>
+    return `<tr><td><span class="swatch" style="--c:var(--m${colourIdx(e)})"></span>${esc(e.name)}${e.runs_done < 100 ? ` <span class="pill warn">in progress</span>` : ""}</td>
       <td class="num">${esc(e.params)}</td><td class="mono small">${esc(e.source)}</td><td class="small">${esc(e.licence)}</td>
       <td class="num">${e.runs_done}/100</td><td class="num">${calls.toLocaleString("en-US")}</td>
       <td class="num ${calls && errs / calls > 0.05 ? "neg" : ""}">${errs} (${pct(errs, calls)})</td>
@@ -739,22 +757,22 @@ function renderModels() {
   const cell = (c, strong) => c
     ? `<td class="num"${strong ? ' style="font-weight:700"' : ""}>${c.trips}<span class="muted"> / ${c.n}</span><div class="small ${c.saving >= 0 ? "pos" : "neg"}">${money(c.saving)}</div></td>`
     : `<td class="num muted">not run yet</td>`;
-  $("#modelStops").innerHTML = `<thead><tr><th>Configuration</th>${M.map((e, i) => `<th class="num"><span class="swatch" style="--c:var(--m${i % 8})"></span>${esc(e.name)}</th>`).join("")}</tr></thead><tbody>` +
+  $("#modelStops").innerHTML = `<thead><tr><th>Configuration</th>${M.map((e) => `<th class="num"><span class="swatch" style="--c:var(--m${colourIdx(e)})"></span>${esc(nameOf(e))}</th>`).join("")}</tr></thead><tbody>` +
     modes.map((m) => {
       const fin = M.map((e) => e.configs[m]).filter((c) => c?.complete), best = fin.length ? Math.min(...fin.map((c) => c.trips)) : null;
       return `<tr><td><span class="swatch" style="--c:var(--${m})"></span>${esc(SHORT[m])}</td>${M.map((e) => { const c = e.configs[m];
         return cell(c, c?.complete && c.trips === best); }).join("")}</tr>`;
     }).join("") + "</tbody>";
 
-  const leg = M.map((e, i) => `<span style="--c:var(--m${i % 8})">${esc(e.name)}</span>`).join("");
+  const leg = M.map((e) => `<span style="--c:var(--m${colourIdx(e)});${PROTO === "both" && e.protocol === "v1" ? "opacity:.55" : ""}">${esc(e.name)}${PROTO === "both" && e.protocol === "v1" ? " · v1" : ""}</span>`).join("");
   $("#mLegend").innerHTML = leg; $("#mLegend2").innerHTML = leg;
   const bar = (key, yTitle, fmt) => {
     const o = baseOpts("", yTitle); o.parsing = true;
     o.scales.x = { type: "category", grid: { display: false }, ticks: { color: css("--muted") } };
     o.interaction = { mode: "index", intersect: false };
     o.plugins.tooltip.callbacks = { label: (c) => `${c.dataset.label}: ${c.raw == null ? "in progress" : fmt(c.raw)}` };
-    return { type: "bar", data: { labels: modes.map((m) => SHORT[m]), datasets: M.map((e, i) => ({ label: e.name,
-      data: modes.map((m) => e.configs[m]?.complete ? e.configs[m][key] : null), backgroundColor: mcol(i), borderRadius: 2 })) }, options: o };
+    return { type: "bar", data: { labels: modes.map((m) => SHORT[m]), datasets: M.map((e) => ({ label: e.name,
+      data: modes.map((m) => e.configs[m]?.complete ? e.configs[m][key] : null), backgroundColor: mcol(colourIdx(e)) + (PROTO === "both" && e.protocol === "v1" ? "73" : ""), borderRadius: 2 })) }, options: o };
   };
   mk("mSaving", bar("saving", "USD over the 20 windows", money));
   const sc = bar("trips", "plant stops", (x) => x + " / 20"); sc.options.scales.y.min = 0; sc.options.scales.y.max = 20;
@@ -764,7 +782,7 @@ function renderModels() {
   $("#mMode").innerHTML = modes.map((m) => `<option value="${m}" ${m === mMode ? "selected" : ""}>${esc(LABEL[m])}</option>`).join("");
   const res = (r) => r == null ? `<span class="pill none">not run yet</span>`
     : r.trip_min == null ? `<span class="pill ok">no stop</span>` : `<span class="pill bad">stop · ${r.trip_min.toFixed(1)} min</span>`;
-  $("#modelScen").innerHTML = `<thead><tr><th>Scenario</th><th>Faults</th><th>No agents</th>${M.map((e, i) => `<th><span class="swatch" style="--c:var(--m${i % 8})"></span>${esc(e.name)}</th>`).join("")}</tr></thead><tbody>` +
+  $("#modelScen").innerHTML = `<thead><tr><th>Scenario</th><th>Faults</th><th>No agents</th>${M.map((e) => `<th><span class="swatch" style="--c:var(--m${colourIdx(e)})"></span>${esc(nameOf(e))}</th>`).join("")}</tr></thead><tbody>` +
     rows.map((r) => `<tr><td class="mono">${r.id}</td><td class="small">${esc(r.faults.replace(/_/g, " "))}</td><td>${res({ trip_min: r.passive_trip_min })}</td>${M.map((e) => `<td>${res(e.configs[mMode]?.runs?.[r.id])}</td>`).join("")}</tr>`).join("") + "</tbody>";
 
   $("#mNotes").innerHTML = [
@@ -777,12 +795,23 @@ function renderModels() {
   ].map((t) => `<li>${esc(t)}</li>`).join("");
 }
 $("#mMode").addEventListener("change", (ev) => { mMode = ev.target.value; renderModels(); });
+$("#mProtoSel").value = PROTO;
+$("#mProtoSel").addEventListener("change", (ev) => { PROTO = ev.target.value; try { localStorage.setItem("fc-proto", PROTO); } catch (e) {} renderModels(); renderProtoNote(); });
+function renderProtoNote() {
+  const n = viewModels().length;
+  $("#mProtoNote").textContent = {
+    both: `${n} campaigns: each LLM under v1 and v2, side by side in the same colour (v2 marked “· v2”).`,
+    v1: `${n} campaigns under v1: the agents re-decide every 5 minutes while a fault is detected, with up to 4 proposals per decision.`,
+    v2: `${n} campaigns under v2: one decision per fault episode (alarm or SPE trigger), plain-language rejection feedback, ADMIT record re-check, seeded decoding, every reply recorded.`,
+  }[PROTO];
+}
+renderProtoNote();
 
 /* ------------------------------------------------------------ findings */
 const FAIL = { malformed_reply: ["malformed reply", "--bad"], no_commands: ["no commands", "--warn"],
-  not_executable: ["not executable", "--passive"], repeat: ["repeat of a rejected plan", "--nominal"],
+  not_executable: ["not executable", "--admit"], repeat: ["repeat of a rejected plan", "--nominal"],
   judge_rejected: ["LLM judge rejected", "--judge"], twin_not_restored: ["twin: plant not restored", "--llmtwin"],
-  twin_trip: ["twin: plant would trip", "--lucky"], admit_rejected: ["ADMIT rejected", "--admit_nosim"] };
+  twin_trip: ["twin: plant would trip", "--passive"], admit_rejected: ["ADMIT rejected", "--admit_nosim"] };
 const tot = (e, k) => Object.values(e.configs).reduce((a, c) => a + (c[k] || 0), 0);
 const done = (e) => e.runs_done >= 100;
 const bestOf = (e) => Object.entries(e.configs).filter(([, c]) => c.complete)
@@ -866,7 +895,7 @@ function renderFindings() {
       data: v2.map((e) => ftOf(e)[k] || 0), backgroundColor: css(FAIL[k][1]) })) }, options: o });
     $("#mFailTable").innerHTML = `<thead><tr><th>Model</th><th>Configuration</th><th class="num">Decisions</th>${kinds.map((k) => `<th class="num">${esc(FAIL[k][0])}</th>`).join("")}</tr></thead><tbody>` +
       v2.flatMap((e) => AGENT_MODES.filter((m) => e.configs[m]).map((m) => { const f = e.configs[m].failure_types || {};
-        return `<tr><td>${esc(e.name)}</td><td>${esc(SHORT[m])}</td><td class="num">${e.configs[m].decisions ?? "—"}</td>${kinds.map((k) => `<td class="num">${f[k] || ""}</td>`).join("")}</tr>`; })).join("") + "</tbody>";
+        return `<tr><td style="white-space:nowrap">${esc(e.name)}</td><td style="white-space:nowrap">${esc(SHORT[m])}</td><td class="num">${e.configs[m].decisions ?? "—"}</td>${kinds.map((k) => `<td class="num">${f[k] || ""}</td>`).join("")}</tr>`; })).join("") + "</tbody>";
   }
 }
 
