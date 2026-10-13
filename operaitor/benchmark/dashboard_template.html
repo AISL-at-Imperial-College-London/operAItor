@@ -228,6 +228,19 @@ ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 84
       <div class="panel"><h3>Plant stops (out of 20)</h3><div class="legend" id="mLegend2"></div>
         <div class="chart-box"><canvas id="mStopsChart" aria-label="Plant stops per configuration for each LLM"></canvas></div></div>
     </div>
+    <div class="panel" id="vvPanel" hidden>
+      <div class="detail-head"><h2>v1 vs v2, scenario by scenario</h2>
+        <div class="controls">
+          <label for="vvModel" class="small muted">Model</label><select id="vvModel"></select>
+          <label for="vvCfg" class="small muted">Configuration</label><select id="vvCfg"></select>
+        </div></div>
+      <p class="muted small">Pale wide bar = protocol v1, solid narrow bar = protocol v2, same scenario. Saving vs no agents over each scenario's window (top) and plant stops (bottom): one plant stop costs about $20k, so most saving differences are a scenario that stopped in one protocol and not the other.</p>
+      <div class="legend" id="vvLegend"></div>
+      <p class="small" id="vvSummary"></p>
+      <div class="chart-box"><canvas id="vvSave" aria-label="Saving per scenario, v1 and v2 overlaid"></canvas></div>
+      <div class="chart-box short"><canvas id="vvStop" aria-label="Plant stops per scenario, v1 and v2 overlaid"></canvas></div>
+      <details><summary>Table view</summary><div class="table-wrap"><table id="vvTable"></table></div></details>
+    </div>
     <div class="panel" id="mFailPanel" hidden>
       <h2>Why proposals were rejected (v2)</h2>
       <p class="muted small">Every rejected proposal of the v2 campaigns, by failure type, summed over the five configurations. Each rejection was fed back to the model in plain language before it tried again (up to 4 proposals per decision).</p>
@@ -811,6 +824,56 @@ function renderModels() {
 $("#mMode").addEventListener("change", (ev) => { mMode = ev.target.value; renderModels(); });
 $("#mProtoSel").value = PROTO;
 $("#mProtoSel").addEventListener("change", (ev) => { PROTO = ev.target.value; try { localStorage.setItem("fc-proto", PROTO); } catch (e) {} renderModels(); renderProtoNote(); });
+/* ------------------------------------------------------------ v1 vs v2 overlay per scenario */
+let ovModel = null, ovCfg = "all";
+function renderOverlay() {
+  const pairs = modelKeys.map((k) => [ (D.models || []).find((e) => e.model === k && e.protocol === "v1" && e.runs_done >= 100),
+    (D.models || []).find((e) => e.model === k && e.protocol === "v2" && e.runs_done >= 100) ]).filter(([a, b]) => a && b);
+  if (!pairs.length) return;
+  $("#vvPanel").hidden = false;
+  if (!pairs.some(([a]) => a.model === ovModel)) ovModel = pairs[0][0].model;
+  $("#vvModel").innerHTML = pairs.map(([a]) => `<option value="${a.model}" ${a.model === ovModel ? "selected" : ""}>${esc(a.name)}</option>`).join("");
+  const cfgs = AGENT_MODES.filter((m) => pairs[0][0].configs[m]);
+  $("#vvCfg").innerHTML = [["all", "All 5 configurations (summed)"], ...cfgs.map((m) => [m, LABEL[m]])]
+    .map(([k, t]) => `<option value="${k}" ${k === ovCfg ? "selected" : ""}>${esc(t)}</option>`).join("");
+  const [a, b] = pairs.find(([x]) => x.model === ovModel);
+  const use = ovCfg === "all" ? cfgs : [ovCfg];
+  const ids = rows.map((r) => r.id);
+  const agg = (e, sid, f) => use.reduce((t, m) => t + f(e.configs[m]?.runs?.[sid]), 0);
+  const sav = (e) => ids.map((sid) => agg(e, sid, (r) => r?.saving || 0));
+  const stp = (e) => ids.map((sid) => agg(e, sid, (r) => (r && r.trip_min != null) ? 1 : 0));
+  const S1 = sav(a), S2 = sav(b), P1 = stp(a), P2 = stp(b);
+  const hue = mcol(colourIdx(a)), pale = css("--nominal") + "80";
+  $("#vvLegend").innerHTML = `<span style="--c:${pale}">protocol v1 (re-decide every 5 min)</span><span style="--c:${hue}">protocol v2 (once per fault)</span>`;
+  const tot = (x) => x.reduce((t, v) => t + v, 0);
+  const flipsUp = ids.filter((_, i) => P2[i] < P1[i]).length, flipsDown = ids.filter((_, i) => P2[i] > P1[i]).length;
+  $("#vvSummary").innerHTML = `<b>${esc(a.name)}</b>, ${ovCfg === "all" ? "all five configurations" : esc(SHORT[ovCfg])}: saving ${money(tot(S1))} → ${money(tot(S2))} ` +
+    `(<span class="${tot(S2) >= tot(S1) ? "pos" : "neg"}">${tot(S2) >= tot(S1) ? "+" : "−"}${money(Math.abs(tot(S2) - tot(S1))).replace("−", "")}</span>); ` +
+    `plant stops ${tot(P1)} → ${tot(P2)}; fewer stops under v2 in ${flipsUp} scenario${flipsUp === 1 ? "" : "s"}, more in ${flipsDown}.`;
+  const overlay = (d1, d2, yTitle, fmt, max) => {
+    const o = baseOpts("", yTitle); o.parsing = true;
+    o.scales.x = { type: "category", stacked: false, grid: { display: false }, ticks: { color: css("--muted"), font: { family: "IBM Plex Mono" } } };
+    if (max != null) { o.scales.y.min = 0; o.scales.y.max = max; o.scales.y.ticks.stepSize = max <= 5 ? 1 : undefined; }
+    o.interaction = { mode: "index", intersect: false };
+    o.plugins.tooltip.callbacks = { title: (it) => `${it[0].label} · ${faultsOf(it[0].label)}`,
+      label: (c) => `${c.dataset.label}: ${fmt(c.raw)}`,
+      afterBody: (it) => { const i = it[0].dataIndex, d = d2[i] - d1[i]; return d === 0 ? "no change" : `v2 − v1: ${d > 0 ? "+" : "−"}${fmt(Math.abs(d))}`; } };
+    o.onClick = (_e, els) => { if (els.length) { selectScenario(ids[els[0].index]); history.replaceState(null, "", "#scenarios"); showTab("scenarios"); } };
+    return { type: "bar", data: { labels: ids, datasets: [
+      { label: "v2", data: d2, backgroundColor: hue, barPercentage: 0.45, categoryPercentage: 0.9, borderRadius: 4, order: 0, grouped: false },
+      { label: "v1", data: d1, backgroundColor: pale, barPercentage: 0.9, categoryPercentage: 0.9, borderRadius: 4, order: 1, grouped: false },
+    ] }, options: o };
+  };
+  mk("vvSave", overlay(S1, S2, "saving vs no agents (USD)", money));
+  mk("vvStop", overlay(P1, P2, ovCfg === "all" ? "plant stops (of 5)" : "plant stop (1 = yes)", (x) => `${x}`, use.length));
+  $("#vvTable").innerHTML = `<thead><tr><th>Scenario</th><th>Faults</th><th class="num">Saving v1</th><th class="num">Saving v2</th><th class="num">v2 − v1</th><th class="num">Stops v1</th><th class="num">Stops v2</th></tr></thead><tbody>` +
+    ids.map((sid, i) => `<tr><td class="mono">${sid}</td><td class="small">${esc(faultsOf(sid))}</td><td class="num">${money(S1[i])}</td><td class="num">${money(S2[i])}</td>
+      <td class="num ${S2[i] - S1[i] > 500 ? "pos" : S2[i] - S1[i] < -500 ? "neg" : ""}">${money(S2[i] - S1[i])}</td><td class="num">${P1[i]}</td><td class="num">${P2[i]}</td></tr>`).join("") + "</tbody>";
+}
+const faultsOf = (sid) => (byId[sid]?.faults || "").replace(/_/g, " ");
+$("#vvModel").addEventListener("change", (ev) => { ovModel = ev.target.value; renderOverlay(); });
+$("#vvCfg").addEventListener("change", (ev) => { ovCfg = ev.target.value; renderOverlay(); });
+
 function renderProtoNote() {
   const n = viewModels().length;
   $("#mProtoNote").textContent = {
@@ -916,7 +979,7 @@ function renderFindings() {
 /* ------------------------------------------------------------ boot */
 try { const s = localStorage.getItem("fc-scen"); if (s && D.scenarios[s]) selected = s; } catch (e) {}
 renderConfigTable(); renderStopCauses(); renderScenTable(); renderChecks();
-function renderCharts() { renderOverview(); renderModels(); renderFindings(); drawVar(selected); drawCum(selected); if (charts.loopsBuilt) renderLoopCharts(); }
+function renderCharts() { renderOverview(); renderModels(); renderFindings(); renderOverlay(); drawVar(selected); drawCum(selected); if (charts.loopsBuilt) renderLoopCharts(); }
 let start = location.hash.slice(1);
 if (!TABS.includes(start)) { try { start = localStorage.getItem("fc-tab") || "overview"; } catch (e) { start = "overview"; } }
 renderDetail(selected);
@@ -924,6 +987,7 @@ showTab(start);
 renderOverview();
 renderModels();
 renderFindings();
+renderOverlay();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCharts);
 new MutationObserver(renderCharts).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 </script>
