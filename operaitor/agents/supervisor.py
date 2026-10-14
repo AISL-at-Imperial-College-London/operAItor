@@ -99,7 +99,8 @@ class AsyncSupervisor:
         last_t = None
         while True:
             obs, catalog = await self.service.next_observation()
-            if self.mode == "off" or obs["time_min"] == last_t:
+            if (self.mode == "off" or obs["time_min"] == last_t
+                    or getattr(self.service, "operator_mode", "agents") == "human"):  # a person operates
                 continue
             last_t = obs["time_min"]
             self._last_obs = obs

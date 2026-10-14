@@ -35,6 +35,24 @@ function plantStatus(snap: Snapshot, fault: boolean): [string, string] {
   return ["ok", "Normal"];
 }
 
+/** Who answers the faults: the agents, or a person (agents off; for testing the console as a human). */
+function OperatorModeSwitch() {
+  const snap = usePlant((s) => s.snap);
+  const test = usePlant((s) => s.humanTest);
+  const mode = snap?.operator_mode ?? "agents";
+  const locked = test?.state === "running";
+  return (
+    <div className="seg small op-mode" role="radiogroup" aria-label="Operator mode">
+      {([["agents", "Agents", "the agents supervise the plant"],
+         ["human", "Human operator", "agents off: you answer the faults (Operate panel → Human test)"]] as const).map(([m, l, t]) => (
+        <button key={m} role="radio" aria-checked={mode === m} className={`${mode === m ? "on" : ""} ${m}`}
+          title={locked && m === "agents" ? "stop the human test first" : t} disabled={locked && m === "agents"}
+          onClick={() => mode !== m && send({ type: "operator_mode", mode: m })}>{l}</button>
+      ))}
+    </div>
+  );
+}
+
 function EpisodeMenu() {
   const meta = usePlant((s) => s.meta);
   const snap = usePlant((s) => s.snap);
@@ -85,9 +103,10 @@ export function Header({ tab, onTab, drawer, onDrawer }:
   const active = snap?.alarms.filter((a) => a.state.startsWith("ACTIVE")).length ?? 0;
   const current = speedKey(snap?.tick_delay_ms ?? 0, snap?.pace?.every ?? 10, snap?.pace?.sleep_s ?? 0.05);
   const known = SPEEDS.some(([, d, n, sl]) => speedKey(d, n, sl) === current);
-  const [cls, status] = snap ? plantStatus(snap, !!last?.fault) : ["", "—"];
+  const [cls, status] = snap ? plantStatus(snap, snap.operator_mode !== "human" && !!last?.fault) : ["", "—"];
   const preset = agent?.preset ?? "passive";
-  const deciding = snap?.held || (pipeline.cycle > 0 && !pipeline.outcome);
+  const human = snap?.operator_mode === "human";
+  const deciding = !human && (snap?.held || (pipeline.cycle > 0 && !pipeline.outcome));
 
   return (
     <header className="header">
@@ -102,8 +121,10 @@ export function Header({ tab, onTab, drawer, onDrawer }:
       </nav>
       <div className="header-status">
         <span className={`status ${cls}`} title="Plant status">{status}</span>
-        <span className={`status ${deciding ? "warn" : ""}`} title="Agent configuration">
-          {deciding ? "Agents deciding…" : `Agents: ${PRESET_LABEL[preset] ?? preset}`}</span>
+        <OperatorModeSwitch />
+        {human ? <span className="status warn" title="The agents are off; you operate the plant">Agents off</span>
+          : <span className={`status ${deciding ? "warn" : ""}`} title="Agent configuration">
+              {deciding ? "Agents deciding…" : `Agents: ${PRESET_LABEL[preset] ?? preset}`}</span>}
       </div>
       <div className="transport">
         <span className="clock num" title="Simulated time">{snap ? `${snap.time_min.toFixed(1)} min` : "—"}</span>

@@ -262,8 +262,11 @@ function Timeline() {
 export function AgentsTab() {
   const agent = usePlant((s) => s.agent);
   const admit = agent?.preset?.startsWith("llm_admit");
+  const human = usePlant((s) => s.snap?.operator_mode === "human");
   return (
     <div className="stack">
+      {human && <div className="fault-banner warn">Human-operator mode: the agents are off (no monitoring, diagnosis,
+        proposals or actions). What is shown below is from before the switch. Switch back to Agents in the header.</div>}
       <Pending />
       <PipelineCard />
       <CurrentDecision />

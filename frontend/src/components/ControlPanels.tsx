@@ -170,6 +170,12 @@ export function FaultsPanel() {
   if (!meta || !snap) return null;
   const inj = meta.injections;
   const t = snap.truth;
+  if (t.hidden) return (
+    <div className="panel-body">
+      <p className="hint warn">A blind human test is running: what was injected stays hidden, and manual injections are off,
+        until the test ends.</p>
+    </div>
+  );
   const inject = () => {
     const body: Record<string, unknown> =
       kind === "pump" ? { pump_id: pump } : kind === "actuator" ? actu : kind === "sensor" ? sens

@@ -59,6 +59,7 @@ export interface Snapshot {
   pace?: { every: number; sleep_s: number };
   hold_for_agents?: boolean;
   held?: boolean;
+  operator_mode?: OperatorMode;
   trend: TrendPoint;
   measurements: Record<string, Num>;
   controllers: Record<string, Controller>;
@@ -76,13 +77,33 @@ export interface Snapshot {
     actuator: string[];
     sensor: string[];
     pump: string[];
+    hidden?: boolean;   // blind human test running
   };
+}
+
+export type OperatorMode = "agents" | "human";
+
+export interface HumanScenario { id: string; group: string; faults: string[] }
+
+export interface HumanBenchRow { who: string; config: string; profit: number; stopped: boolean; stop_min: number | null }
+
+export interface HumanTest {
+  scenario: string; blind: boolean; state: string; started: string;
+  time_min: number; window_min: number; profit: number; margin: number; inventory: number;
+  stop_min: number | null; stop_kind: string | null; faults_injected: number; faults_total: number;
+  actions: { t: number; kind: string; summary: string; ok: boolean }[]; n_actions: number;
+  report_path: string | null;
+  faults?: { fault: string; onset_min: number; lift_min: number | null; injected: boolean }[];
+  group?: string; interaction?: string | null;
+  result: { profit: number; margin: number; inventory: number; penalty: number;
+            saving_vs_no_agents: number | null; benchmark: HumanBenchRow[]; complete: boolean } | null;
 }
 
 export interface Meta {
   scenarios: string[];
   campaigns?: Record<string, string>;
   fault_library?: string[];
+  human_scenarios?: HumanScenario[];
   loops: Record<string, { sp_min: number; sp_max: number; sp_unit: string; mv_unit: string; pv_tag: string }>;
   auxiliaries: Record<string, [number, number]>;
   throughput_bounds: [number, number];
@@ -245,6 +266,7 @@ export interface Hello {
   messages: Message[];
   agent?: AgentInfo;
   campaign?: Campaign | null;
+  human_test?: HumanTest | null;
   chat?: { mode: string; model?: string | null };
   session?: SessionInfo;
 }

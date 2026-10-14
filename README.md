@@ -64,6 +64,12 @@ operaitor serve                  # http://localhost:8001
 
 Without any LLM, the agents monitor and diagnose but take no actions, and the chat answers offline.
 
+**Test it as a human:** switch the header from **Agents** to **Human operator**: the agents are off and you
+answer the faults. **Operate → Human test** replays one of the 20 benchmark scenarios (or a random one) with
+the same faults, timing and score as the agent benchmark. **Blind** hides what was injected until the end.
+At the end the console reveals the faults and ranks your score against the benchmark runs on that scenario,
+and writes a report to `campaign_results/human_<scenario>_<time>.json`.
+
 Or with Docker:
 
 ```bash

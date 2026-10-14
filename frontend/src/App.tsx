@@ -3,6 +3,7 @@ import { AgentsTab } from "./components/AgentsTab";
 import { AlarmsTab } from "./components/Alarms";
 import { ChatPanel } from "./components/Chat";
 import { FaultsPanel, OperatorPanel } from "./components/ControlPanels";
+import { HumanTestPanel } from "./components/HumanTest";
 import { SessionNotice } from "./components/LlmKey";
 import { PlantTab } from "./components/PlantTab";
 import { Header, type Drawer, type Tab, TABS } from "./components/TopBar";
@@ -46,6 +47,7 @@ export default function App() {
   const connected = usePlant((s) => s.connected);
   const backendVersion = usePlant((s) => s.backendVersion);
   const notice = usePlant((s) => s.notice);
+  const humanTest = usePlant((s) => s.humanTest?.state === "running");
 
   useEffect(() => save("tab", tab), [tab]);
   useEffect(() => save("drawer", drawer), [drawer]);
@@ -60,6 +62,12 @@ export default function App() {
         </div>
       )}
       <SessionNotice />
+      {snap?.operator_mode === "human" && (
+        <div className="banner warn">
+          Human-operator mode: the agents are off and you answer the faults. Start a scored run from Operate → Human test;
+          switch back to Agents in the header.
+        </div>
+      )}
       {!connected && !notice && <div className="banner warn">Connecting to the plant server…</div>}
       <div className="layout">
         <main>
@@ -84,7 +92,9 @@ export default function App() {
               <button className="icon-btn" onClick={() => setDrawer("")} aria-label="Close panel">✕</button>
             </div>
             <div className="drawer-body">
-              {drawer === "operate" ? <OperatorPanel /> : drawer === "assistant" ? <ChatPanel /> : <FaultsPanel />}
+              {drawer === "operate" ? <><HumanTestPanel /><OperatorPanel /></>
+                : drawer === "assistant" ? (humanTest ? <p className="hint">The assistant is off during a human test: you are on your own.</p> : <ChatPanel />)
+                : <FaultsPanel />}
             </div>
           </aside>
         )}

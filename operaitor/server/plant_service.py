@@ -10,7 +10,9 @@ the agent supervisor and scripts all go through it:
 * every tick is broadcast to subscribers (WebSocket clients) and the latest
   observation is offered to the agents with "latest wins" semantics;
 * a fault campaign (server/campaigns.py) can fire timed injections in sim time
-  and writes a per-fault report to campaign_results/ when it finishes.
+  and writes a per-fault report to campaign_results/ when it finishes;
+* in operator mode "human" the agents stand down and a human test (server/human_test.py)
+  replays a benchmark scenario for a person to answer, scored like the benchmark.
 
 No FastAPI imports here: ``fault_campaign.py --headless`` uses it without a server.
 """
@@ -72,7 +74,7 @@ def jsonable(obj: Any) -> Any:
 
 
 # Bump when the WebSocket messages change; the console warns if the backend is older.
-API_VERSION = 7
+API_VERSION = 8
 
 
 class PlantService:
@@ -99,6 +101,9 @@ class PlantService:
         self.history: deque = deque(maxlen=history_len)   # measurements + loop OP/SP (chat agent trends)
         self.monitor: deque = deque(maxlen=history_len)
         self.campaign: dict | None = None
+        # "agents": the agent supervisor runs; "human": agents off, a person operates the plant.
+        self.operator_mode = "agents"
+        self.human_test = None  # HumanTest while one is set up (human_test.py)
         # Campaign reports are written here (None: not written, e.g. on the hosted app).
         _dir = os.environ.get("PLANT_CAMPAIGN_DIR", "campaign_results")
         self.campaign_dir: Path | None = Path(_dir) if _dir else None
@@ -156,6 +161,7 @@ class PlantService:
             self.agent_log.clear()
             self._pending_reset_sif = False
             self.campaign = None  # a new episode cancels a running campaign
+            self.human_test = None  # ... and a human test
             snap = self.snapshot()
             self.trend.append(snap["trend"])
             self.history.append(self._history_row(snap))
@@ -227,6 +233,8 @@ class PlantService:
         if env.done:
             await self.notify(f"Episode ended: {env.outcomes.state.status.value} ({env.outcomes.state.reason})", "warn")
         await self._campaign_due()
+        if self.human_test is not None:
+            await self.human_test.tick()
 
     @staticmethod
     def _history_row(snap: dict) -> dict:
@@ -292,6 +300,8 @@ class PlantService:
                 return {"ok": False, "summary": "no episode loaded"}
             result = self.env.apply_action(action)
             snap = self.snapshot()
+        if self.human_test is not None and source == "operator":
+            self.human_test.record_action(snap["time_min"], action.note or "action", result.summary, result.ok)
         await self.broadcast({"type": "snapshot", **snap})
         await self.notify(f"[{source}] {result.summary}", "info" if result.ok else "error")
         return {"ok": result.ok, "summary": result.summary,
@@ -319,16 +329,30 @@ class PlantService:
             elif kind == "hold_for_agents":
                 self.hold_for_agents = bool(msg.get("on", True))
             elif kind == "ack_all":
-                return await self.apply_action(SupervisoryAction(acknowledge_all_alarms=True))
+                return await self.apply_action(SupervisoryAction(acknowledge_all_alarms=True, note="acknowledge all"))
             elif kind == "reset_sif":
                 self._pending_reset_sif = True
+                if self.human_test is not None:
+                    self.human_test.record_action(self.status()["time_min"], "SIF reset", "SIF reset requested", True)
                 await self.notify("SIF reset requested; applied on next plant tick")
             elif kind == "action":
                 return await self.apply_action(self._parse_action(msg.get("action", {})))
             elif kind == "inject":
+                if self._blind():
+                    return {"ok": False, "summary": "manual injections are off during a blind human test"}
                 return await self._inject(msg)
             elif kind == "clear_injections":
+                if self._blind():
+                    return {"ok": False, "summary": "injections cannot be cleared during a blind human test"}
                 await self._clear_injections()
+            elif kind == "operator_mode":
+                return await self.set_operator_mode(msg.get("mode"))
+            elif kind == "human_test_start":
+                return await self.start_human_test(msg)
+            elif kind == "human_test_stop":
+                return await self.stop_human_test()
+            elif kind in ("agent_mode", "agent_approve", "diagnose_now") and self.operator_mode == "human":
+                return {"ok": False, "summary": "agents are off in human-operator mode; switch to Agents first"}
             elif kind == "campaign_start":
                 return await self.start_campaign(msg)
             elif kind == "campaign_stop":
@@ -357,7 +381,8 @@ class PlantService:
         return SupervisoryAction(**kw)
 
     # ------------------------------------------------------------ master injections
-    async def _inject(self, m: dict) -> dict:
+    async def _inject(self, m: dict, quiet: bool = False) -> dict:
+        """quiet: a blind human test; nothing about the fault reaches the console."""
         async with self.lock:
             env = self.env
             if env is None or env.done:
@@ -419,6 +444,8 @@ class PlantService:
                 text = f"process fault {ftype}"
             else:
                 raise ValueError(f"unknown injection kind {kind!r}")
+        if quiet:
+            return {"ok": True, "summary": "injected"}
         await self.notify(f"[master] injected {text}", "warn")
         await self.broadcast({"type": "status", **self.status()})
         return {"ok": True, "summary": f"injected {text}"}
@@ -432,6 +459,50 @@ class PlantService:
                 eng.faults = [replace(f, end_h=t) if f.active(t) and f.name.startswith("manual_") else f
                               for f in eng.faults]
         await self.notify("[master] all active manual injections ended", "warn")
+
+    # ------------------------------------------------------------ human operator
+    def _blind(self) -> bool:
+        return self.human_test is not None and self.human_test.blind and self.human_test.state == "running"
+
+    async def set_operator_mode(self, mode: str | None) -> dict:
+        from .human_test import OPERATOR_MODES
+        if mode not in OPERATOR_MODES:
+            return {"ok": False, "summary": f"operator mode must be one of {OPERATOR_MODES}"}
+        if mode == "agents" and self.human_test is not None and self.human_test.state == "running":
+            return {"ok": False, "summary": "stop the human test before handing over to the agents"}
+        self.operator_mode = mode
+        if mode == "human":
+            await self.set_agent_hold(False)
+        await self.broadcast({"type": "status", **self.status()})
+        await self.notify("Human-operator mode: the agents are off, you run the plant" if mode == "human"
+                          else "Agents mode: the agents supervise the plant again")
+        return {"ok": True, "summary": f"operator mode {mode}"}
+
+    async def start_human_test(self, msg: dict) -> dict:
+        from .human_test import HumanTest, pick
+        sid, random_pick = pick(msg.get("scenario", "random"))
+        if self.operator_mode != "human":
+            await self.set_operator_mode("human")
+        blind = bool(msg.get("blind", True))
+        test = HumanTest(self, sid, blind, random_pick)
+        await self.load({"scenario": "nominal", "horizon_min": test.window + 1.0, "stop_on_trip": True})
+        self.human_test = test
+        await self.broadcast({"type": "human_test", **test.status()})
+        what = "a random scenario" if random_pick else sid
+        await self.notify(f"[human test] {what}, {test.window:.0f} min{', blind' if blind else ''}: "
+                          "faults are coming and you are the operator", "warn")
+        if msg.get("run", True):
+            self.set_running(True)
+        return {"ok": True, "summary": "human test started"}
+
+    async def stop_human_test(self) -> dict:
+        if self.human_test is None or self.human_test.state != "running":
+            return {"ok": False, "summary": "no human test running"}
+        await self.human_test.finish("stopped early")
+        return {"ok": True, "summary": "human test stopped"}
+
+    def human_test_status(self) -> dict:
+        return self.human_test.status() if self.human_test is not None else {"human_test": None}
 
     # ------------------------------------------------------------ fault campaigns
     async def start_campaign(self, msg: dict) -> dict:
@@ -585,10 +656,13 @@ class PlantService:
                 "episode_status": env.outcomes.state.status.value if env else None,
                 "config": self.config, "tick_delay_ms": 1000 * self.tick_delay_s,
                 "pace": {"every": self.pace_every, "sleep_s": self.pace_sleep_s},
-                "hold_for_agents": self.hold_for_agents, "held": self.held}
+                "hold_for_agents": self.hold_for_agents, "held": self.held,
+                "operator_mode": self.operator_mode}
 
     def _truth(self) -> dict:
         env, t = self.env, self.env.t_h
+        if self._blind():  # the person under test must not see what was injected
+            return {"schedule": [], "runtime": [], "actuator": [], "sensor": [], "pump": [], "hidden": True}
         events = []
         for ev in env.spec.scenario.events:
             phase = "active" if ev.active(t) else "pending" if t < ev.start_h else "done"
@@ -667,10 +741,11 @@ class PlantService:
 
     def hello(self) -> dict:
         from .campaigns import CAMPAIGNS, FAULT_LIBRARY
+        from .human_test import scenario_list
         out = {"api_version": API_VERSION,
                "meta": {**self.meta(), "campaigns": {k: v["description"] for k, v in CAMPAIGNS.items()},
-                        "fault_library": sorted(FAULT_LIBRARY)},
-               **self.campaign_status(), "snapshot": self.snapshot(), "trend": list(self.trend),
+                        "fault_library": sorted(FAULT_LIBRARY), "human_scenarios": scenario_list()},
+               **self.campaign_status(), **self.human_test_status(), "snapshot": self.snapshot(), "trend": list(self.trend),
                "monitor": list(self.monitor), "agent_log": list(self.agent_log),
                "messages": list(self.messages)}
         for extra in self.hello_extras:

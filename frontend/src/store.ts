@@ -1,12 +1,12 @@
 import { useSyncExternalStore } from "react";
-import type { AgentEvent, AgentInfo, Brief, Campaign, ChatMessage, Hello, LlmUsage, Message, Meta, MonitorEvent, Num, SessionInfo, Snapshot, TrendPoint } from "./types";
+import type { AgentEvent, AgentInfo, Brief, Campaign, ChatMessage, Hello, HumanTest, LlmUsage, Message, Meta, MonitorEvent, Num, SessionInfo, Snapshot, TrendPoint } from "./types";
 
 const MAX_POINTS = 1440;
 
 export type Columns = Record<string, Num[]>;
 
 // Must match API_VERSION in server/plant_service.py.
-export const API_VERSION = 7;
+export const API_VERSION = 8;
 
 const SESSION_KEY = "plant-session";
 function storedSession(): string {
@@ -32,6 +32,7 @@ export interface PlantState {
   toast: { ok: boolean; text: string; at: number } | null;
   brief: Brief | null;          // planning agent's latest brief
   campaign: Campaign | null;
+  humanTest: HumanTest | null;
   chat: ChatMessage[];
   chatMode: string;
   chatModel: string | null;
@@ -114,7 +115,7 @@ class PlantStore {
   state: PlantState = {
     connected: false, backendVersion: null, meta: null, snap: null, trend: {}, trendVersion: 0,
     monitor: emptyMonitor(), lastMonitor: null, agentLog: [], agent: null, pending: {},
-    messages: [], toast: null, brief: null, campaign: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
+    messages: [], toast: null, brief: null, campaign: null, humanTest: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
     pipeline: idlePipeline(), session: null, notice: null, keyBusy: false,
   };
   // The visitor's LLM connection (incl. key) lives only in this page's memory (never in browser storage), so a
@@ -169,7 +170,7 @@ class PlantStore {
       meta: h.meta, snap: h.snapshot, trend, trendVersion: this.state.trendVersion + 1,
       monitor, lastMonitor: h.monitor.at(-1) ?? null, agentLog: h.agent_log.slice(-300),
       agent: h.agent ?? this.state.agent, pending, messages: h.messages, brief, pipeline,
-      campaign: h.campaign ?? null, chatMode: h.chat?.mode ?? this.state.chatMode,
+      campaign: h.campaign ?? null, humanTest: h.human_test ?? null, chatMode: h.chat?.mode ?? this.state.chatMode,
       chatModel: h.chat?.model ?? null, llmUsage: h.agent?.llm_usage ?? this.state.llmUsage,
       session: h.session ?? null, notice: null,
     });
@@ -235,6 +236,9 @@ class PlantStore {
       case "campaign":
         this.set({ campaign: msg.campaign });
         break;
+      case "human_test":
+        this.set({ humanTest: msg.human_test });
+        break;
       case "chat": {
         const chat = this.state.chat.map((m) =>
           m.pending && m.id === msg.id ? { role: "assistant" as const, text: msg.reply, tools: msg.tools, id: msg.id } : m);
@@ -252,7 +256,7 @@ class PlantStore {
           if (!msg.ok) this.llmConn = null;
           this.set({ keyBusy: false });
         }
-        if (!msg.ok || ["set_llm", "set_api_key", "clear_api_key", "set_agent_preset"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop"].includes(msg.request))
+        if (!msg.ok || ["set_llm", "set_api_key", "clear_api_key", "set_agent_preset"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop", "operator_mode", "human_test_start", "human_test_stop"].includes(msg.request))
           this.set({ toast: { ok: msg.ok, text: msg.summary, at: Date.now() } });
         break;
     }
