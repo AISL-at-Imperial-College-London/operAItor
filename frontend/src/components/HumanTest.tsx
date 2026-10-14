@@ -18,14 +18,13 @@ export function HumanTestPanel() {
 
   return (
     <details className="sub human-test" open={human || !!test}>
-      <summary>Human test <span className="dim small">you answer the benchmark faults, the agents are off</span></summary>
+      <summary>Human test <span className="dim small">scored like the agents</span></summary>
       {!running && (
         <div className="human-setup">
-          <p className="hint">
-            Replays one of the {scenarios.length} benchmark scenarios on a fresh plant: the same faults at the same times,
-            scored the same way as the agents (margin + inventory change − $20k per plant stop over the scenario
-            window). Watch the alarms and trends and act from the Operate panel; SIF resets after the faults clear are
-            requested for you every 5 min, as in the benchmark.
+          <p className="hint" title="Score = operating margin + inventory change − $20k per plant stop, over the scenario window.
+SIF resets after the faults clear are requested for you every 5 min, as in the benchmark.">
+            Faults from one of the {scenarios.length} benchmark scenarios hit a fresh plant. Keep it running with the
+            controls below; your score is compared with the agents' at the end.
           </p>
           <label className="field"><span>Scenario</span>
             <select value={scenario} onChange={(e) => setScenario(e.target.value)}>

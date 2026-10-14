@@ -83,11 +83,14 @@ export function Overview() {
           {VALUES.map(([k, x, y, w, h]) => (
             <div key={k} className="ov-value" style={pos(x, y, w + PAD_W, h + PAD_H)}>{text[k]}</div>
           ))}
-          {LAMPS.map(([x, y, tag], i) => (
-            <div key={i} className={`ov-lamp ${tagState(tag)}`} style={pos(x, y)} title={tag ?? ""} />
-          ))}
+          {/* Lamps cover the artwork's white squares: dark while normal, amber / flashing in alarm. */}
+          {LAMPS.map(([x, y, tag], i) => {
+            const st = tagState(tag);
+            return <div key={i} className={`ov-lamp ${st}`} style={pos(x, y)}
+              title={tag && st !== "NORMAL" ? `${tag}: ${st === "ACTIVE_ACK" ? "in alarm" : "alarm, unacknowledged"}` : undefined} />;
+          })}
           <div className="ov-sifs" style={pos(...SIF_BOX)}>
-            <div className="ov-sifs-title">Safety functions (SIF)<span>trip = plant trip · lamps: white normal, amber alarm, red trip</span></div>
+            <div className="ov-sifs-title">Safety functions<span>red = tripped · <b>trip</b> = stops the whole plant · amber lamp next to a value = alarm</span></div>
             <div className="ov-sifs-grid">
               {SIFS.map(([id, label, trip]) => (
                 <div key={id} className={`ov-sif ${snap.sif_latched.includes(id) ? "latched" : ""}`} title={`${id}${trip ? " (plant trip)" : ""}`}>

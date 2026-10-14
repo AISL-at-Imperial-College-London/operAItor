@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { send, usePlant } from "../store";
 import type { AgentEvent } from "../types";
 import { AdmitCard } from "./AdmitPanel";
+import { LlmKeyCard } from "./LlmKey";
 import { Chart } from "./Chart";
 import { PipelineCard } from "./Pipeline";
 import { C } from "./Trends";
@@ -61,10 +62,9 @@ function ConfigSelect() {
   const presets = session?.llm.presets;
   if (!presets) return null;
   const on = session.llm.active;
+  if (!on) return <span className="dim small">needs an LLM (connect one below)</span>;
   return (
-    <label className="inline-field" onClick={(e) => e.stopPropagation()}
-      title={on ? "Validation step after the action agent" : "Needs an LLM: connect one in the Assistant panel"}>
-      <span className="dim small">Validation</span>
+    <label className="inline-field" title={on ? "How each proposed action is checked before it reaches the plant" : "Needs an LLM (below)"}>
       <select value={on ? (agent?.preset ?? session.llm.preset) : ""} disabled={!on}
         onChange={(e) => send({ type: "set_agent_preset", preset: e.target.value })}>
         {!on && <option value="">no LLM</option>}
@@ -74,17 +74,51 @@ function ConfigSelect() {
   );
 }
 
+const MODE_TEXT: Record<string, [string, string]> = {
+  off: ["Off", "The agents do nothing"],
+  advisory: ["Suggest", "The agents propose actions; you approve or dismiss each one"],
+  autonomous: ["Act on their own", "The agents apply validated actions to the plant"],
+};
+
 function ModeSwitch() {
   const agent = usePlant((s) => s.agent);
   if (!agent) return null;
   return (
-    <div className="seg small" role="radiogroup" aria-label="Agent mode" onClick={(e) => e.stopPropagation()}>
+    <div className="seg small" role="radiogroup" aria-label="Agent mode">
       {agent.modes.map((m) => (
         <button key={m} role="radio" aria-checked={agent.mode === m} className={agent.mode === m ? "on" : ""}
-          title={m === "advisory" ? "agents propose, you approve" : m === "autonomous" ? "agents act on their own" : "agents off"}
-          onClick={(e) => { e.preventDefault(); send({ type: "agent_mode", mode: m }); }}>{m}</button>
+          title={MODE_TEXT[m]?.[1]} onClick={() => send({ type: "agent_mode", mode: m })}>{MODE_TEXT[m]?.[0] ?? m}</button>
       ))}
     </div>
+  );
+}
+
+/** Every agent setting in one place: what the agents may do, how actions are checked, the LLM behind them. */
+function AgentSettings() {
+  const agent = usePlant((s) => s.agent);
+  const snap = usePlant((s) => s.snap);
+  const session = usePlant((s) => s.session);
+  const on = !!session?.llm.active;
+  return (
+    <section className="card settings">
+      <h3>Agent settings</h3>
+      <div className="settings-grid">
+        <span className="settings-label">The agents</span>
+        <div><ModeSwitch /> <span className="dim small">{agent ? MODE_TEXT[agent.mode]?.[1] : ""}</span></div>
+        <span className="settings-label">Check each action with</span>
+        <div><ConfigSelect /></div>
+        <span className="settings-label">While they decide</span>
+        <label className="check"><input type="checkbox" checked={snap?.hold_for_agents ?? true}
+          onChange={(e) => send({ type: "hold_for_agents", on: e.target.checked })} /> pause the plant</label>
+      </div>
+      {on ? <LlmKeyCard /> : (
+        <details className="sub connect-llm" open={!on}>
+          <summary>{session?.llm.reason ? `No LLM: ${session.llm.reason}` : "No LLM connected"}
+            <span className="dim small"> · without one the agents only monitor and diagnose</span></summary>
+          <LlmKeyCard />
+        </details>
+      )}
+    </section>
   );
 }
 
@@ -107,7 +141,7 @@ function CurrentDecision() {
     <section className="card decision">
       <h3>Current decision
         <span className="dim small">{p.cycle ? ` #${p.cycle} at ${p.t?.toFixed(1)} min${p.attempts > 1 ? ` · ${p.attempts} proposals` : ""}` : ""}</span>
-        <span className="spacer" /><ConfigSelect /><ModeSwitch /></h3>
+      </h3>
       <div className={`banner-inline ${last?.fault ? "bad" : last?.advisory?.length ? "warn" : "ok"}`}>
         {last ? (last.fault ? `Fault confirmed by PCA · ${last.diagnosis.summary}`
           : last.advisory?.length ? `Quality alarm ${last.advisory.join(", ")} (not acted on: PCA has not confirmed a fault)`
@@ -118,7 +152,7 @@ function CurrentDecision() {
         <p className="dim small">When PCA confirms a fault the agents diagnose it, plan, propose an action and validate it before it
           reaches the plant. {llm ? `LLM: ${llm}.` : session?.llm.reason
             ? <span className="warn-text">Agents cannot act: {session.llm.reason}.</span>
-            : "Connect an LLM in the Assistant panel (free options: Groq, Gemini, OpenRouter or Ollama) to let them act."}</p>
+            : "Connect an LLM in the settings above (free options: Groq, Gemini, OpenRouter or Ollama) to let them act."}</p>
       ) : (
         <ol className="steps">
           <li><span>Diagnosis</span>{diag ? <><b>{diag.most_likely ?? "unclear"}</b><small>{diag.summary}</small></> : <small className="dim">{last?.diagnosis.summary ?? "—"}</small>}</li>
@@ -196,14 +230,16 @@ function FaultDetection() {
 
 function LlmDiagnosis() {
   const log = usePlant((s) => s.agentLog);
+  const llmOn = usePlant((s) => !!s.session?.llm.active);
   const [busy, setBusy] = useState(false);
   const d = [...log].reverse().find((e) => e.stage === "llm_diagnosis");
   useEffect(() => setBusy(false), [d]);
   return (
     <>
-      <div className="row"><button className="btn sm" disabled={busy} onClick={() => { setBusy(true); send({ type: "diagnose_now" }); }}>
-        {busy ? "Asking…" : "Ask the LLM now"}</button></div>
-      {!d ? <p className="dim">No LLM diagnosis yet. It runs when a fault is confirmed, or ask now.</p> : !d.ok ? (
+      {llmOn && <div className="row"><button className="btn sm" disabled={busy} onClick={() => { setBusy(true); send({ type: "diagnose_now" }); }}>
+        {busy ? "Asking…" : "Diagnose now"}</button></div>}
+      {!d ? <p className="dim">{llmOn ? "No LLM diagnosis yet. It runs when a fault is confirmed, or diagnose now."
+        : "Needs an LLM: connect one in Agent settings above."}</p> : !d.ok ? (
         <p className="warn-text">LLM diagnosis failed: {d.error}</p>
       ) : (
         <>
@@ -265,8 +301,10 @@ export function AgentsTab() {
   const human = usePlant((s) => s.snap?.operator_mode === "human");
   return (
     <div className="stack">
-      {human && <div className="fault-banner warn">Human-operator mode: the agents are off (no monitoring, diagnosis,
-        proposals or actions). What is shown below is from before the switch. Switch back to Agents in the header.</div>}
+      {human ? (
+        <div className="fault-banner warn">The agents are off: you are the operator. What is shown below is from before
+          the switch. Switch back to <b>Agents</b> in the header to hand over.</div>
+      ) : <AgentSettings />}
       <Pending />
       <PipelineCard />
       <CurrentDecision />

@@ -8,56 +8,41 @@ export const TABS: { id: Tab; label: string }[] = [
   { id: "plant", label: "Plant" }, { id: "trends", label: "Trends" },
   { id: "agents", label: "Agents" }, { id: "alarms", label: "Alarms" },
 ];
+export const DRAWERS: { id: Drawer; label: string; title: string }[] = [
+  { id: "operate", label: "Operate", title: "Change setpoints, modes, pumps and emergency devices" },
+  { id: "assistant", label: "Assistant", title: "Ask questions about the plant" },
+  { id: "faults", label: "Faults", title: "Inject faults to test the operator or the agents" },
+];
 
 // [label, delay per 0.5-min step (ms), pace every N steps, pace sleep (s)]
 const SPEEDS: [string, number, number, number][] = [
   ["Max speed", 0, 0, 0], ["Fast", 0, 10, 0.05], ["Medium", 0, 10, 0.5],
-  ["Slow", 250, 0, 0], ["Real-time-ish", 1000, 0, 0],
+  ["Slow", 250, 0, 0], ["Real time", 1000, 0, 0],
 ];
 const speedKey = (d: number, every: number, sleep: number) => `${d}:${every}:${sleep}`;
 
-const PRESET_LABEL: Record<string, string> = {
-  passive: "monitoring only", llm: "LLM + digital twin", llm_admit: "LLM + ADMIT", llm_admit_nosim: "LLM + ADMIT (no sim)",
-  llm_judge: "LLM + judge", llm_lucky: "LLM, no validation", llm_plan: "LLM planning + twin",
-  llm_nokg: "LLM + twin (no KG)", llm_notwin: "LLM (no twin)",
+const SCENARIO_LABEL: Record<string, string> = {
+  nominal: "Normal operation", variability: "Normal operation with disturbances", surprise: "Surprise (hidden faults)",
 };
+export const scenarioLabel = (s: string) => SCENARIO_LABEL[s] ?? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ");
 
 /** One status for the plant: the most important thing first. */
 function plantStatus(snap: Snapshot, fault: boolean): [string, string] {
   if (snap.done) {
-    const how = snap.episode_status.toLowerCase().replace(/_/g, " ");
     const failed = snap.plant_trip || ["SAFE_TRIP", "DAMAGE", "MODEL_LIMIT", "NUMERICAL_FAILURE"].includes(snap.episode_status);
-    return [failed ? "bad" : "warn", `Ended · ${how}${snap.plant_trip ? ` (${snap.sif_latched.join(", ")})` : ""}`];
+    return [failed ? "bad" : "warn", failed ? `Stopped · ${snap.plant_trip ? "plant trip" : snap.episode_status.toLowerCase().replace(/_/g, " ")}` : "Episode finished"];
   }
   if (snap.plant_trip) return ["bad", `Plant trip · ${snap.sif_latched.join(", ")}`];
-  if (snap.sif_latched.length) return ["warn", `SIF ${snap.sif_latched.join(", ")}`];
+  if (snap.sif_latched.length) return ["warn", `Safety function ${snap.sif_latched.join(", ")}`];
   if (fault) return ["warn", "Fault detected"];
   return ["ok", "Normal"];
-}
-
-/** Who answers the faults: the agents, or a person (agents off; for testing the console as a human). */
-function OperatorModeSwitch() {
-  const snap = usePlant((s) => s.snap);
-  const test = usePlant((s) => s.humanTest);
-  const mode = snap?.operator_mode ?? "agents";
-  const locked = test?.state === "running";
-  return (
-    <div className="seg small op-mode" role="radiogroup" aria-label="Operator mode">
-      {([["agents", "Agents", "the agents supervise the plant"],
-         ["human", "Human operator", "agents off: you answer the faults (Operate panel → Human test)"]] as const).map(([m, l, t]) => (
-        <button key={m} role="radio" aria-checked={mode === m} className={`${mode === m ? "on" : ""} ${m}`}
-          title={locked && m === "agents" ? "stop the human test first" : t} disabled={locked && m === "agents"}
-          onClick={() => mode !== m && send({ type: "operator_mode", mode: m })}>{l}</button>
-      ))}
-    </div>
-  );
 }
 
 function EpisodeMenu() {
   const meta = usePlant((s) => s.meta);
   const snap = usePlant((s) => s.snap);
   const [open, setOpen] = useState(false);
-  const [cfg, setCfg] = useState({ scenario: "nominal", horizon_min: 360, seed: 20261004, stop_on_trip: false });
+  const [cfg, setCfg] = useState({ scenario: "nominal", horizon_min: 360, seed: 20261004, stop_on_trip: true });
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => { if (snap) setCfg(snap.config); }, [snap?.episode]); // eslint-disable-line
   useEffect(() => {
@@ -67,27 +52,45 @@ function EpisodeMenu() {
   }, []);
   return (
     <div className="menu" ref={ref}>
-      <button className="btn" aria-expanded={open} onClick={() => setOpen(!open)} title="Episode settings">Episode ▾</button>
+      <button className="btn" aria-expanded={open} onClick={() => setOpen(!open)} title="Start a new episode">New episode ▾</button>
       {open && (
-        <div className="menu-pop" role="dialog" aria-label="Episode">
+        <div className="menu-pop" role="dialog" aria-label="New episode">
           <label className="field"><span>Scenario</span>
             <select value={cfg.scenario} onChange={(e) => setCfg({ ...cfg, scenario: e.target.value })}>
-              {meta?.scenarios.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
+              {meta?.scenarios.map((s) => <option key={s} value={s}>{scenarioLabel(s)}</option>)}
             </select></label>
-          <div className="row">
-            <label className="field"><span>Length [min]</span>
-              <input type="number" value={cfg.horizon_min} onChange={(e) => setCfg({ ...cfg, horizon_min: +e.target.value })} /></label>
-            <label className="field"><span>Random seed</span>
-              <input type="number" value={cfg.seed} onChange={(e) => setCfg({ ...cfg, seed: +e.target.value })} /></label>
-          </div>
-          <label className="check"><input type="checkbox" checked={cfg.stop_on_trip}
-            onChange={(e) => setCfg({ ...cfg, stop_on_trip: e.target.checked })} /> End the episode at a plant trip</label>
-          <label className="check" title="Pause the plant while the agents decide (KG, plan, act, validate)">
-            <input type="checkbox" checked={snap?.hold_for_agents ?? true}
-              onChange={(e) => send({ type: "hold_for_agents", on: e.target.checked })} /> Pause the plant while agents decide</label>
-          <button className="btn primary" onClick={() => { send({ type: "load", ...cfg }); setOpen(false); }}>Load episode</button>
+          <details className="sub">
+            <summary>Advanced</summary>
+            <div className="row">
+              <label className="field"><span>Length [min]</span>
+                <input type="number" value={cfg.horizon_min} onChange={(e) => setCfg({ ...cfg, horizon_min: +e.target.value })} /></label>
+              <label className="field"><span>Random seed</span>
+                <input type="number" value={cfg.seed} onChange={(e) => setCfg({ ...cfg, seed: +e.target.value })} /></label>
+            </div>
+            <label className="check"><input type="checkbox" checked={cfg.stop_on_trip}
+              onChange={(e) => setCfg({ ...cfg, stop_on_trip: e.target.checked })} /> End the episode at a plant trip</label>
+          </details>
+          <button className="btn primary" onClick={() => { send({ type: "load", ...cfg }); setOpen(false); }}>Start fresh plant</button>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Who answers the faults: the agents, or a person (agents off; for testing the console as a human). */
+function OperatorModeSwitch() {
+  const snap = usePlant((s) => s.snap);
+  const test = usePlant((s) => s.humanTest);
+  const mode = snap?.operator_mode ?? "agents";
+  const locked = test?.state === "running";
+  return (
+    <div className="seg small op-mode" role="radiogroup" aria-label="Who operates the plant">
+      {([["agents", "Agents", "The agents supervise the plant"],
+         ["human", "Human operator", "Agents off: you answer the faults (Operate panel → Human test)"]] as const).map(([m, l, t]) => (
+        <button key={m} role="radio" aria-checked={mode === m} className={`${mode === m ? "on" : ""} ${m}`}
+          title={locked && m === "agents" ? "Stop the human test first" : t} disabled={locked && m === "agents"}
+          onClick={() => mode !== m && send({ type: "operator_mode", mode: m })}>{l}</button>
+      ))}
     </div>
   );
 }
@@ -96,17 +99,16 @@ export function Header({ tab, onTab, drawer, onDrawer }:
   { tab: Tab; onTab: (t: Tab) => void; drawer: Drawer | ""; onDrawer: (d: Drawer) => void }) {
   const snap = usePlant((s) => s.snap);
   const last = usePlant((s) => s.lastMonitor);
-  const agent = usePlant((s) => s.agent);
   const pipeline = usePlant((s) => s.pipeline);
 
   const unack = snap?.alarms.filter((a) => a.state.endsWith("UNACK")).length ?? 0;
   const active = snap?.alarms.filter((a) => a.state.startsWith("ACTIVE")).length ?? 0;
   const current = speedKey(snap?.tick_delay_ms ?? 0, snap?.pace?.every ?? 10, snap?.pace?.sleep_s ?? 0.05);
   const known = SPEEDS.some(([, d, n, sl]) => speedKey(d, n, sl) === current);
-  const [cls, status] = snap ? plantStatus(snap, snap.operator_mode !== "human" && !!last?.fault) : ["", "—"];
-  const preset = agent?.preset ?? "passive";
   const human = snap?.operator_mode === "human";
+  const [cls, status] = snap ? plantStatus(snap, !human && !!last?.fault) : ["", "Connecting…"];
   const deciding = !human && (snap?.held || (pipeline.cycle > 0 && !pipeline.outcome));
+  const running = !!snap?.running && !snap.done;
 
   return (
     <header className="header">
@@ -122,17 +124,16 @@ export function Header({ tab, onTab, drawer, onDrawer }:
       <div className="header-status">
         <span className={`status ${cls}`} title="Plant status">{status}</span>
         <OperatorModeSwitch />
-        {human ? <span className="status warn" title="The agents are off; you operate the plant">Agents off</span>
-          : <span className={`status ${deciding ? "warn" : ""}`} title="Agent configuration">
-              {deciding ? "Agents deciding…" : `Agents: ${PRESET_LABEL[preset] ?? preset}`}</span>}
+        {deciding && <span className="status warn" title="The plant is paused while the agents decide">Agents deciding…</span>}
       </div>
       <div className="transport">
         <span className="clock num" title="Simulated time">{snap ? `${snap.time_min.toFixed(1)} min` : "—"}</span>
-        {snap?.running && !snap.done
-          ? <button className="btn primary" onClick={() => send({ type: "pause" })}>Pause</button>
-          : <button className="btn primary" onClick={() => send({ type: "run" })} disabled={snap?.done}>Run</button>}
-        <button className="btn" onClick={() => send({ type: "step", minutes: 1 })} title="Advance 1 minute">+1 min</button>
-        <select aria-label="Speed" title="Simulation speed" value={current}
+        {running
+          ? <button className="btn primary" onClick={() => send({ type: "pause" })}>❚❚ Pause</button>
+          : <button className="btn primary" onClick={() => send({ type: "run" })}
+              title={snap?.done ? "Start the same episode again" : "Run the plant"}>{snap?.done ? "↻ Restart" : "▶ Run"}</button>}
+        {!running && !snap?.done && <button className="btn" onClick={() => send({ type: "step", minutes: 1 })} title="Advance 1 minute">+1 min</button>}
+        <select aria-label="Simulation speed" title="Simulation speed" value={current}
           onChange={(e) => {
             const s = SPEEDS.find(([, d, n, sl]) => speedKey(d, n, sl) === e.target.value);
             if (!s) return;
@@ -145,8 +146,9 @@ export function Header({ tab, onTab, drawer, onDrawer }:
         <EpisodeMenu />
       </div>
       <div className="drawer-buttons">
-        {([["operate", "Operate"], ["assistant", "Assistant"], ["faults", "Faults"]] as [Drawer, string][]).map(([d, l]) => (
-          <button key={d} className={`btn ${drawer === d ? "on" : ""}`} aria-pressed={drawer === d} onClick={() => onDrawer(d)}>{l}</button>
+        {DRAWERS.map((d) => (
+          <button key={d.id} className={`btn ${drawer === d.id ? "on" : ""}`} aria-pressed={drawer === d.id} title={d.title}
+            onClick={() => onDrawer(d.id)}>{d.label}</button>
         ))}
       </div>
     </header>

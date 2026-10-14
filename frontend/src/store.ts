@@ -41,7 +41,11 @@ export interface PlantState {
   session: SessionInfo | null;
   notice: { kind: "busy" | "expired"; text: string } | null;
   keyBusy: boolean;
+  /** A request from one panel to show another (e.g. a control-loop row opens Operate on that loop). */
+  nav: NavRequest | null;
 }
+
+export interface NavRequest { tab?: "plant" | "trends" | "agents" | "alarms"; drawer?: "operate" | "assistant" | "faults"; loop?: string; at: number }
 
 export type NodeStatus = "idle" | "running" | "ok" | "warn" | "fail" | "skip";
 export const PIPELINE_NODES = ["monitoring", "kg_retrieval", "planning", "action_propose",
@@ -116,7 +120,7 @@ class PlantStore {
     connected: false, backendVersion: null, meta: null, snap: null, trend: {}, trendVersion: 0,
     monitor: emptyMonitor(), lastMonitor: null, agentLog: [], agent: null, pending: {},
     messages: [], toast: null, brief: null, campaign: null, humanTest: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
-    pipeline: idlePipeline(), session: null, notice: null, keyBusy: false,
+    pipeline: idlePipeline(), session: null, notice: null, keyBusy: false, nav: null,
   };
   // The visitor's LLM connection (incl. key) lives only in this page's memory (never in browser storage), so a
   // new session (after a server restart or session expiry) can be re-keyed without retyping.
@@ -131,7 +135,7 @@ class PlantStore {
     return () => this.listeners.delete(fn);
   };
 
-  private set(patch: Partial<PlantState>) {
+  set(patch: Partial<PlantState>) {
     this.state = { ...this.state, ...patch };
     this.listeners.forEach((fn) => fn());
   }
@@ -256,7 +260,7 @@ class PlantStore {
           if (!msg.ok) this.llmConn = null;
           this.set({ keyBusy: false });
         }
-        if (!msg.ok || ["set_llm", "set_api_key", "clear_api_key", "set_agent_preset"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop", "operator_mode", "human_test_start", "human_test_stop"].includes(msg.request))
+        if (!msg.ok || ["set_llm", "set_api_key", "clear_api_key", "set_agent_preset"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop", "human_test_start", "human_test_stop"].includes(msg.request))
           this.set({ toast: { ok: msg.ok, text: msg.summary, at: Date.now() } });
         break;
     }
@@ -279,3 +283,4 @@ export const send = (msg: Record<string, unknown>) => store.send(msg);
 export const ask = (text: string) => store.ask(text);
 export const connectLlm = (c: { provider: string; model: string; key: string; url: string }) => store.connectLlm(c);
 export const forgetKey = () => store.forgetKey();
+export const navigate = (r: Omit<NavRequest, "at">) => store.set({ nav: { ...r, at: Date.now() } });
