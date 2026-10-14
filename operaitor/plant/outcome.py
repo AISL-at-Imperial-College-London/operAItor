@@ -135,7 +135,8 @@ class OutcomeEvaluator:
         else:
             exp["column_overpressure_h"] = max(0.0, exp["column_overpressure_h"] - dt_h)
 
-        if m["reboiler_holdup_kmol"] <= self.cfg.reboiler_dry_holdup_kmol and actual.steam_factor > 0.05:
+        # steam on: valve above 3 % open (5 % of the former 0-1.8 duty factor, i.e. the same duty)
+        if m["reboiler_holdup_kmol"] <= self.cfg.reboiler_dry_holdup_kmol and actual.steam_factor > 0.03:
             exp["reboiler_dry_heat_h"] += dt_h
         else:
             exp["reboiler_dry_heat_h"] = max(0.0, exp["reboiler_dry_heat_h"] - dt_h)

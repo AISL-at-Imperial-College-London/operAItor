@@ -27,10 +27,13 @@ class ColumnConfig:
     nominal_stage_dp_bar: float = 0.005
     nominal_vapour_flow: float = 158.8889
 
-    UA_reboiler: float = 60000.0
+    # steam_factor is the reboiler steam-valve opening (0-1), the BOT_TIC manipulated variable.
+    # UA is sized so the valve is 60 % open at the nominal duty (the same duty as the former
+    # UA=60000 x factor 1.0149 formulation); fully open gives 1.69x the nominal duty.
+    UA_reboiler: float = 60000.0 * 1.0148912356226403 / 0.60
     steam_temperature: float = 430.0
     steam_pressure_nominal_bar: float = 5.659806566043441
-    steam_factor_nominal: float = 1.0148912356226403
+    steam_factor_nominal: float = 0.60
 
     # v0.5.2: condenser cooling-water valve is the regulatory pressure MV.
     # UA is rescaled so 60% nominal valve opening gives the same nominal duty
@@ -64,7 +67,7 @@ class ColumnInputs:
     feed_temperature: float | None = None
 
     reflux_flow: float = 80.0
-    steam_factor: float = 1.0148912356226403
+    steam_factor: float = 0.60  # steam-valve opening, 0-1
     condenser_cooling_valve: float = 0.60
     condenser_cooling_effectiveness: float = 1.0
     condenser_pressure_bar: float = 1.0  # retained as nominal/reference input for compatibility
@@ -204,7 +207,7 @@ class DistillationDAE:
         dr_leak = max(u.drum_leak_flow, 0.0)
 
         T_steam = th.water_saturation_temperature(u.steam_pressure_bar)
-        Q_reb = c.UA_reboiler * u.steam_factor * self._positive(T_steam - Tr)
+        Q_reb = c.UA_reboiler * float(np.clip(u.steam_factor, 0.0, 1.0)) * self._positive(T_steam - Tr)
         Q_rb_loss = c.UA_reboiler_loss_kJ_hK * self._positive(Tr - u.ambient_temperature_K)
         Q_dr_loss = c.UA_drum_loss_kJ_hK * self._positive(Td - u.ambient_temperature_K)
 
@@ -372,7 +375,7 @@ class DistillationDAE:
         dr = y[self.drum_offset : self.drum_offset + 5]
         top = self.tray(y, 0)
         T_steam = self.th.water_saturation_temperature(u.steam_pressure_bar)
-        Q_reb = self.cfg.UA_reboiler * u.steam_factor * self._positive(T_steam - rb[3])
+        Q_reb = self.cfg.UA_reboiler * float(np.clip(u.steam_factor, 0.0, 1.0)) * self._positive(T_steam - rb[3])
         cap = self.condenser_capacity(y, u)
         return {
             "distillate_x_acetone": float(dr[4]),

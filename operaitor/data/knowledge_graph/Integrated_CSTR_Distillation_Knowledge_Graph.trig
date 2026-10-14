@@ -300,10 +300,10 @@
 
     int:transition_running_damage a UML:Transition ;
         rdfs:label "RUNNING → DAMAGE"@en ;
-        ip:guardExpression "reactor P >= 5.0 bar for 2 min OR column P >= 1.8 bar for 2 min OR reboiler holdup <= 5 kmol with steam > 0.05 for 5 min OR CSTR holdup >= 79 kmol" ;
+        ip:guardExpression "reactor P >= 5.0 bar for 2 min OR column P >= 1.8 bar for 2 min OR reboiler holdup <= 5 kmol with steam valve > 0.03 for 5 min OR CSTR holdup >= 79 kmol" ;
         UML:source int:state_RUNNING ;
         UML:target int:state_DAMAGE ;
-        UML:transitionGuard "reactor P >= 5.0 bar for 2 min OR column P >= 1.8 bar for 2 min OR reboiler holdup <= 5 kmol with steam > 0.05 for 5 min OR CSTR holdup >= 79 kmol" ;
+        UML:transitionGuard "reactor P >= 5.0 bar for 2 min OR column P >= 1.8 bar for 2 min OR reboiler holdup <= 5 kmol with steam valve > 0.03 for 5 min OR CSTR holdup >= 79 kmol" ;
         rdfs:comment "Outcome transition to DAMAGE."@en .
 
     int:transition_running_model_limit a UML:Transition ;
@@ -996,7 +996,7 @@
 
     int:ID_steam_factor a DINEN61360:Instance_Description ;
         rdfs:label "Instance description steam_factor"@en ;
-        DINEN61360:Value 1.014891e+00 .
+        DINEN61360:Value 6e-01 .
 
     int:ID_steam_pressure_bar a DINEN61360:Instance_Description ;
         rdfs:label "Instance description steam_pressure_bar"@en ;
@@ -1705,10 +1705,10 @@
     int:TD_steam_factor a DINEN61360:Type_Description ;
         rdfs:label "Type description steam_factor"@en ;
         DINEN61360:Code "steam_factor" ;
-        DINEN61360:Definition "Reboiler steam duty factor"@en ;
+        DINEN61360:Definition "Reboiler steam valve opening"@en ;
         DINEN61360:Expression_Goal "Actual value" ;
         DINEN61360:Logic_Interpretation "=" ;
-        DINEN61360:Preferred_Name "Reboiler steam duty factor"@en ;
+        DINEN61360:Preferred_Name "Reboiler steam valve opening"@en ;
         DINEN61360:Short_Name "steam_factor" ;
         DINEN61360:Unit_of_Measure "fraction" ;
         DINEN61360:Version_Number "1.0" .
@@ -2804,7 +2804,7 @@
         rdfs:label "BOT_TIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=0.055, Ti=0.15 h, deadband=0.3."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=0.0325, Ti=0.15 h, deadband=0.3."@en .
 
     int:Equation_COL_PIC a VDI2206:MathematicalModel ;
         rdfs:label "COL_PIC PI control law"@en ;
@@ -3516,7 +3516,7 @@
         rdfs:comment "Measured/observable information tag: reboiler_holdup_kmol."@en .
 
     int:information_steam_factor a VDI3682:Information ;
-        rdfs:label "Reboiler steam duty factor"@en ;
+        rdfs:label "Reboiler steam valve opening"@en ;
         CPSMod:isCharacterizedByParameter int:act_param_steam_factor ;
         DINEN61360:has_Data_Element int:DE_steam_factor ;
         rdfs:comment "Manipulated variable / plant input: steam_factor."@en .
@@ -4589,7 +4589,7 @@
         ip:controlsParameter int:act_param_steam_factor ;
         ip:hasSetpoint int:ref_BOT_TIC_SP ;
         ip:monitorsParameter int:obs_param_bottom_temperature_K ;
-        ip:mvMaximum 1.8e+00 ;
+        ip:mvMaximum 1e+00 ;
         ip:mvMinimum 0e+00 ;
         ip:setpointMaximum 3.65e+02 ;
         ip:setpointMinimum 3.45e+02 ;
@@ -4971,7 +4971,7 @@
 
     int:act_param_steam_factor a DIN17359:Parameter,
             sosa:ActuatableProperty ;
-        rdfs:label "act_param_steam_factor – Reboiler steam duty factor"@en ;
+        rdfs:label "act_param_steam_factor – Reboiler steam valve opening"@en ;
         ip:nominalValue 1.014891e+00 ;
         ip:sourceFile "integrated_plant/plant.py" ;
         ip:sourceSymbol "PlantInputs" ;

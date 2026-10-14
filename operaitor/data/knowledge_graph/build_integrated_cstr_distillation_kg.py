@@ -162,7 +162,7 @@ mv_defs = {
  'cstr_bdv_valve':('H2 emergency BDV opening',0.0,'fraction','module_H2Protection'),
  'cstr_emergency_cooling_factor':('Emergency reactor cooling factor',0.0,'fraction','module_CSTR'),
  'reflux_flow':('Reflux flow',80.0,'kmol/h','module_CondenserDrum'),
- 'steam_factor':('Reboiler steam duty factor',1.0148912356226403,'fraction','module_Reboiler'),
+ 'steam_factor':('Reboiler steam valve opening',0.60,'fraction','module_Reboiler'),
  'bottoms_flow':('Bottoms flow',26.797062506934168,'kmol/h','module_Products'),
  'distillate_flow':('Distillate flow',73.20293749306585,'kmol/h','module_Products'),
  'condenser_cooling_valve':('Condenser cooling-water valve opening',0.60,'fraction','module_CondenserDrum'),
@@ -332,7 +332,7 @@ loops={
  'DR_LIC':('Reflux Drum Level Controller','drum_holdup_kmol','distillate_flow',30.24518437326646,16.0,42.0,'kmol',-4.0,0.20,0.0,130.0,0.30,'module_CondenserDrum','LT-201','P-202A'),
  'COL_PIC':('Column Pressure Controller','column_pressure_bar','condenser_cooling_valve',1.0,0.90,1.15,'bar',-1.5,0.10,0.0,1.0,0.002,'module_CondenserDrum','PT-201','CV-201'),
  'TOP_TIC':('Top Temperature / Reflux Controller','top_temperature_K','reflux_flow',331.7216115988592,325.0,340.0,'K',-7.0,0.15,0.0,180.0,0.30,'module_CondenserDrum','TT-201','P-201A'),
- 'BOT_TIC':('Bottom Temperature / Steam Controller','bottom_temperature_K','steam_factor',354.42228104157755,345.0,365.0,'K',0.055,0.15,0.0,1.8,0.30,'module_Reboiler','TT-202','FV-202'),
+ 'BOT_TIC':('Bottom Temperature / Steam Controller','bottom_temperature_K','steam_factor',354.42228104157755,345.0,365.0,'K',0.0325,0.15,0.0,1.0,0.30,'module_Reboiler','TT-202','FV-202'),
 }
 controller_uri={}; setpoint_uri={}
 for loop,(label,pv,mv,sp,spmin,spmax,spunit,kp,ti,umin,umax,deadband,mod,sensor,actuator) in loops.items():
@@ -566,7 +566,7 @@ transitions={
  'transition_running_completed':('COMPLETED','t >= horizon_h AND horizon_is_completion == True'),
  'transition_running_recovered':('RECOVERED','abnormal_seen AND NOT external_abnormal_active AND no SIF latched AND near_nominal for 15 min'),
  'transition_running_safe_trip':('SAFE_TRIP','(terminate_on_plant_trip AND plant_trip_latched) OR (plant_trip_latched AND safe_envelope for 15 min)'),
- 'transition_running_damage':('DAMAGE','reactor P >= 5.0 bar for 2 min OR column P >= 1.8 bar for 2 min OR reboiler holdup <= 5 kmol with steam > 0.05 for 5 min OR CSTR holdup >= 79 kmol'),
+ 'transition_running_damage':('DAMAGE','reactor P >= 5.0 bar for 2 min OR column P >= 1.8 bar for 2 min OR reboiler holdup <= 5 kmol with steam valve > 0.03 for 5 min OR CSTR holdup >= 79 kmol'),
  'transition_running_model_limit':('MODEL_LIMIT','any tray holdup < 0.10 kmol'),
  'transition_running_timeout':('TIMEOUT','t >= horizon_h AND horizon_is_completion == False'),
  'transition_running_numerical_failure':('NUMERICAL_FAILURE','implicit integration / nonlinear solve fails'),

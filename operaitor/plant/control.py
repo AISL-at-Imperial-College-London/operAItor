@@ -123,7 +123,7 @@ class RegulatoryControlSystem:
         "drum_level": (-12.0, 2.0, 0.30),       # retuned 2026-10-08 (was -4.0, 0.20 h)
         "column_pressure": (-4.5, 0.20, 0.002), # retuned 2026-10-08 (was -1.5, 0.10 h)
         "top_temp": (-7.0, 0.15, 0.30),
-        "bottom_temp": (+0.055, 0.15, 0.30),
+        "bottom_temp": (+0.0325, 0.15, 0.30),  # steam valve 0-1 (was +0.055 on the 0-1.8 duty factor)
     }
 
     def __init__(self, setpoints: ControlSetpoints, nominal: PlantInputs):
@@ -140,7 +140,7 @@ class RegulatoryControlSystem:
         self.column_pressure = PIController(*t["column_pressure"][:2], nominal.condenser_cooling_valve, 0.0, 1.0,
                                             deadband=t["column_pressure"][2])
         self.top_temp = PIController(*t["top_temp"][:2], nominal.reflux_flow, 0.0, 180.0, deadband=t["top_temp"][2])
-        self.bottom_temp = PIController(*t["bottom_temp"][:2], nominal.steam_factor, 0.0, 1.8, deadband=t["bottom_temp"][2])
+        self.bottom_temp = PIController(*t["bottom_temp"][:2], nominal.steam_factor, 0.0, 1.0, deadband=t["bottom_temp"][2])
         self.reset()
 
     @classmethod

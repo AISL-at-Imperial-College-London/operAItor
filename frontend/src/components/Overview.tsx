@@ -16,6 +16,7 @@ const VALUES: [string, number, number, number, number][] = [
   ["dr_level", 1592, 244, 122, 31], ["dist_x", 1590, 281, 121, 32], ["distillate", 1591, 318, 122, 31],
   ["steam", 1460, 634, 105, 33], ["rb_level", 1212, 711, 151, 31], ["bottoms", 1469, 730, 120, 32],
   ["btm_x", 1469, 763, 120, 32],
+  ["col_feed", 574, 594, 176, 32],  // no box in the artwork: drawn on the reactor-outlet line, between P-102 and FV-102
 ];
 
 const LAMPS: [number, number, string | null][] = [
@@ -51,7 +52,7 @@ function labels(s: Snapshot): Record<string, string> {
     r_level: `M_R = ${f(t.r_level, 1)} kmol`, r_x: `x_R = ${f(t.r_x, 3)}`,
     heater: `HV = ${f((t.heater ?? 0) * 100, 0)} %`, h2: `F_H2 = ${f(t.h2, 1)} kmol/h`,
     col_press: `P_COL = ${f(t.col_press, 3)} bar`, top_temp: `T_TOP = ${f(t.top_temp, 1)} K`,
-    feed_temp: `T_FEED = ${f(t.feed_temp, 1)} K`, bottom_temp: `T_BOT = ${f(t.bottom_temp, 1)} K`,
+    feed_temp: `T_FEED = ${f(t.col_feed_temp, 1)} K`, col_feed: `F_FEED = ${f(t.col_feed, 1)} kmol/h`, bottom_temp: `T_BOT = ${f(t.bottom_temp, 1)} K`,
     reflux: `R = ${f(t.reflux, 1)} kmol/h`, cooling: `CWV = ${f((t.cooling ?? 0) * 100, 0)} %`,
     dr_level: `M_D = ${f(t.dr_level, 1)} kmol`, dist_x: `x_D = ${f(t.dist_x, 3)}`,
     distillate: `D = ${f(t.distillate, 1)} kmol/h`, steam: `SV = ${f((t.steam ?? 0) * 100, 0)} %`,

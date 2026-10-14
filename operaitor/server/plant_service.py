@@ -697,6 +697,8 @@ class PlantService:
             heater=u.cstr_heater_factor, steam=u.steam_factor, cooling=u.condenser_cooling_valve,
             cool_eff=u.condenser_cooling_effectiveness, pcv=u.cstr_vent_valve, bdv=u.cstr_bdv_valve,
             psv=h2["psv_open_fraction"], h2=h2["total_kmol_h"], feed_temp=u.fresh_feed_temperature_K,
+            # column feed = reactor outlet: leaves at reactor temperature (as measured), at the outlet-pump flow
+            col_feed_temp=m["cstr_temperature_K"], col_feed=u.cstr_outflow,
         )
         alarms = []
         for s in env.alarms.status.values():
