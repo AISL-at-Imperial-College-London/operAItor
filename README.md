@@ -1,5 +1,17 @@
 # OperAItor
 
+[![ci](https://github.com/AISL-at-Imperial-College-London/operAItor/actions/workflows/ci.yml/badge.svg)](https://github.com/AISL-at-Imperial-College-London/operAItor/actions/workflows/ci.yml)
+[![website](https://github.com/AISL-at-Imperial-College-London/operAItor/actions/workflows/pages.yml/badge.svg)](https://aisl-at-imperial-college-london.github.io/operAItor/)
+[![dashboard](https://img.shields.io/badge/benchmark-dashboard-0a7bbb.svg)](https://aisl-at-imperial-college-london.github.io/operAItor/dashboard/)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![python](https://img.shields.io/badge/python-%E2%89%A53.11-blue.svg?logo=python&logoColor=white)](pyproject.toml)
+[![node](https://img.shields.io/badge/node-20%2B-339933.svg?logo=node.js&logoColor=white)](frontend/package.json)
+[![react](https://img.shields.io/badge/console-React%20%2B%20Vite-61dafb.svg?logo=react&logoColor=black)](frontend/)
+[![fastapi](https://img.shields.io/badge/server-FastAPI-009688.svg?logo=fastapi&logoColor=white)](operaitor/server/)
+[![langgraph](https://img.shields.io/badge/agents-LangGraph-1c3c3c.svg)](operaitor/agents/)
+[![ollama](https://img.shields.io/badge/LLM-Ollama%20(free)-000000.svg?logo=ollama&logoColor=white)](https://ollama.com)
+[![ADMIT](https://img.shields.io/badge/validation-ADMIT-b31b1b.svg)](https://arxiv.org/abs/2608.03866)
+
 **AI operators for a chemical plant, checked before they act.**
 
 A simulated chemical plant you can run in the browser, break on purpose, and watch AI agents try
