@@ -110,8 +110,9 @@ U = M\,h^L(T, x_B) + n_{H_2}\,u_{H_2}(T), \qquad
 P = \frac{n_{H_2}\,R\,T}{V_g}
 $$
 
-where $h_{H_2} = c_{p,H_2}(T - T_{\text{ref}})$, $u_{H_2} = (c_{p,H_2} - R)(T - T_{\text{ref}})$,
-$c_{p,H_2} = 29$ kJ/(kmol K) and $R = 0.08314$ bar m³/(kmol K).
+where $h_{H_2} = c_{p,H_2}(T - T_{\text{ref}})$, $u_{H_2} = (c_{p,H_2} - R_E)(T - T_{\text{ref}})$,
+$c_{p,H_2} = 29$ kJ/(kmol K), $R_E = 8.314$ kJ/(kmol K) in the energy terms and $R = 0.08314$ bar m³/(kmol K)
+in the gas law.
 
 **Gas volume** (6 m³ vessel, 0.075 m³/kmol liquid, plus 22.75 m³ connected vent capacitance):
 
@@ -120,7 +121,8 @@ V_g = \max(6 - 0.075\,M,\ 10^{-5}) + 22.75
 $$
 
 **Hydrogen relief paths.** The pressure-control valve (PCV), blowdown valve (BDV) and pressure
-safety valve (PSV) vent to the flare at $P_b = 1.013$ bar:
+safety valve (PSV) vent to the flare / fuel-gas header at $P_b = 1.013$ bar (the economics credit the vented
+H₂ at fuel value):
 
 $$
 F_{\text{vent}} = \left(u_{\text{PCV}}\,C_{\text{PCV}} + u_{\text{BDV}}\,C_{\text{BDV}} + \phi_{\text{PSV}}\,C_{\text{PSV}}\right)\sqrt{\langle P - P_b \rangle}
@@ -180,7 +182,7 @@ $$
 
 with $P_0 \equiv P_c$, the condenser pressure.
 
-**Reboiler** ($B$ is the bottoms flow, $F^{rb}_{\text{leak}}$ a leak and $u_s$ the steam factor):
+**Reboiler** ($B$ is the bottoms flow, $F^{rb}_{\text{leak}}$ a leak and $u_s \in [0, 1]$ the steam-valve opening):
 
 $$
 \frac{dM_r}{dt} = L_N - (B + F^{rb}_{\text{leak}}) - V_r, \qquad
@@ -196,18 +198,19 @@ Q_{\text{reb}} = UA_{\text{reb}}\,u_s\,\langle T_{\text{sat}}(P_{\text{steam}}) 
 V_r = C_v\sqrt{\langle P_r - P_N \rangle}
 $$
 
-with $UA_{\text{reb}} = 60\,000$ and $UA^{rb}_{\text{loss}} = 1\,200$ kJ/(h K). The reboiler has the
+with $UA_{\text{reb}} = 101\,489$ and $UA^{rb}_{\text{loss}} = 1\,200$ kJ/(h K). $UA_{\text{reb}}$ is sized so the
+valve is 60 % open at the design duty; fully open gives 1.69 times the design duty. The reboiler has the
 same equilibrium algebraic equations as a tray.
 
 **Condenser.** It condenses at most what the cooling water can remove. $u_c$ is the cooling-water
 valve and $\eta$ the cooling effectiveness (the condenser-cooling-loss fault lowers $\eta$):
 
 $$
-Q_{\text{avail}} = UA_c\,u_c\,\eta\,\langle T_1 - T_{cw} \rangle, \qquad UA_c = 225\,000\ \text{kJ/(h K)}
+Q_{\text{avail}} = UA_c\,u_c\,\eta\,\langle T_1 - T_{cw} \rangle, \qquad UA_c = 229\,592\ \text{kJ/(h K)}
 $$
 
 $$
-F_{\text{cond}} = \min\!\left(\frac{Q_{\text{avail}}}{28\,991},\ \Big\langle V_1 + 80\,(P_c - 1.0) \Big\rangle\right)
+F_{\text{cond}} = \min\!\left(\frac{Q_{\text{avail}}}{29\,583},\ \Big\langle V_1 + 80\,(P_c - 1.0) \Big\rangle\right)
 $$
 
 **Condenser / top pressure** (vapour capacitance 20 kmol/bar):
@@ -264,7 +267,7 @@ Eight PI loops are updated every 1 min:
 | DR_LIC | drum hold-up | distillate flow | −12.0 | 2.0 | 0.30 kmol |
 | COL_PIC | column P | condenser CW valve | −4.5 | 0.20 | 0.002 bar |
 | TOP_TIC | top tray T | reflux flow | −7.0 | 0.15 | 0.30 K |
-| BOT_TIC | bottom T | steam factor | +0.055 | 0.15 | 0.30 K |
+| BOT_TIC | bottom T | steam valve (0–1) | +0.0325 | 0.15 | 0.30 K |
 
 **Positional PI with deadband** ($b$ is the bias, the nominal MV):
 
@@ -332,10 +335,10 @@ Alarms move through the states NORMAL → ACTIVE_UNACK → ACTIVE_ACK → RTN_UN
 **SIF trip** when the true variable crosses its threshold. The table is in
 [plant-model.md](plant-model.md#sif--interrupt-layer); for example $P_R \ge 4.35$ bar or a lowest
 tray hold-up $\le 0.30$ kmol. SIFs latch. **A reset is accepted only inside the reset band**
-($h_r = 0.05$); for a high trip:
+($h_r = 0.05$ for levels and pressures, 3 K for temperatures); for a high trip:
 
 $$
-x < x_{\text{trip}}\,(1 - h_r)
+x < x_{\text{trip}}\,(1 - h_r) \qquad\text{or, for the reactor temperature,}\qquad T < T_{\text{trip}} - 3\ \text{K}
 $$
 
 A *plant-trip* SIF (R_P_HHH, RB_L_HH, DR_L_LL, DR_L_HH, COL_P_HH, COL_L_LL) ends the episode as

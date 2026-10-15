@@ -153,7 +153,14 @@ class V05Tests(unittest.TestCase):
     def test_nominal_condenser_valve_has_upward_authority(self):
         self.assertAlmostEqual(self.nominal.condenser_cooling_valve, 0.60, places=8)
         self.assertAlmostEqual(self.nominal.condenser_cooling_effectiveness, 1.0, places=8)
-        self.assertAlmostEqual(self.plant.column.cfg.UA_condenser, 225000.0, places=8)
+        # Headroom at the design point: the condenser can take more than it condenses, and the heat it
+        # removes never exceeds what the cooling water can take (one energy per kmol for both).
+        col = self.plant.column
+        _, ycol = self.plant.split_state(self.y0)
+        cap = col.condenser_capacity(ycol, self.plant._column_inputs(self.nominal, self.plant.split_state(self.y0)[0]))
+        self.assertGreater(cap["capacity_kmol_h"], 1.01 * cap["condensed_flow_kmol_h"])
+        self.assertLessEqual(cap["condensed_flow_kmol_h"] * col.cfg.condenser_energy_per_kmol_kJ,
+                             cap["available_duty_kJ_h"] * (1 + 1e-9))
 
     def test_column_pressure_controller_opens_cooling_valve_on_high_pressure(self):
         ctl = RegulatoryControlSystem.from_steady_state(self.plant, self.y0, self.nominal)

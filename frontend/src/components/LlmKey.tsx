@@ -1,16 +1,5 @@
 import { useState } from "react";
-import { connectLlm, forgetKey, send, usePlant } from "../store";
-
-function PresetSelect({ value, presets }: { value: string; presets: Record<string, string> }) {
-  return (
-    <label className="key-row small">Validation:
-      <select aria-label="Agent configuration" value={value}
-        onChange={(e) => send({ type: "set_agent_preset", preset: e.target.value })}>
-        {Object.entries(presets).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-      </select>
-    </label>
-  );
-}
+import { connectLlm, forgetKey, usePlant } from "../store";
 
 /** Where the visitor connects the agents to an LLM: free tiers and Ollama first, OpenAI optional. */
 export function LlmKeyCard() {
@@ -33,7 +22,6 @@ export function LlmKeyCard() {
           <span className="dim"> · {conn.label}{conn.free ? " · free" : ""}</span></div>
         {usage && <div className="dim small">{usage.calls} calls · {(usage.input_tokens + usage.output_tokens).toLocaleString()} tokens
           {conn.free ? "" : ` · ≈ $${usage.cost_usd.toFixed(4)}`} this session</div>}
-        {llm.presets && <PresetSelect value={llm.preset} presets={llm.presets} />}
         {llm.key_source === "visitor" && <button className="btn sm" onClick={forgetKey}>Disconnect</button>}
       </div>
     );
@@ -50,11 +38,7 @@ export function LlmKeyCard() {
       connectLlm({ provider: pid, model: chosenModel.trim(), key: key.trim(), url: url.trim() });
       setKey("");
     }}>
-      <div className="key-head"><b>Connect an LLM</b></div>
-      <p className="small dim">
-        Without an LLM the agents only monitor and diagnose. Connect one to let them act. The free options
-        need only a free account with the provider, or your own Ollama.
-      </p>
+      <p className="small dim">The free options need only a free account with the provider, or your own Ollama.</p>
       <label className="field"><span>Provider</span>
         <select value={pid} onChange={(e) => { setProvider(e.target.value); setModel(""); }}>
           {Object.entries(providers).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -76,11 +60,7 @@ export function LlmKeyCard() {
             {p.key ? `Get a ${p.free ? "free " : ""}key` : "Get Ollama"} ↗</a>
         </div>
       </>}
-      <p className="small dim">
-        Your key goes only to this server, is held in memory for your session and is never stored or shown again.
-        Any cost is billed by the provider to your own account; the free tiers cost nothing.
-      </p>
-      {llm.reason && !/connect one|API key/.test(llm.reason) && <p className="small dim">Status: {llm.reason}</p>}
+      <p className="small dim">Your key stays in this server's memory for your session only; it is never stored or shown again.</p>
     </form>
   );
 }

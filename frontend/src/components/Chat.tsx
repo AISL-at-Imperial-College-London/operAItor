@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ask, usePlant } from "../store";
-import { LlmKeyCard } from "./LlmKey";
+import { ask, navigate, usePlant } from "../store";
 
 const SUGGESTIONS = [
   "status",
   "why is there a fault?",
-  "how is the reactor level moving?",
-  "what is R_PIC?",
   "what did the agents do?",
-  "tell me about the reflux pump",
+  "what is R_PIC?",
 ];
 
 // Minimal markdown: **bold**, `code`, line breaks.
@@ -42,15 +39,14 @@ export function ChatPanel() {
 
   return (
     <div className="panel-body chat">
-      <LlmKeyCard />
       <p className="hint">
-        Ask what things are (knowledge graph) and how the plant is moving (live data).{" "}
-        <span className={`pill ${mode === "llm" ? "pill-ok" : ""}`} title={mode === "llm" ? "LLM with tools" : "deterministic intent router; set OPENAI_API_KEY (and install langchain-openai) for LLM chat"}>
-          {mode === "llm" ? (model ?? "LLM") : "offline"}
-        </span>
+        Ask what a tag or unit is, how a variable is moving, or what the agents did.{" "}
+        {mode === "llm" ? <span className="pill pill-ok" title="LLM with plant tools">{model ?? "LLM"}</span> : <>
+          <span className="pill" title="Rule-based answers without an LLM">basic answers</span>{" "}
+          <button className="link-btn" onClick={() => navigate({ tab: "agents" })}>connect an LLM</button></>}
       </p>
       <div className="chat-log" aria-live="polite">
-        {chat.length === 0 && <div className="empty">Try one of the questions below.</div>}
+        {chat.length === 0 && <div className="empty">Ask anything, or try a suggestion below.</div>}
         {chat.map((m, i) => (
           <div key={i} className={`bubble ${m.role} ${m.pending ? "pending" : ""}`}>
             {render(m.text)}
@@ -59,9 +55,9 @@ export function ChatPanel() {
         ))}
         <div ref={end} />
       </div>
-      <div className="chips">
+      {chat.length === 0 && <div className="chips">
         {SUGGESTIONS.map((s) => <button key={s} className="btn xs" onClick={() => submit(s)}>{s}</button>)}
-      </div>
+      </div>}
       <form className="chat-input" onSubmit={(e) => { e.preventDefault(); submit(text); }}>
         <input type="text" value={text} placeholder={connected ? "Ask about the plant…" : "Not connected"}
           onChange={(e) => setText(e.target.value)} aria-label="Chat message" />

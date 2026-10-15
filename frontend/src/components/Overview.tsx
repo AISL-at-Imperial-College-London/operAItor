@@ -16,6 +16,7 @@ const VALUES: [string, number, number, number, number][] = [
   ["dr_level", 1592, 244, 122, 31], ["dist_x", 1590, 281, 121, 32], ["distillate", 1591, 318, 122, 31],
   ["steam", 1460, 634, 105, 33], ["rb_level", 1212, 711, 151, 31], ["bottoms", 1469, 730, 120, 32],
   ["btm_x", 1469, 763, 120, 32],
+  ["col_feed", 574, 594, 176, 32],  // no box in the artwork: drawn on the reactor-outlet line, between P-102 and FV-102
 ];
 
 const LAMPS: [number, number, string | null][] = [
@@ -51,7 +52,7 @@ function labels(s: Snapshot): Record<string, string> {
     r_level: `M_R = ${f(t.r_level, 1)} kmol`, r_x: `x_R = ${f(t.r_x, 3)}`,
     heater: `HV = ${f((t.heater ?? 0) * 100, 0)} %`, h2: `F_H2 = ${f(t.h2, 1)} kmol/h`,
     col_press: `P_COL = ${f(t.col_press, 3)} bar`, top_temp: `T_TOP = ${f(t.top_temp, 1)} K`,
-    feed_temp: `T_FEED = ${f(t.feed_temp, 1)} K`, bottom_temp: `T_BOT = ${f(t.bottom_temp, 1)} K`,
+    feed_temp: `T_FEED = ${f(t.col_feed_temp, 1)} K`, col_feed: `F_FEED = ${f(t.col_feed, 1)} kmol/h`, bottom_temp: `T_BOT = ${f(t.bottom_temp, 1)} K`,
     reflux: `R = ${f(t.reflux, 1)} kmol/h`, cooling: `CWV = ${f((t.cooling ?? 0) * 100, 0)} %`,
     dr_level: `M_D = ${f(t.dr_level, 1)} kmol`, dist_x: `x_D = ${f(t.dist_x, 3)}`,
     distillate: `D = ${f(t.distillate, 1)} kmol/h`, steam: `SV = ${f((t.steam ?? 0) * 100, 0)} %`,
@@ -83,11 +84,14 @@ export function Overview() {
           {VALUES.map(([k, x, y, w, h]) => (
             <div key={k} className="ov-value" style={pos(x, y, w + PAD_W, h + PAD_H)}>{text[k]}</div>
           ))}
-          {LAMPS.map(([x, y, tag], i) => (
-            <div key={i} className={`ov-lamp ${tagState(tag)}`} style={pos(x, y)} title={tag ?? ""} />
-          ))}
+          {/* Lamps cover the artwork's white squares: dark while normal, amber / flashing in alarm. */}
+          {LAMPS.map(([x, y, tag], i) => {
+            const st = tagState(tag);
+            return <div key={i} className={`ov-lamp ${st}`} style={pos(x, y)}
+              title={tag && st !== "NORMAL" ? `${tag}: ${st === "ACTIVE_ACK" ? "in alarm" : "alarm, unacknowledged"}` : undefined} />;
+          })}
           <div className="ov-sifs" style={pos(...SIF_BOX)}>
-            <div className="ov-sifs-title">Safety functions (SIF)<span>trip = plant trip · lamps: white normal, amber alarm, red trip</span></div>
+            <div className="ov-sifs-title">Safety functions<span>red = tripped · <b>trip</b> = stops the whole plant · amber lamp next to a value = alarm</span></div>
             <div className="ov-sifs-grid">
               {SIFS.map(([id, label, trip]) => (
                 <div key={id} className={`ov-sif ${snap.sif_latched.includes(id) ? "latched" : ""}`} title={`${id}${trip ? " (plant trip)" : ""}`}>

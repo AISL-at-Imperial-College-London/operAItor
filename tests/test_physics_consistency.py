@@ -211,5 +211,66 @@ class AlarmAcknowledgementTests(unittest.TestCase):
         asyncio.run(scenario())
 
 
+
+class LogicalConsistencyTests(unittest.TestCase):
+    """Fixes from the 2026-10-15 logical-inconsistency review."""
+
+    def test_reboiler_high_high_keeps_boilup(self):
+        """Cutting steam on a high reboiler level stops the boil-up that removes liquid; the trip stops the feed."""
+        out = SafetySystem().apply(_sif_measurements(reboiler_holdup_kmol=55.0), PLANT.default_inputs(),
+                                   PLANT.default_inputs()).commanded
+        self.assertEqual(out.steam_factor, PLANT.default_inputs().steam_factor)
+        self.assertEqual((out.cstr_outflow, out.fresh_ipa_feed), (0.0, 0.0))
+
+    def test_reactor_temperature_resets_close_to_its_trip(self):
+        """Reset band is absolute for temperature: 345 K resets a 348 K trip; normal operation (335.7 K) is far inside."""
+        sif = SafetySystem()
+        sif.apply(_sif_measurements(cstr_temperature_K=349.0), PLANT.default_inputs(), PLANT.default_inputs())
+        held = sif.apply(_sif_measurements(cstr_temperature_K=345.5), PLANT.default_inputs(), PLANT.default_inputs(),
+                         reset_requested=True)
+        self.assertIn("R_T_HH", held.latched_causes)
+        reset = sif.apply(_sif_measurements(cstr_temperature_K=344.5), PLANT.default_inputs(), PLANT.default_inputs(),
+                          reset_requested=True)
+        self.assertNotIn("R_T_HH", reset.latched_causes)
+
+    def test_setpoint_ranges_stay_inside_alarm_limits(self):
+        from operaitor.plant.control import RegulatoryControlSystem
+        alarms = default_alarm_definitions()
+        for loop, spec in RegulatoryControlSystem.LOOP_SPECS.items():
+            for a in alarms:
+                if a.tag != spec.pv_tag:
+                    continue
+                if a.direction == "HIGH":
+                    self.assertLess(spec.sp_max, a.limit, f"{loop} setpoint can reach {a.alarm_id}")
+                else:
+                    self.assertGreater(spec.sp_min, a.limit, f"{loop} setpoint can reach {a.alarm_id}")
+
+    def test_steam_valve_is_a_valve(self):
+        from operaitor.plant.control import RegulatoryControlSystem
+        ctl = RegulatoryControlSystem.from_steady_state(PLANT, PLANT.nominal_state(), PLANT.default_inputs())
+        self.assertEqual((ctl.bottom_temp.u_min, ctl.bottom_temp.u_max), (0.0, 1.0))
+        self.assertAlmostEqual(PLANT.default_inputs().steam_factor, 0.60)
+
+    def test_knowledge_graph_matches_code(self):
+        """The agents' knowledge graph lists every SIF and alarm, and the current loop tuning and ranges."""
+        import json
+        from pathlib import Path
+        from operaitor.plant.control import RegulatoryControlSystem
+        kg = Path(__file__).resolve().parent.parent / "operaitor/data/knowledge_graph/Integrated_CSTR_Distillation_Knowledge_Graph.jsonld"
+        nodes = {n["@id"].split("#")[-1]: n for n in json.loads(kg.read_text(encoding="utf-8"))[0]["@graph"]}
+        for sid in README_SIF:
+            self.assertIn(f"SIF_{sid}", nodes)
+        for a in default_alarm_definitions():
+            self.assertIn(f"alarm_{a.alarm_id}", nodes)
+        ip = "http://example.org/integrated_cstr_distillation/ontology#"
+        for loop, spec in RegulatoryControlSystem.LOOP_SPECS.items():
+            ref = nodes[f"ref_{loop}_SP"]
+            self.assertEqual(ref[ip + "setpointMinimum"][0]["@value"], spec.sp_min, loop)
+            self.assertEqual(ref[ip + "setpointMaximum"][0]["@value"], spec.sp_max, loop)
+            kp, ti, _ = RegulatoryControlSystem.TUNING[spec.controller_attr]
+            text = nodes[f"Equation_{loop}"]["http://www.w3.org/2000/01/rdf-schema#comment"][0]["@value"]
+            self.assertIn(f"Kp={kp:g}, Ti={ti:g} h", text, loop)
+
+
 if __name__ == "__main__":
     unittest.main()

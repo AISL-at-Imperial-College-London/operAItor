@@ -1,10 +1,105 @@
 # Deployment
 
-The console is a Python server (plant simulation, agents, WebSocket) plus a static React build,
-shipped as one Docker image. It needs a host that runs a container permanently. Static hosts such
-as GitHub Pages or Vercel cannot run the simulation.
+The console is a Python server (plant simulation, agents, WebSocket) plus a static React build.
+It needs a machine that runs it permanently; static hosts such as GitHub Pages or Vercel cannot run
+the simulation.
 
-## Hugging Face Spaces (free, recommended for demos)
+## Your own Windows machine (the public site)
+
+The public console runs on a **dedicated, always-on Windows machine**. It is installed there from
+GitHub, never run from a development laptop. The install does not use or copy a development checkout,
+a `.env` file or any keys, and the server never uses the machine's own LLM keys or models.
+
+How it fits together:
+
+| Piece | What it does |
+|---|---|
+| `deploy/windows/install.ps1` | Clones the repository into `C:\OperAItor\app`, creates a Python environment in `C:\OperAItor\venv` (on the server only), builds the console, and registers the startup task |
+| Scheduled task `OperAItor` | Starts `start.ps1` at boot, whether or not anyone is logged in, without a stored password and without admin rights |
+| `start.ps1` | Runs the server in public mode on `127.0.0.1:7860` and restarts it if it stops. Logs go to `C:\OperAItor\logs` and are kept 14 days |
+| Tailscale Funnel | Publishes it at a fixed, free `https://<machine>.<tailnet>.ts.net` address. No domain, no router changes and no open ports are needed |
+
+Public mode (`PLANT_HOSTED=1`):
+- visitors connect their own LLM (free Groq, Gemini or OpenRouter keys; see below);
+- nothing is written to disk;
+- at most `MaxSessions` plants run at once.
+
+### 1. Prepare the machine
+
+- **Power:** Windows 10/11 or Windows Server, set to never sleep (Settings → System → Power: Sleep
+  *Never*). After Windows Update restarts it, the server comes back on its own.
+- **Software:** install
+  - Python 3.12 from <https://www.python.org>, with the *py launcher* option ticked;
+  - Git for Windows: <https://git-scm.com/download/win>;
+  - Node.js 22 LTS: <https://nodejs.org>.
+- **Account:** use an ordinary Windows account for the server. The installer needs an administrator
+  PowerShell once to register the startup task, but the server itself runs with normal rights.
+- **CPU:** each open browser tab runs its own plant on the server, about one CPU core while the plant
+  runs fast. Set `-MaxSessions` to about the number of cores minus one.
+
+### 2. Install
+
+In an **administrator** PowerShell on the hosting machine:
+
+```powershell
+cd $env:TEMP
+Invoke-WebRequest https://raw.githubusercontent.com/AISL-at-Imperial-College-London/operAItor/main/deploy/windows/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -MaxSessions 4
+```
+
+It ends with `Running: version …`, and the console then answers at <http://127.0.0.1:7860> on that
+machine. Options:
+- `-InstallDir D:\OperAItor` installs somewhere else;
+- `-Branch dev` installs a test branch;
+- `-Port 8000` uses another port.
+
+### 3. Publish it on the internet (Tailscale Funnel, free)
+
+1. Install Tailscale on the hosting machine (<https://tailscale.com/download/windows>) and sign in.
+   Use a lab or organisation account rather than a personal one.
+2. In the Tailscale tray menu, open **Preferences** and turn on **Run unattended**. Without it,
+   Tailscale stops when nobody is logged in.
+3. In the admin console (<https://login.tailscale.com/admin>):
+   - under **DNS**, enable **HTTPS certificates**;
+   - under **Access controls**, allow Funnel for this machine. The first `tailscale funnel` command
+     prints a link that does this.
+4. In a PowerShell on the hosting machine:
+
+   ```powershell
+   tailscale funnel --bg 7860
+   tailscale funnel status
+   ```
+
+   The status shows the public address, `https://<machine>.<tailnet>.ts.net`. `--bg` keeps the Funnel
+   on across reboots.
+5. Open that address from a phone on mobile data to check it works from outside.
+6. To make the project page's **Open the live demo** button point there, set it in the GitHub
+   repository: Settings → Secrets and variables → Actions → Variables → `DEMO_URL` = the address.
+   It takes effect on the next Pages build.
+
+Tailscale ends HTTPS on the machine and forwards to `127.0.0.1:7860`. The server is not reachable on
+the network any other way.
+
+### Running it
+
+| Task | How |
+|---|---|
+| Status | `Invoke-RestMethod http://127.0.0.1:7860/api/health` (version and live sessions) |
+| Logs | `C:\OperAItor\logs\operaitor-YYYYMMDD.log` |
+| Update to the latest `main` | `powershell -ExecutionPolicy Bypass -File C:\OperAItor\update.ps1` (administrator) |
+| Change settings | Edit `C:\OperAItor\settings.ps1` (port, sessions, timeouts), then `update.ps1 -Restart` |
+| Stop / start | `update.ps1 -Stop` / `update.ps1 -Restart` (it also starts at every boot) |
+| Take it offline | `tailscale funnel --bg 7860 off`. The server keeps running locally |
+| Remove | `update.ps1 -Stop`, `Unregister-ScheduledTask OperAItor`, `tailscale funnel --bg 7860 off`, delete `C:\OperAItor` |
+
+Do not put an `.env` file or API keys on this machine. Public mode ignores them, and visitors' keys
+are held in memory for their session only.
+
+**With your own domain instead of a `ts.net` address:** use a Cloudflare named tunnel
+(`cloudflared`, free with a domain on Cloudflare) pointing at `http://127.0.0.1:7860`. The rest of
+the setup is unchanged.
+
+## Hugging Face Spaces (free alternative)
 
 A Docker Space on the free **CPU basic** hardware (2 vCPU, 16 GB) runs the image as is and gives a
 public `https://<owner>-<space>.hf.space` URL.

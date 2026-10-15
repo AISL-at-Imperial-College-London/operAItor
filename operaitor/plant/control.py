@@ -104,12 +104,12 @@ class RegulatoryControlSystem:
     """Regulatory control with explicit operator access points."""
 
     LOOP_SPECS: dict[str, LoopAccessSpec] = {
-        "R_LIC": LoopAccessSpec("R_LIC", "cstr_level", "cstr_holdup_kmol", "cstr_holdup_kmol", "cstr_outflow", 25.0, 68.0, "kmol", "kmol/h"),
-        "R_TIC": LoopAccessSpec("R_TIC", "cstr_temp", "cstr_temperature_K", "cstr_temperature_K", "cstr_heater_factor", 325.0, 345.0, "K", "fraction"),
+        "R_LIC": LoopAccessSpec("R_LIC", "cstr_level", "cstr_holdup_kmol", "cstr_holdup_kmol", "cstr_outflow", 40.0, 60.0, "kmol", "kmol/h"),
+        "R_TIC": LoopAccessSpec("R_TIC", "cstr_temp", "cstr_temperature_K", "cstr_temperature_K", "cstr_heater_factor", 325.0, 340.0, "K", "fraction"),
         "R_PIC": LoopAccessSpec("R_PIC", "cstr_pressure", "cstr_pressure_bar", "cstr_pressure_bar", "cstr_vent_valve", 2.5, 3.4, "bar", "fraction"),
-        "RB_LIC": LoopAccessSpec("RB_LIC", "reboiler_level", "reboiler_holdup_kmol", "reboiler_holdup_kmol", "bottoms_flow", 18.0, 48.0, "kmol", "kmol/h"),
-        "DR_LIC": LoopAccessSpec("DR_LIC", "drum_level", "drum_holdup_kmol", "drum_holdup_kmol", "distillate_flow", 16.0, 42.0, "kmol", "kmol/h"),
-        "COL_PIC": LoopAccessSpec("COL_PIC", "column_pressure", "column_pressure_bar", "column_pressure_bar", "condenser_cooling_valve", 0.90, 1.15, "bar", "fraction"),
+        "RB_LIC": LoopAccessSpec("RB_LIC", "reboiler_level", "reboiler_holdup_kmol", "reboiler_holdup_kmol", "bottoms_flow", 18.0, 46.0, "kmol", "kmol/h"),
+        "DR_LIC": LoopAccessSpec("DR_LIC", "drum_level", "drum_holdup_kmol", "drum_holdup_kmol", "distillate_flow", 16.0, 40.0, "kmol", "kmol/h"),
+        "COL_PIC": LoopAccessSpec("COL_PIC", "column_pressure", "column_pressure_bar", "column_pressure_bar", "condenser_cooling_valve", 0.90, 1.12, "bar", "fraction"),
         "TOP_TIC": LoopAccessSpec("TOP_TIC", "top_temp", "top_temperature_K", "top_temperature_K", "reflux_flow", 325.0, 340.0, "K", "kmol/h"),
         "BOT_TIC": LoopAccessSpec("BOT_TIC", "bottom_temp", "bottom_temperature_K", "bottom_temperature_K", "steam_factor", 345.0, 365.0, "K", "fraction"),
     }
@@ -123,7 +123,7 @@ class RegulatoryControlSystem:
         "drum_level": (-12.0, 2.0, 0.30),       # retuned 2026-10-08 (was -4.0, 0.20 h)
         "column_pressure": (-4.5, 0.20, 0.002), # retuned 2026-10-08 (was -1.5, 0.10 h)
         "top_temp": (-7.0, 0.15, 0.30),
-        "bottom_temp": (+0.055, 0.15, 0.30),
+        "bottom_temp": (+0.0325, 0.15, 0.30),  # steam valve 0-1 (was +0.055 on the 0-1.8 duty factor)
     }
 
     def __init__(self, setpoints: ControlSetpoints, nominal: PlantInputs):
@@ -140,7 +140,7 @@ class RegulatoryControlSystem:
         self.column_pressure = PIController(*t["column_pressure"][:2], nominal.condenser_cooling_valve, 0.0, 1.0,
                                             deadband=t["column_pressure"][2])
         self.top_temp = PIController(*t["top_temp"][:2], nominal.reflux_flow, 0.0, 180.0, deadband=t["top_temp"][2])
-        self.bottom_temp = PIController(*t["bottom_temp"][:2], nominal.steam_factor, 0.0, 1.8, deadband=t["bottom_temp"][2])
+        self.bottom_temp = PIController(*t["bottom_temp"][:2], nominal.steam_factor, 0.0, 1.0, deadband=t["bottom_temp"][2])
         self.reset()
 
     @classmethod

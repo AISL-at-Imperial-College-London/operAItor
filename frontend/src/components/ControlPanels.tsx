@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { send, usePlant } from "../store";
+import { LOOP_NAME } from "./PlantTab";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="field"><span>{label}</span>{children}</label>;
@@ -23,76 +24,118 @@ function Select({ value, options, onChange }: { value: string; options: (string 
 
 const act = (action: Record<string, unknown>) => send({ type: "action", action });
 
+const PUMP_TRAIN_NAME: Record<string, string> = {
+  FEED: "Feed", CSTR_OUTLET: "Reactor outlet", REFLUX: "Reflux", DISTILLATE: "Distillate", BOTTOMS: "Bottoms",
+};
+const AUX_NAME: Record<string, [string, string]> = {
+  H2_BDV: ["H₂ blowdown valve", "vents reactor hydrogen to the flare to bring the pressure down"],
+  EMERGENCY_COOLING: ["Reactor emergency cooling", "cools the reactor with cooling water"],
+};
+
+/** Everything the operator (or the action agent) may change, one section per kind of lever. */
 export function OperatorPanel() {
   const meta = usePlant((s) => s.meta);
   const snap = usePlant((s) => s.snap);
-  const [throughput, setThroughput] = useState(100);
+  const nav = usePlant((s) => s.nav);
   const [loop, setLoop] = useState("R_TIC");
-  const [sp, setSp] = useState(0);
-  const [mode, setMode] = useState("AUTO");
-  const [manual, setManual] = useState(0);
-  const [aux, setAux] = useState("H2_BDV");
-  const [auxVal, setAuxVal] = useState(0);
-  const [train, setTrain] = useState("REFLUX");
+  const [value, setValue] = useState(0);     // setpoint (AUTO) or output (MANUAL) of the selected loop
+  const [feed, setFeed] = useState(100);
+  const [aux, setAux] = useState<Record<string, number>>({});
 
-  // Seed the inputs from the live plant when the selection changes.
-  useEffect(() => { if (snap) setThroughput(+snap.throughput_target.toFixed(2)); }, [snap?.episode]); // eslint-disable-line
-  useEffect(() => {
-    const c = snap?.controllers[loop];
-    if (c) { setSp(+c.setpoint.toPrecision(5)); setMode(c.mode); setManual(+c.last_output.toPrecision(4)); }
-  }, [loop, snap?.episode]); // eslint-disable-line
-  useEffect(() => { if (snap) setAuxVal(snap.auxiliaries[aux] ?? 0); }, [aux, snap?.episode]); // eslint-disable-line
+  const c = snap?.controllers[loop];
+  // Seed the inputs from the live plant when the selection or the episode changes.
+  useEffect(() => { if (nav?.loop) setLoop(nav.loop); }, [nav]);
+  useEffect(() => { if (c) setValue(+(c.mode === "MANUAL" ? c.last_output : c.setpoint).toPrecision(5)); }, [loop, c?.mode, snap?.episode]); // eslint-disable-line
+  useEffect(() => { if (snap) setFeed(+snap.throughput_target.toFixed(1)); }, [snap?.episode]); // eslint-disable-line
+  useEffect(() => { if (snap) setAux(Object.fromEntries(Object.entries(snap.auxiliaries).map(([k, v]) => [k, Math.round(100 * v)]))); }, [snap?.episode]); // eslint-disable-line
 
-  if (!meta || !snap) return null;
+  if (!meta || !snap || !c) return null;
   const L = meta.loops[loop];
-  const c = snap.controllers[loop];
-  const [alo, ahi] = meta.auxiliaries[aux];
+  const manual = c.mode === "MANUAL";
+  const unack = snap.alarms.some((a) => a.state.endsWith("UNACK"));
+  const [flo, fhi] = meta.throughput_bounds;
 
   return (
-    <div className="panel-body">
-      <p className="hint">You have the same authority as the action agent: setpoints, throughput, standby pumps and the
-        emergency auxiliaries. Safety functions cannot be bypassed.</p>
+    <div className="panel-body operate">
       <section>
-        <h4>Throughput</h4>
+        <h4>Alarms and safety</h4>
         <div className="row">
-          <Field label={`Fresh feed [kmol/h] (${meta.throughput_bounds.join("–")})`}><Num value={throughput} onChange={setThroughput} /></Field>
-          <button className="btn" onClick={() => act({ throughput_target: throughput })}>Set</button>
+          <button className="btn" disabled={!unack} onClick={() => send({ type: "ack_all" })}>Acknowledge all alarms</button>
+          <button className="btn" disabled={!snap.sif_latched.length} onClick={() => send({ type: "reset_sif" })}
+            title="Reset tripped safety functions whose variable is back in its normal band">Reset safety functions</button>
         </div>
       </section>
+
       <section>
-        <h4>Controller</h4>
-        <Field label="Loop"><Select value={loop} options={Object.keys(meta.loops)} onChange={setLoop} /></Field>
-        <div className="dim small">PV {c.pv?.toPrecision(5)} {L.sp_unit} · OP {c.last_output.toPrecision(4)} {L.mv_unit} · {c.mode}</div>
-        <div className="row">
-          <Field label={`Setpoint [${L.sp_unit}] (${L.sp_min}–${L.sp_max})`}><Num value={sp} min={L.sp_min} max={L.sp_max} onChange={setSp} /></Field>
-          <button className="btn" onClick={() => act({ setpoints: { [loop]: sp } })}>Set SP</button>
-        </div>
-        <div className="row">
-          <Field label="Mode"><Select value={mode} options={["AUTO", "MANUAL"]} onChange={setMode} /></Field>
-          <button className="btn" onClick={() => act({ modes: { [loop]: mode } })}>Set mode</button>
-        </div>
-        <div className="row">
-          <Field label={`Manual OP [${L.mv_unit}]`}><Num value={manual} onChange={setManual} /></Field>
-          <button className="btn" disabled={c.mode !== "MANUAL"} title={c.mode !== "MANUAL" ? "Loop must be in MANUAL" : ""}
-            onClick={() => act({ manual_outputs: { [loop]: manual } })}>Set OP</button>
+        <h4>Pumps</h4>
+        <div className="pump-list">
+          {Object.entries(snap.pumps).map(([train, p]) => {
+            const onSpare = p.active_pump === p.spare;
+            const runningFailed = onSpare ? p.spare_failed : p.primary_failed;
+            const target = onSpare ? p.primary : p.spare;
+            const targetFailed = onSpare ? p.primary_failed : p.spare_failed;
+            return (
+              <div key={train} className={`pump-row ${runningFailed ? "failed" : ""}`}>
+                <span className="pump-name">{PUMP_TRAIN_NAME[train] ?? train}</span>
+                <span className={`pill ${runningFailed ? "pill-bad" : "pill-ok"}`}>{p.active_pump} {runningFailed ? "failed" : "running"}</span>
+                <button className={`btn sm ${runningFailed && !targetFailed ? "primary" : ""}`} disabled={targetFailed}
+                  title={targetFailed ? `${target} is failed too` : undefined}
+                  onClick={() => act(onSpare ? { select_primaries: [train] } : { start_spares: [train] })}>
+                  Switch to {target}</button>
+              </div>
+            );
+          })}
         </div>
       </section>
+
       <section>
-        <h4>Emergency auxiliaries</h4>
-        <div className="row">
-          <Field label="Device"><Select value={aux} options={Object.keys(meta.auxiliaries)} onChange={setAux} /></Field>
-          <Field label={`Command (${alo}–${ahi})`}><Num value={auxVal} min={alo} max={ahi} step={0.05} onChange={setAuxVal} /></Field>
-          <button className="btn" onClick={() => act({ auxiliary_commands: { [aux]: auxVal } })}>Apply</button>
+        <h4>Control loop</h4>
+        <Field label="Loop">
+          <Select value={loop} onChange={setLoop}
+            options={Object.keys(meta.loops).map((k) => [k, `${k} · ${LOOP_NAME[k] ?? ""}`] as [string, string])} />
+        </Field>
+        <div className="loop-readout">
+          <span>Measured <b className="num">{c.pv?.toPrecision(5) ?? "—"}</b> {L.sp_unit}</span>
+          <span>Setpoint <b className="num">{c.setpoint.toPrecision(5)}</b> {L.sp_unit}</span>
+          <span>Output <b className="num">{c.last_output.toPrecision(4)}</b> {L.mv_unit}</span>
         </div>
+        <div className="seg small" role="radiogroup" aria-label="Loop mode">
+          {(["AUTO", "MANUAL"] as const).map((m) => (
+            <button key={m} role="radio" aria-checked={c.mode === m} className={c.mode === m ? "on" : ""}
+              title={m === "AUTO" ? "The controller moves the output to hold the setpoint" : "You set the output directly"}
+              onClick={() => c.mode !== m && act({ modes: { [loop]: m } })}>{m === "AUTO" ? "Automatic" : "Manual"}</button>
+          ))}
+        </div>
+        <form className="row" onSubmit={(e) => { e.preventDefault(); act(manual ? { manual_outputs: { [loop]: value } } : { setpoints: { [loop]: value } }); }}>
+          <Field label={manual ? `Output [${L.mv_unit}]` : `Setpoint [${L.sp_unit}] (${L.sp_min}–${L.sp_max})`}>
+            <Num value={value} min={manual ? undefined : L.sp_min} max={manual ? undefined : L.sp_max} onChange={setValue} /></Field>
+          <button className="btn primary" type="submit">Apply</button>
+        </form>
       </section>
+
       <section>
-        <h4>Duty / standby pumps</h4>
-        <Field label="Train"><Select value={train} options={Object.keys(meta.pump_trains)} onChange={setTrain} /></Field>
-        <div className="row">
-          <button className="btn" onClick={() => act({ start_spares: [train] })}>Start standby</button>
-          <button className="btn" onClick={() => act({ select_primaries: [train] })}>Select primary</button>
-        </div>
+        <h4>Feed rate</h4>
+        <form className="row" onSubmit={(e) => { e.preventDefault(); act({ throughput_target: feed }); }}>
+          <Field label={`Fresh IPA feed [kmol/h] (${flo}–${fhi}, now ${snap.throughput_target.toFixed(1)})`}>
+            <Num value={feed} min={flo} max={fhi} onChange={setFeed} /></Field>
+          <button className="btn primary" type="submit">Apply</button>
+        </form>
       </section>
+
+      <section>
+        <h4>Emergency devices</h4>
+        {Object.keys(meta.auxiliaries).map((k) => {
+          const [name, what] = AUX_NAME[k] ?? [k, ""];
+          return (
+            <form key={k} className="row" onSubmit={(e) => { e.preventDefault(); act({ auxiliary_commands: { [k]: (aux[k] ?? 0) / 100 } }); }}>
+              <Field label={`${name} [% open] (now ${Math.round(100 * (snap.auxiliaries[k] ?? 0))} %)`}>
+                <Num value={aux[k] ?? 0} min={0} max={100} step={5} onChange={(v) => setAux({ ...aux, [k]: v })} /></Field>
+              <button className="btn" type="submit" title={what}>Apply</button>
+            </form>
+          );
+        })}
+      </section>
+      <p className="hint">You have the same levers as the action agent. Safety functions cannot be bypassed.</p>
     </div>
   );
 }
@@ -154,6 +197,12 @@ function CampaignSection() {
 }
 
 type Kind = "pump" | "actuator" | "sensor" | "process" | "disturbance";
+// Default sensor bias in engineering units: [bias, unit]. Large enough to matter, small enough to be plausible.
+const SENSOR_BIAS: Record<string, [number, string]> = {
+  cstr_pressure_bar: [-1.0, "bar"], cstr_temperature_K: [-5, "K"], cstr_holdup_kmol: [-8, "kmol"],
+  column_pressure_bar: [-0.1, "bar"], top_temperature_K: [-5, "K"], bottom_temperature_K: [-5, "K"],
+  reboiler_holdup_kmol: [-6, "kmol"], drum_holdup_kmol: [-6, "kmol"],
+};
 const KINDS: [Kind, string][] = [["pump", "Pump trip"], ["actuator", "Valve / actuator"], ["sensor", "Sensor"],
                                  ["process", "Process / utility"], ["disturbance", "Disturbance"]];
 
@@ -164,7 +213,7 @@ export function FaultsPanel() {
   const [duration, setDuration] = useState(0);
   const [pump, setPump] = useState("P-201A");
   const [actu, setActu] = useState({ target: "cstr_vent_valve", mode: "freeze", severity_pct: 50 });
-  const [sens, setSens] = useState({ target: "cstr_pressure_bar", mode: "bias", bias_pct: -20 });
+  const [sens, setSens] = useState({ target: "cstr_pressure_bar", mode: "bias", bias: SENSOR_BIAS.cstr_pressure_bar[0] });
   const [proc, setProc] = useState({ fault: "catalyst_activity_loss", severity: 50 });
   const [dist, setDist] = useState({ target: "cooling_water_temperature_K", direction: "1" });
   if (!meta || !snap) return null;
@@ -187,7 +236,7 @@ export function FaultsPanel() {
 
   return (
     <div className="panel-body">
-      <p className="hint warn">Test controls: what you inject here is ground truth and is never shown to the agents.</p>
+      <p className="hint">Break the plant on purpose to test the operator or the agents. Neither is told what you injected.</p>
       <section>
         <h4>Inject a fault</h4>
         <div className="seg wrap" role="radiogroup" aria-label="Fault type">
@@ -206,10 +255,12 @@ export function FaultsPanel() {
         </>)}
         {kind === "sensor" && (<>
           <div className="row">
-            <Field label="Sensor"><Select value={sens.target} options={inj.sensor_targets} onChange={(v) => setSens({ ...sens, target: v })} /></Field>
+            <Field label="Sensor"><Select value={sens.target} options={inj.sensor_targets}
+              onChange={(v) => setSens({ ...sens, target: v, bias: SENSOR_BIAS[v]?.[0] ?? 0 })} /></Field>
             <Field label="Failure"><Select value={sens.mode} options={["bias", "freeze"]} onChange={(v) => setSens({ ...sens, mode: v })} /></Field>
           </div>
-          {sens.mode === "bias" && <Field label="Bias [% of value]"><Num value={sens.bias_pct} onChange={(v) => setSens({ ...sens, bias_pct: v })} /></Field>}
+          {sens.mode === "bias" && <Field label={`Bias [${SENSOR_BIAS[sens.target]?.[1] ?? ""}] (added to the reading)`}>
+            <Num value={sens.bias} onChange={(v) => setSens({ ...sens, bias: v })} /></Field>}
         </>)}
         {kind === "process" && (<>
           <Field label="Fault"><Select value={proc.fault} options={inj.process_faults} onChange={(v) => setProc({ ...proc, fault: v })} /></Field>

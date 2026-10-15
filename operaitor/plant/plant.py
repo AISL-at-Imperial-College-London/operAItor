@@ -30,7 +30,7 @@ class PlantInputs:
     cstr_emergency_cooling_factor: float = 0.0
 
     reflux_flow: float = 80.0
-    steam_factor: float = 1.0
+    steam_factor: float = 0.60         # reboiler steam-valve opening, 0-1
     bottoms_flow: float = 26.797062506934168
     distillate_flow: float = 73.20293749306585
 

@@ -27,6 +27,7 @@ class SafetyConfig:
     max_condenser_cooling_valve: float = 1.0
     pressure_escalation_feed_fraction: float = 0.40
     reset_hysteresis_fraction: float = 0.05
+    reset_band_temperature_K: float = 3.0    # temperatures reset on an absolute band, not 5 % of kelvin
 
 
 @dataclass
@@ -90,7 +91,7 @@ class SafetySystem:
         h = self.cfg.reset_hysteresis_fraction
         c = self.cfg
         if cause == "R_T_HH":
-            return m["cstr_temperature_K"] < c.cstr_temperature_hh_K * (1.0 - h)
+            return m["cstr_temperature_K"] < c.cstr_temperature_hh_K - c.reset_band_temperature_K
         if cause == "R_P_HH":
             return m["cstr_pressure_bar"] < c.cstr_pressure_hh_bar * (1.0 - h)
         if cause == "R_P_HHH":
@@ -177,9 +178,11 @@ class SafetySystem:
         if self.latched["RB_L_LL"]:
             u = replace(u, steam_factor=0.0, bottoms_flow=0.0)
 
+        # Reboiler level high-high: stop the column feed (and the feeds / heater upstream). Boil-up is
+        # kept: it is what removes liquid from the reboiler, so cutting steam would raise the level faster.
         if self.latched["RB_L_HH"]:
             u = replace(
-                u, steam_factor=0.0, cstr_outflow=0.0,
+                u, cstr_outflow=0.0,
                 fresh_ipa_feed=0.0, cstr_heater_factor=0.0,
             )
 

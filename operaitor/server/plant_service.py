@@ -50,6 +50,8 @@ ACTUATOR_TARGETS = ["fresh_ipa_feed", "cstr_outflow", "cstr_heater_factor", "cst
                     "distillate_flow", "condenser_cooling_valve"]
 SENSOR_TARGETS = ["cstr_pressure_bar", "cstr_temperature_K", "cstr_holdup_kmol", "column_pressure_bar",
                   "top_temperature_K", "bottom_temperature_K", "reboiler_holdup_kmol", "drum_holdup_kmol"]
+# Actuators that are valve openings (0-1): a capacity ramp degrades their travel, not their nominal value.
+VALVE_TARGETS = {"cstr_vent_valve", "cstr_bdv_valve", "condenser_cooling_valve", "steam_factor"}
 PROCESS_FAULTS = ["catalyst_activity_loss", "cstr_liquid_leak", "reboiler_liquid_leak",
                   "drum_liquid_leak", "condenser_cooling_loss"]
 
@@ -409,7 +411,7 @@ class PlantService:
                 if mode in ("capacity", "capacity_ramp"):
                     kw["capacity_fraction"] = float(m.get("capacity_fraction", frac))
                     if mode == "capacity_ramp":
-                        kw["capacity_reference_value"] = 1.0 if target.endswith("_valve") else None
+                        kw["capacity_reference_value"] = 1.0 if target in VALVE_TARGETS else None
                         kw["ramp_duration_h"] = float(m.get("ramp_min", 10.0)) / 60.0
                 elif mode == "fixed":
                     kw["fixed_value"] = (float(m["fixed_value"]) if "fixed_value" in m
@@ -697,6 +699,8 @@ class PlantService:
             heater=u.cstr_heater_factor, steam=u.steam_factor, cooling=u.condenser_cooling_valve,
             cool_eff=u.condenser_cooling_effectiveness, pcv=u.cstr_vent_valve, bdv=u.cstr_bdv_valve,
             psv=h2["psv_open_fraction"], h2=h2["total_kmol_h"], feed_temp=u.fresh_feed_temperature_K,
+            # column feed = reactor outlet: leaves at reactor temperature (as measured), at the outlet-pump flow
+            col_feed_temp=m["cstr_temperature_K"], col_feed=u.cstr_outflow,
         )
         alarms = []
         for s in env.alarms.status.values():

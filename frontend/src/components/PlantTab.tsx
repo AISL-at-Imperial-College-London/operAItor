@@ -1,4 +1,4 @@
-import { send, usePlant } from "../store";
+import { navigate, send, usePlant } from "../store";
 import type { Snapshot } from "../types";
 import { Overview } from "./Overview";
 
@@ -39,10 +39,15 @@ function KeyVariables({ snap }: { snap: Snapshot }) {
   );
 }
 
+export const LOOP_NAME: Record<string, string> = {
+  R_LIC: "Reactor level", R_TIC: "Reactor temperature", R_PIC: "Reactor pressure", RB_LIC: "Reboiler level",
+  DR_LIC: "Reflux drum level", COL_PIC: "Column pressure", TOP_TIC: "Top temperature", BOT_TIC: "Bottom temperature",
+};
+
 function Loops({ snap }: { snap: Snapshot }) {
   return (
     <section className="card">
-      <h3>Control loops</h3>
+      <h3>Control loops <span className="dim small">click a loop to change it</span></h3>
       <div className="table-wrap">
         <table className="data">
           <thead><tr><th>Loop</th><th>Mode</th><th className="num">PV</th><th className="num">Setpoint</th><th>Output</th></tr></thead>
@@ -51,8 +56,10 @@ function Loops({ snap }: { snap: Snapshot }) {
               const frac = (c.last_output - c.mv_min) / (c.mv_max - c.mv_min || 1);
               const sat = frac > 0.97 || frac < 0.03;
               return (
-                <tr key={id}>
-                  <td><b>{id}</b></td>
+                <tr key={id} className="clickable" tabIndex={0} title={`Change ${id} in the Operate panel`}
+                  onClick={() => navigate({ drawer: "operate", loop: id })}
+                  onKeyDown={(e) => e.key === "Enter" && navigate({ drawer: "operate", loop: id })}>
+                  <td><b>{id}</b> <span className="dim small">{LOOP_NAME[id]}</span></td>
                   <td><span className={`pill ${c.mode === "AUTO" ? "" : "pill-warn"}`}>{c.mode}</span></td>
                   <td className="num">{c.pv?.toPrecision(4) ?? "—"}</td>
                   <td className="num">{c.setpoint.toPrecision(4)}</td>
