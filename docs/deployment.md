@@ -134,7 +134,7 @@ docker build -t operaitor .
 docker run -p 7860:7860 operaitor
 ```
 
-Put HTTPS in front of it (the key travels over the WebSocket), e.g. Caddy:
+Put HTTPS in front of it (browsers need it, and so do the visitors' provider calls), e.g. Caddy:
 `reverse_proxy localhost:7860`. Health check: `GET /api/health`.
 
 ## Configuration (environment variables)
@@ -159,33 +159,48 @@ password on the reverse proxy).
 ## LLMs on the hosted site (free first)
 
 The hosted site has no LLM of its own and pays for nothing. Each visitor connects one in
-**Assistant → Connect an LLM**:
+**Agents → Agent settings**:
 
 | Provider | Cost to the visitor | Models (suggestions; any model name the provider accepts) |
 |---|---|---|
 | Groq | free tier | llama-3.3-70b-versatile, llama-3.1-8b-instant, qwen/qwen3-32b |
 | Google Gemini | free tier | gemini-2.5-flash, gemini-2.5-flash-lite |
 | OpenRouter | free models (`:free`) | meta-llama/llama-3.3-70b-instruct:free, qwen/qwen3-235b-a22b:free, … |
-| Own Ollama | free | any model on their server; it must be reachable over https from the internet, e.g. through a tunnel |
+| Own Ollama | free | any model on their own computer or server; Ollama must allow the site (`OLLAMA_ORIGINS`) |
 | OpenAI | billed to the visitor | gpt-5-nano, gpt-5-mini (`PLANT_ALLOWED_MODELS`) |
 
 **Why there is no Ollama inside the Space:** the free Space hardware is CPU-only (2 vCPUs). A 3B
 model there needs about 7 minutes per agent call, or roughly 20 minutes per decision, so a bundled
 model would not be usable.
 
-## Visitor keys and addresses: what happens to them
+## Visitor keys: the server never receives them
 
-- **Sending:** the key (and, for Ollama, the address) goes from the browser to the server over the
-  WebSocket. Use HTTPS; Spaces and Render provide it.
-- **Checking:** the server checks the connection with a call that spends no tokens (listing models,
-  or OpenRouter's key endpoint).
-- **Ollama addresses:** a visitor's Ollama address must be https and must not resolve to a private,
-  loopback or link-local address, so the public server cannot be used to reach internal networks.
-- **Use:** the server builds that session's agents with the connection. The key is held in process
-  memory only and is never written to disk or logs.
-- **Isolation:** it is never sent back to the browser, and other sessions cannot use it.
-- **End of session:** it is dropped when the session ends (tab closed, idle timeout, or
-  **Disconnect**).
-- **In the browser:** the page keeps it in memory only, not in localStorage.
-- **Billing:** any cost is billed by the provider to the visitor's own account; the console shows
-  tokens per session, and the estimated cost for OpenAI.
+In the public console the **visitor's browser makes every LLM call itself**. The agents still run on
+the server, but each model call is handed to the visitor's tab, which calls the provider directly
+and passes back the answer (`operaitor/agents/browser_llm.py`, `frontend/src/browserLlm.ts`).
+
+```
+server agents --llm_request (prompt, no key)--> visitor's browser --HTTPS + key--> Groq / Gemini / OpenRouter / OpenAI / Ollama
+server agents <--llm_response (answer)--------- visitor's browser <-----answer----
+```
+
+- **The key stays in the tab.** It is held in the page's memory only, never in browser storage.
+  Reloading or closing the tab forgets it.
+- **The server cannot receive it.** A public server (`PLANT_HOSTED=1`) refuses any connection
+  request that carries a key, so a key cannot reach it even by mistake.
+- **The browser decides where the key goes.** The provider addresses are fixed in the page's own
+  code, or typed by the visitor for Ollama. The browser never sends the key to an address the server
+  names, so even a compromised server could not redirect it.
+- **The browser checks the connection first.** It lists models, or uses OpenRouter's key endpoint,
+  so no tokens are spent.
+- **All four hosted providers allow calls from a browser:** Groq, Gemini, OpenRouter and OpenAI. A
+  visitor's own Ollama must allow the site's address in `OLLAMA_ORIGINS`. Because the browser makes
+  the call, Ollama on the visitor's own computer works (`http://localhost:11434`), and the server
+  never connects to it.
+- **The tab must stay open while the agents work.** If it closes, the session's pending calls fail
+  cleanly and the plant keeps running.
+- **Billing:** any cost is billed by the provider to the visitor's own account. The console shows
+  calls and tokens per session, and the estimated cost for OpenAI.
+
+A private deployment (`PLANT_HOSTED=0`) can still use the server's own `OPENAI_API_KEY` or a local
+Ollama.

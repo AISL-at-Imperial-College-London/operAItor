@@ -47,14 +47,15 @@ Open the live console (linked from the project page) and press **Run**, then inj
 setting one up.
 
 Without an LLM, the plant, the fault detection and the safety functions all work, and the agents
-monitor and diagnose but take no actions. To let the agents act, open **Assistant → Connect an LLM**
+monitor and diagnose but take no actions. To let the agents act, open **Agents → Agent settings**
 and pick a provider:
 - **Groq, Google Gemini or OpenRouter:** free tiers with open models (Llama, Qwen, Gemma); you only
   need a free account.
 - **Your own Ollama server:** free.
 - **OpenAI:** optional, billed to your own account.
 
-The key stays in server memory for your session only. The hosted site itself costs nothing to run;
+Your key stays in your browser tab: the browser calls the provider directly, and the server never receives it
+(details in [docs/deployment.md](docs/deployment.md)). The hosted site itself costs nothing to run;
 [docs/deployment.md](docs/deployment.md) covers deploying a copy.
 
 ### Locally
@@ -73,7 +74,7 @@ operaitor serve                  # http://localhost:8001
 - **Ollama, if it is running, with no OpenAI key set:** the agents use it automatically (`qwen3:8b`,
   or `--llm-model llama3.2`, `mistral`, …). On a laptop GPU a call takes about 10–20 s.
 - **OpenAI:** put `OPENAI_API_KEY=...` in `.env` to use OpenAI models instead.
-- **In the console:** **Assistant → Connect an LLM** switches to Groq, Gemini, OpenRouter, another
+- **In the console:** **Agents → Agent settings** switches to Groq, Gemini, OpenRouter, another
   Ollama server or OpenAI.
 - **Any other OpenAI-compatible server:** set `PLANT_LLM_BASE_URL`.
 

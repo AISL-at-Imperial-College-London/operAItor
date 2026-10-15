@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { callLlm, checkConnection, type LlmConn, type LlmRequest } from "./browserLlm";
 import type { AgentEvent, AgentInfo, Brief, Campaign, ChatMessage, Hello, HumanTest, LlmUsage, Message, Meta, MonitorEvent, Num, SessionInfo, Snapshot, TrendPoint } from "./types";
 
 const MAX_POINTS = 1440;
@@ -122,9 +123,10 @@ class PlantStore {
     messages: [], toast: null, brief: null, campaign: null, humanTest: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
     pipeline: idlePipeline(), session: null, notice: null, keyBusy: false, nav: null,
   };
-  // The visitor's LLM connection (incl. key) lives only in this page's memory (never in browser storage), so a
-  // new session (after a server restart or session expiry) can be re-keyed without retyping.
-  private llmConn: { provider: string; model: string; key: string; url: string } | null = null;
+  // The visitor's LLM connection (incl. key) lives only in this page's memory (never in browser storage or on
+  // the server): this tab makes the agents' LLM calls itself (browserLlm.ts). A new session (server restart or
+  // session expiry) is reconnected without retyping.
+  private llmConn: LlmConn | null = null;
   private chatId = 0;
   private listeners = new Set<() => void>();
   private ws: WebSocket | null = null;
@@ -181,15 +183,39 @@ class PlantStore {
     if (h.session) {
       const fresh = h.session.id !== storedSession();
       storeSession(h.session.id);
-      // A new session on a server that needs visitor keys: re-send the key this page already has.
+      // A new session: reconnect with the key this page already has.
       if (fresh && this.llmConn && h.session.llm.key_source !== "visitor") this.connectLlm(this.llmConn);
+      // The session says this browser makes its calls, but the page was reloaded and the key is gone.
+      else if (!this.llmConn && h.session.llm.connection?.in_browser) this.send({ type: "clear_api_key" });
     }
   }
 
-  connectLlm(c: { provider: string; model: string; key: string; url: string }) {
-    this.llmConn = c;
+  /** Check the key with the provider from this browser, then tell the server to route the agents' calls here.
+   *  The key itself is never sent to the server. */
+  async connectLlm(c: LlmConn) {
     this.set({ keyBusy: true });
-    this.send({ type: "set_llm", ...c });
+    const problem = await checkConnection(c);
+    if (problem) {
+      this.set({ keyBusy: false, toast: { ok: false, text: problem, at: Date.now() } });
+      return;
+    }
+    this.llmConn = c;
+    this.send({ type: "set_llm", provider: c.provider, model: c.model, url: c.url, in_browser: true });
+  }
+
+  /** The server's agents need a model call: make it from this browser with the key held here. */
+  private async answerLlm(req: LlmRequest) {
+    const conn = this.llmConn;
+    if (!conn) {
+      this.send({ type: "llm_response", id: req.id, ok: false, error: "no key in this tab (the page was reloaded); connect again" });
+      return;
+    }
+    try {
+      const reply = await callLlm(conn, req);
+      this.send({ type: "llm_response", id: req.id, ok: true, ...reply });
+    } catch (e) {
+      this.send({ type: "llm_response", id: req.id, ok: false, error: (e as Error).message });
+    }
   }
 
   forgetKey() {
@@ -255,6 +281,9 @@ class PlantStore {
       case "message":
         this.set({ messages: [...this.state.messages, msg].slice(-50) });
         break;
+      case "llm_request":
+        void this.answerLlm(msg as LlmRequest);
+        break;
       case "ack":
         if (msg.request === "set_llm" || msg.request === "set_api_key") {
           if (!msg.ok) this.llmConn = null;
@@ -281,6 +310,6 @@ export function usePlant<T>(select: (s: PlantState) => T): T {
 
 export const send = (msg: Record<string, unknown>) => store.send(msg);
 export const ask = (text: string) => store.ask(text);
-export const connectLlm = (c: { provider: string; model: string; key: string; url: string }) => store.connectLlm(c);
+export const connectLlm = (c: LlmConn) => store.connectLlm(c);
 export const forgetKey = () => store.forgetKey();
 export const navigate = (r: Omit<NavRequest, "at">) => store.set({ nav: { ...r, at: Date.now() } });

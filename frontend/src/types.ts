@@ -277,7 +277,7 @@ export interface SessionInfo {
   models: string[];
   llm: { model: string; key_source: "visitor" | "server" | null; active: boolean; reason: string;
          preset: string; presets: Record<string, string>;
-         connection: { provider: string; label: string; model: string; free: boolean; url: string | null } | null;
+         connection: { provider: string; label: string; model: string; free: boolean; url: string | null; in_browser?: boolean } | null;
          providers: Record<string, LlmProvider> };
 }
 

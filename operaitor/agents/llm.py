@@ -120,7 +120,7 @@ def llm_status(model: str = DEFAULT_MODEL) -> tuple[bool, str]:
         from .providers import PROVIDERS
         return True, f"{PROVIDERS.get(ep.provider, {}).get('label', ep.provider)} {ep.model}"
     if hosted():
-        return False, "no LLM connected for this session (connect one in the Assistant panel)"
+        return False, "no LLM connected for this session (connect one in Agents → Agent settings)"
     if os.environ.get("PLANT_LLM_BASE_URL"):
         return True, f"{model} at {os.environ['PLANT_LLM_BASE_URL']}"
     if is_openai_model(model):
@@ -144,9 +144,15 @@ def make_llm(model: str = DEFAULT_MODEL, timeout: float = 120.0, temperature: fl
     load_env()
     if (missing := _needs_langchain_openai()):
         raise RuntimeError(missing)
+    ep = _SESSION_ENDPOINT.get()
+    if ep is not None and ep.in_browser:  # the visitor's browser makes the call; its key never comes here
+        from .browser_llm import BrowserChatModel
+        reasoning = ep.provider == "openai" and is_reasoning_model(ep.model)
+        return BrowserChatModel(relay=ep.relay, provider=ep.provider, model=ep.model,
+                                temperature=1.0 if reasoning else temperature, json_mode=json_mode and ep.json_mode,
+                                reasoning_effort=os.environ.get("PLANT_REASONING_EFFORT", "low") if reasoning else None)
     from langchain_openai import ChatOpenAI
     retries = int(os.environ.get("PLANT_LLM_MAX_RETRIES", "2"))
-    ep = _SESSION_ENDPOINT.get()
     if (ep is not None and ep.provider == "ollama") or (ep is None and not hosted() and not os.environ.get("PLANT_LLM_BASE_URL")
                                                          and not is_openai_model(model)):
         return _ollama(ep.model if ep else model, (ep.base_url[:-3] if ep else None), timeout, temperature, json_mode, **extra)
