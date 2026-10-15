@@ -7,10 +7,11 @@ are suggestions (providers rename models over time); any model name the provider
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import ipaddress
 import os
 import socket
+from typing import Any
 from urllib.parse import urlparse
 
 PROVIDERS: dict[str, dict] = {
@@ -38,17 +39,26 @@ DEFAULT_OLLAMA_MODEL = os.environ.get("PLANT_OLLAMA_MODEL", "qwen3:8b")
 
 @dataclass(frozen=True)
 class Endpoint:
-    """Where a session's LLM calls go. ``api_key`` is never logged or sent back to a browser."""
+    """Where a session's LLM calls go. ``api_key`` is never logged or sent back to a browser.
+
+    With ``relay`` set, the visitor's browser makes the calls with a key only it holds
+    (``browser_llm.py``); ``api_key`` is then empty."""
     provider: str
     base_url: str
     api_key: str
     model: str
     json_mode: bool
+    relay: Any = field(default=None, compare=False, repr=False)
+
+    @property
+    def in_browser(self) -> bool:
+        return self.relay is not None
 
     def public(self) -> dict:
         p = PROVIDERS.get(self.provider, {})
         return {"provider": self.provider, "label": p.get("label", self.provider), "model": self.model,
-                "free": bool(p.get("free")), "url": self.base_url if self.provider == "ollama" else None}
+                "free": bool(p.get("free")), "url": self.base_url if self.provider == "ollama" else None,
+                "in_browser": self.in_browser}
 
 
 def _ollama_root(url: str) -> str:

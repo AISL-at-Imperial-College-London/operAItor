@@ -22,6 +22,10 @@ export function LlmKeyCard() {
           <span className="dim"> · {conn.label}{conn.free ? " · free" : ""}</span></div>
         {usage && <div className="dim small">{usage.calls} calls · {(usage.input_tokens + usage.output_tokens).toLocaleString()} tokens
           {conn.free ? "" : ` · ≈ $${usage.cost_usd.toFixed(4)}`} this session</div>}
+        {conn.in_browser && <div className="dim small">
+          {conn.provider === "ollama" ? "Your browser makes these calls to your Ollama; this server never connects to it."
+            : "Your browser makes these calls with your key; this server never sees it. Reloading forgets the key."}
+          {" "}Keep this tab open while the agents work.</div>}
         {llm.key_source === "visitor" && <button className="btn sm" onClick={forgetKey}>Disconnect</button>}
       </div>
     );
@@ -30,7 +34,7 @@ export function LlmKeyCard() {
   const pid = provider || Object.keys(providers)[0] || "";
   const p = providers[pid];
   const chosenModel = model || p?.models[0] || "";
-  const ready = !!p && !!chosenModel && (!p.key || !!key.trim()) && (!p.url || !session.hosted || !!url.trim());
+  const ready = !!p && !!chosenModel && (!p.key || !!key.trim());
   return (
     <form className="key-card" onSubmit={(e) => {
       e.preventDefault();
@@ -48,8 +52,8 @@ export function LlmKeyCard() {
           <input type="text" list={`models-${pid}`} value={chosenModel} onChange={(e) => setModel(e.target.value)} spellCheck={false} />
           <datalist id={`models-${pid}`}>{p.models.map((m) => <option key={m} value={m} />)}</datalist></label>
         {p.url && (
-          <label className="field"><span>Ollama address{session.hosted ? " (https, reachable from the internet)" : " (blank = this machine)"}</span>
-            <input type="text" placeholder={session.hosted ? "https://my-ollama.example.org" : "http://127.0.0.1:11434"}
+          <label className="field"><span>Ollama address (blank = Ollama on your own computer)</span>
+            <input type="text" placeholder="http://localhost:11434"
               value={url} onChange={(e) => setUrl(e.target.value)} spellCheck={false} /></label>
         )}
         <label className="field"><span>API key{p.key ? "" : " (optional)"}</span>
@@ -60,7 +64,10 @@ export function LlmKeyCard() {
             {p.key ? `Get a ${p.free ? "free " : ""}key` : "Get Ollama"} ↗</a>
         </div>
       </>}
-      <p className="small dim">Your key stays in this server's memory for your session only; it is never stored or shown again.</p>
+      <p className="small dim">
+        Your key stays in this browser tab, in memory only. Your browser calls the provider directly, so this server
+        never receives the key. {p?.url ? "Ollama must allow this site: set OLLAMA_ORIGINS to this page's address." : ""}
+      </p>
     </form>
   );
 }

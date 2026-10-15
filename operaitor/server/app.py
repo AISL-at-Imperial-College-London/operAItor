@@ -78,8 +78,12 @@ async def config():
 
 
 async def _set_llm(session: Session, msg: dict) -> dict:
-    """Connect this session's agents to an LLM provider (the key stays in server memory)."""
-    from operaitor.agents.providers import PROVIDERS, check_endpoint, endpoint_for
+    """Connect this session's agents to an LLM provider.
+
+    ``in_browser`` (the public console): the visitor's browser has already checked its key with the
+    provider and makes every call itself; no key is sent here. A public server refuses keys outright,
+    so a visitor's key cannot reach it. Otherwise (a private server) the key is held in memory."""
+    from operaitor.agents.providers import PROVIDERS, Endpoint, check_endpoint, endpoint_for
     provider = str(msg.get("provider") or "openai")
     if provider not in PROVIDERS:
         return {"ok": False, "summary": f"unknown provider {provider!r}"}
@@ -91,6 +95,16 @@ async def _set_llm(session: Session, msg: dict) -> dict:
         return {"ok": False, "summary": "invalid model, key or address"}
     if provider == "openai" and manager.settings.hosted and model not in manager.settings.models:
         return {"ok": False, "summary": f"model {model!r} is not offered here"}
+    if msg.get("in_browser"):
+        if key:
+            return {"ok": False, "summary": "send no key: the browser keeps it and calls the provider itself"}
+        base = endpoint_for(provider, model, "", url or "http://localhost:11434")
+        ep = Endpoint(provider, base.base_url, "", model, base.json_mode, relay=session.relay)
+        warning = await session.configure_agents(endpoint=ep)
+        await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
+        return {"ok": not warning, "summary": warning or f"LLM agents on: {p['label']}, {model} (calls made by your browser)"}
+    if manager.settings.hosted:
+        return {"ok": False, "summary": "this server never receives API keys; reload the page to use the current console"}
     if provider == "ollama" and not url and manager.settings.hosted:
         return {"ok": False, "summary": "give the https address of your Ollama server"}
     ep = endpoint_for(provider, model, key, url)
@@ -145,6 +159,8 @@ async def ws(websocket: WebSocket):
             queue.get_nowait()
         queue.put_nowait(jsonable(event))
 
+    session.relay.attach(push)  # this tab can make the session's LLM calls (browser_llm.py)
+
     async def pump_out():
         while True:
             event = await queue.get()
@@ -167,6 +183,9 @@ async def ws(websocket: WebSocket):
             msg = json.loads(await websocket.receive_text())
             session.last_seen = time.monotonic()
             kind = msg.get("type")
+            if kind == "llm_response":  # the browser's answer to an llm_request; no ack
+                session.relay.resolve(msg)
+                continue
             if kind == "chat":
                 task = asyncio.create_task(answer(msg))
                 tasks.add(task)
@@ -189,6 +208,7 @@ async def ws(websocket: WebSocket):
         sender.cancel()
         for task in tasks:
             task.cancel()
+        session.relay.detach(push)
         service.unsubscribe(queue)
         manager.detach(session)
 

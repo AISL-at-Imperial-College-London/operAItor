@@ -97,6 +97,9 @@ class Session:
         self.model = settings.model
         self.preset = settings.preset
         self.endpoint: Endpoint | None = None  # visitor-connected LLM (holds the key; never sent out)
+        # The visitor's browser makes this session's LLM calls when they connect a provider (browser_llm.py).
+        from operaitor.agents.browser_llm import BrowserRelay
+        self.relay = BrowserRelay()
         self.llm_reason = ""
         self.llm_ctx = contextvars.copy_context()
         self.clients = 0
@@ -118,6 +121,7 @@ class Session:
             await self.supervisor.stop()
         await self.service.stop()
         self.endpoint = None
+        self.relay.fail_all("session closed")
 
     @property
     def key_source(self) -> str | None:
