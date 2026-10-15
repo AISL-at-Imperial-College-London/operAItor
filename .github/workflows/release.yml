@@ -1,0 +1,168 @@
+name: release
+
+# Builds every way to get OperAItor and publishes them on a version tag:
+#   git tag v1.0.1 && git push origin v1.0.1      (the tag must match operaitor/__init__.py __version__)
+# - pip:     wheel + source archive (console bundled) -> GitHub release, and PyPI when PYPI_PUBLISH=1
+# - Docker:  ghcr.io/aisl-at-imperial-college-london/operaitor:<version> and :latest
+# - Windows: OperAItor-Setup-<version>.exe (per-user installer) and a portable zip
+# Run it by hand (Actions -> release -> Run workflow) to build and test everything without publishing.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dist:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - id: version
+        run: |
+          v=$(python -c "import re;print(re.search(r'__version__ = \"(.+?)\"', open('operaitor/__init__.py').read()).group(1))")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v$v" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match __version__ $v"; exit 1
+          fi
+      - run: pip install build==1.2.2.post1
+      - run: python packaging/build_dist.py
+      - name: smoke test of the wheel
+        run: |
+          python -m venv /tmp/w && /tmp/w/bin/pip install -q dist/*.whl
+          /tmp/w/bin/operaitor doctor
+          /tmp/w/bin/operaitor serve --port 8011 &
+          for i in $(seq 1 60); do curl -fs http://127.0.0.1:8011/api/health && break; sleep 2; done
+          curl -fs http://127.0.0.1:8011/ | grep -q 'id="root"'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: dist/
+
+  windows:
+    needs: dist
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.dist.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist
+      - name: install the wheel and the build tools
+        shell: pwsh
+        run: |
+          $wheel = (Get-ChildItem dist\*.whl).FullName
+          python -m pip install "$wheel[llm]" "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git" pyinstaller==6.22.3 pyinstaller-hooks-contrib==2026.8
+      - name: build OperAItor.exe
+        run: pyinstaller packaging/windows/operaitor.spec --noconfirm --distpath build-win/dist --workpath build-win/work
+      - name: smoke test of the app
+        shell: pwsh
+        run: |
+          $env:OPERAITOR_NO_BROWSER = "1"; $env:OPERAITOR_PORT = "8012"
+          $p = Start-Process build-win\dist\OperAItor\OperAItor.exe -PassThru -RedirectStandardOutput app.log -RedirectStandardError app.err
+          $ok = $false
+          for ($i = 0; $i -lt 90; $i++) { Start-Sleep 2; try { Invoke-RestMethod http://127.0.0.1:8012/api/health | Out-Null; $ok = $true; break } catch {} }
+          Get-Content app.log, app.err -ErrorAction SilentlyContinue
+          Stop-Process -Id $p.Id -Force
+          if (-not $ok) { throw "OperAItor.exe did not start" }
+      - name: portable zip and installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Compress-Archive -Path build-win\dist\OperAItor -DestinationPath "out\OperAItor-$env:VERSION-windows-portable.zip"
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" "/DSourceDir=$PWD\build-win\dist\OperAItor" "/DOutputDir=$PWD\out" packaging\windows\installer.iss
+      - name: smoke test of the installer
+        shell: pwsh
+        run: |
+          Start-Process "out\OperAItor-Setup-$env:VERSION.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
+          $exe = "$env:LOCALAPPDATA\Programs\OperAItor\OperAItor.exe"
+          if (-not (Test-Path $exe)) { throw "installer did not install $exe" }
+          $env:OPERAITOR_NO_BROWSER = "1"; $env:OPERAITOR_PORT = "8013"
+          $p = Start-Process $exe -PassThru
+          $ok = $false
+          for ($i = 0; $i -lt 90; $i++) { Start-Sleep 2; try { Invoke-RestMethod http://127.0.0.1:8013/api/health | Out-Null; $ok = $true; break } catch {} }
+          Stop-Process -Id $p.Id -Force
+          if (-not $ok) { throw "the installed OperAItor did not start" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: out/
+
+  docker:
+    needs: dist
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/aisl-at-imperial-college-london/operaitor
+      VERSION: ${{ needs.dist.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t "$IMAGE:$VERSION" -t "$IMAGE:latest" .
+      - name: smoke test
+        run: |
+          docker run -d --name plant -p 7860:7860 "$IMAGE:$VERSION"
+          for i in $(seq 1 60); do curl -fs http://127.0.0.1:7860/api/health && break; sleep 2; done
+          curl -fs http://127.0.0.1:7860/ | grep -q 'id="root"'
+      - name: publish to GitHub Container Registry
+        if: github.ref_type == 'tag'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker push "$IMAGE:$VERSION"
+          docker push "$IMAGE:latest"
+
+  pypi:
+    needs: [dist, windows, docker]
+    if: github.ref_type == 'tag' && vars.PYPI_PUBLISH == '1'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write   # trusted publishing: no PyPI token stored in GitHub
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: [dist, windows, docker]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: assets/*
+          generate_release_notes: true
+          body: |
+            ## Install
+            - **Windows:** download `OperAItor-Setup-${{ needs.dist.outputs.version }}.exe`, run it, then start OperAItor from the Start menu.
+              Windows may warn that the publisher is unknown (the app is not code-signed): choose **More info**, then **Run anyway**.
+              No installer wanted? Unzip the `-windows-portable.zip` and run `OperAItor.exe`.
+            - **Docker:** `docker run -p 7860:7860 ghcr.io/aisl-at-imperial-college-london/operaitor:${{ needs.dist.outputs.version }}`, then open http://localhost:7860
+            - **Python 3.11+:** `pip install "operaitor-${{ needs.dist.outputs.version }}-py3-none-any.whl[llm]"` (or from PyPI when published), then `operaitor serve`

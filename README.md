@@ -40,6 +40,19 @@ before they reach the plant.
 
 ## Run it
 
+### On your own computer (no website needed)
+
+Download from the [Releases page](https://github.com/AISL-at-Imperial-College-London/operAItor/releases):
+
+| You have | Do this |
+|---|---|
+| **Windows** | Run `OperAItor-Setup-<version>.exe`, then start **OperAItor** from the Start menu. The console opens in your browser; closing the OperAItor window stops it. The app is not code-signed, so Windows may say "Windows protected your PC": choose **More info → Run anyway**. Prefer no installer? Unzip `OperAItor-<version>-windows-portable.zip` and run `OperAItor.exe`. |
+| **Docker** (Windows, Mac, Linux) | `docker run -p 7860:7860 ghcr.io/aisl-at-imperial-college-london/operaitor`, then open http://localhost:7860 |
+| **Python 3.11+** | `pip install "operaitor[llm]"` (or the `.whl` from the release), then `operaitor serve` and open http://localhost:8001 |
+
+Everything runs on your computer. For the AI agents, connect a free provider in **Agents → Agent
+settings**, or run [Ollama](https://ollama.com) on the same computer.
+
 ### In the browser (hosted)
 
 Open the live console (linked from the project page) and press **Run**, then inject a fault from the
