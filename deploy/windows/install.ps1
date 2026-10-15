@@ -68,7 +68,7 @@ Step "Python environment ($Venv, separate from any development setup)"
 if (-not (Test-Path (Join-Path $Venv "Scripts\python.exe"))) { & py -3 -m venv $Venv }
 $Py = Join-Path $Venv "Scripts\python.exe"
 & $Py -m pip install --quiet --upgrade pip
-& $Py -m pip install --quiet "$App[llm,admit]"
+& $Py -m pip install --quiet "$App[llm]" "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"
 if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
 
 Step "Building the console"

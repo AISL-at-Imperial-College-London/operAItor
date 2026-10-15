@@ -38,6 +38,12 @@ nav.links a:hover { color: var(--ink); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn[aria-disabled="true"] { opacity: .55; pointer-events: none; }
 .btn small { font-weight: 400; opacity: .85; }
+.dl { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); margin: 6px 0 18px; }
+.dl .card { display: flex; flex-direction: column; gap: 10px; }
+.dl .card p { margin: 0; }
+.dl .card .btn { margin-top: auto; align-self: flex-start; }
+.dl pre { margin: 0; font-size: 13px; padding: 10px 12px; white-space: pre; overflow-x: auto; }
+.note { color: var(--muted); font-size: 14px; }
 .shot { margin: 28px 0 8px; border-radius: 12px; border: 1px solid var(--line); overflow: hidden; background: #0d1117; }
 .shot img { width: 100%; height: auto; display: block; }
 .caption { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
@@ -73,7 +79,7 @@ footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--m
     <nav class="links" aria-label="Site">
       <a href="#how">How it works</a>
       <a href="#results">Results</a>
-      <a href="#run">Run it</a>
+      <a href="#run">Download</a>
       <a href="./dashboard/">Dashboard</a>
       <a href="https://github.com/AISL-at-Imperial-College-London/operAItor">GitHub</a>
     </nav>
@@ -88,6 +94,7 @@ footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--m
       gates decide whether the fix may reach the plant.</p>
     <div class="ctas">
       <a class="btn primary" id="demo" href="__DEMO_URL__">Open the live demo</a>
+      <a class="btn" id="download" href="#run">Download <small>(Windows, Docker, Python)</small></a>
       <a class="btn" href="./dashboard/">Campaign results <small>(20 fault scenarios)</small></a>
       <a class="btn" href="https://github.com/AISL-at-Imperial-College-London/operAItor">Source code</a>
     </div>
@@ -158,29 +165,54 @@ footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--m
   </section>
 
   <section id="run">
-    <h2>Run it yourself (free)</h2>
+    <h2>Run it on your own computer (free)</h2>
+    <p>Everything runs on your machine: the plant, the console in your browser and the agents. Downloads are on the
+      <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases/latest">latest release</a>.</p>
+    <div class="dl">
+      <div class="card">
+        <h3>Windows app</h3>
+        <p>Download <b>OperAItor-Setup</b>, run it, then start <b>OperAItor</b> from the Start menu. The console opens
+          in your browser; closing the OperAItor window stops it. No administrator rights needed. Prefer no installer?
+          Use the portable zip.</p>
+        <p class="note">The app is not code-signed yet, so Windows may say “Windows protected your PC”: choose
+          <b>More info → Run anyway</b>.</p>
+        <a class="btn primary" href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases/latest">Download for Windows</a>
+      </div>
+      <div class="card">
+        <h3>Docker</h3>
+        <p>Windows, Mac or Linux with <a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a>:</p>
+<pre>docker run -p 7860:7860 \
+  ghcr.io/aisl-at-imperial-college-london/operaitor</pre>
+        <p>then open <a href="http://localhost:7860">http://localhost:7860</a>.</p>
+      </div>
+      <div class="card">
+        <h3>Python 3.11+</h3>
+        <p>For researchers using the plant or the benchmark in their own code:</p>
+<pre>pip install "operaitor[llm]"
+operaitor serve</pre>
+        <p>then open <a href="http://localhost:8001">http://localhost:8001</a>. The wheel is also on the release page.</p>
+      </div>
+    </div>
     <div class="two">
       <div>
-        <p>Locally, with a free <a href="https://ollama.com">Ollama</a> model (Python ≥ 3.11, Node 20+):</p>
-<pre>git clone https://github.com/AISL-at-Imperial-College-London/operAItor
-cd operAItor
-pip install -e ".[llm,admit]"
-cd frontend &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; cd ..
-ollama pull qwen3:8b
-operaitor serve        # http://localhost:8001</pre>
-        <p>Or with Docker: <code>docker build -t operaitor . &amp;&amp; docker run -p 7860:7860 operaitor</code></p>
-      </div>
-      <div>
-        <p>In the live demo, the plant, fault detection and safety functions work without any account. To let the agents
-          act, connect an LLM in <b>Assistant → Connect an LLM</b>:</p>
+        <h3>Let the agents act</h3>
+        <p>Without an LLM the plant, fault detection and safety functions all work, and the agents monitor and
+          diagnose. To let them act, connect one in <b>Agents → Agent settings</b>:</p>
         <ul>
           <li>Groq <span class="pill free">free tier</span></li>
           <li>Google Gemini <span class="pill free">free tier</span></li>
           <li>OpenRouter <span class="pill free">free models</span></li>
-          <li>your own Ollama server <span class="pill free">free</span></li>
+          <li><a href="https://ollama.com">Ollama</a> on your own computer <span class="pill free">free</span></li>
           <li>OpenAI <span class="pill">billed to your own key</span></li>
         </ul>
-        <p>Keys stay in server memory for your session only.</p>
+      </div>
+      <div>
+        <h3>Your key stays with you</h3>
+        <p>Your browser calls the AI provider directly with your key. The key is held in your browser tab only and is
+          never sent to the OperAItor server.</p>
+        <p>The Windows app and the Docker image include the <a href="https://github.com/Refiant-Inc/admit-bench">ADMIT</a>
+          validator. With pip, add it with <code>pip install "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"</code>.</p>
+        <p class="note">From source: see the <a href="https://github.com/AISL-at-Imperial-College-London/operAItor#run-it">README</a>.</p>
       </div>
     </div>
   </section>
@@ -196,12 +228,12 @@ operaitor serve        # http://localhost:8001</pre>
   </div>
 </footer>
 <script>
-  // The live-demo link is filled in at build time once the Hugging Face Space exists.
+  // The live-demo link is filled in at build time from the repository variable DEMO_URL. Without one,
+  // the download becomes the main button.
   const demo = document.getElementById("demo");
   if (!demo.getAttribute("href") || demo.getAttribute("href").startsWith("__")) {
-    demo.setAttribute("aria-disabled", "true");
-    demo.removeAttribute("href");
-    demo.textContent = "Live demo: coming soon";
+    demo.remove();
+    document.getElementById("download").classList.add("primary");
   }
 </script>
 </body>
