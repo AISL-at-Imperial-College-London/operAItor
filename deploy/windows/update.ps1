@@ -46,7 +46,7 @@ $after = (& git -C $App rev-parse --short HEAD).Trim()
 if ($before -eq $after) { Write-Host "Already at $after ($branch); nothing to update. Use -Restart to restart anyway."; exit 0 }
 Write-Host "Updating $branch $before -> $after"
 
-& $Py -m pip install --quiet "$App[llm,admit]"
+& $Py -m pip install --quiet "$App[llm]" "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"
 if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
 Push-Location (Join-Path $App "frontend")
 try {

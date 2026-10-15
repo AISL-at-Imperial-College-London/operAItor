@@ -8,7 +8,7 @@
     operaitor train-pca                     # retrain the PCA fault-detection model
     operaitor benchmark probe|compare|report # 20-scenario fault campaign (see docs/benchmark.md)
     operaitor dashboard                     # build the campaign dashboard HTML
-    operaitor admit build|validate|run      # the plant as an ADMIT cartridge (needs [admit])
+    operaitor admit build|validate|run      # the plant as an ADMIT cartridge (needs admit-bench)
 
 LLM: OpenAI gpt-5-nano by default, when langchain-openai is installed and OPENAI_API_KEY is set
 (environment or a .env file in the working directory). Other model names use a local Ollama, or
@@ -53,12 +53,13 @@ def _doctor(_: argparse.Namespace) -> int:
     for mod, extra, required in [("numpy", "", True), ("scipy", "", True), ("fastapi", "", True),
                                  ("uvicorn", "", True), ("langgraph", "", True),
                                  ("langchain_openai", "[llm]", False), ("dotenv", "[llm]", False),
-                                 ("admitbench", "[admit]", False), ("matplotlib", "[bench]", False)]:
+                                 ("admitbench", "admit-bench", False), ("matplotlib", "[bench]", False)]:
         try:
             importlib.import_module(mod)
             line(True, mod)
         except ImportError:
-            line(False, mod, ("!" if required else "") + f"pip install \"operaitor{extra}\"")
+            what = '"admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"' if extra == "admit-bench" else f'"operaitor{extra}"'
+            line(False, mod, ("!" if required else "") + f"pip install {what}")
     from .fdd import DEFAULT_MODEL_PATH
     line(os.path.exists(DEFAULT_MODEL_PATH), "PCA model", "!operaitor train-pca")
     from .agents.kg import KnowledgeGraph

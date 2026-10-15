@@ -1,6 +1,6 @@
 """ADMIT integration: cartridge compiles, the live gate admits a correct record and rejects bad ones.
 
-Skipped when admit-bench is not installed (pip install "operaitor[admit]").
+Skipped when admit-bench is not installed (pip install "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git").
 """
 from __future__ import annotations
 

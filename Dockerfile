@@ -22,7 +22,7 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY operaitor ./operaitor
 COPY --from=web /web/dist ./operaitor/server/web
-RUN pip install ".[llm,admit]" && chown -R app /app
+RUN pip install ".[llm]" "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git" && chown -R app /app
 USER app
 EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s CMD python -c "import urllib.request,os;urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"7860\")}/api/health')"

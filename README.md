@@ -51,7 +51,8 @@ Download from the [Releases page](https://github.com/AISL-at-Imperial-College-Lo
 | **Python 3.11+** | `pip install "operaitor[llm]"` (or the `.whl` from the release), then `operaitor serve` and open http://localhost:8001 |
 
 Everything runs on your computer. For the AI agents, connect a free provider in **Agents → Agent
-settings**, or run [Ollama](https://ollama.com) on the same computer.
+settings**, or run [Ollama](https://ollama.com) on the same computer. The Windows app and the Docker image
+include the ADMIT validator; with pip, add it with `pip install "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"`.
 
 ### In the browser (hosted)
 
@@ -76,7 +77,7 @@ Your key stays in your browser tab: the browser calls the provider directly, and
 Requires Python ≥ 3.11 and Node 20+.
 
 ```bash
-pip install -e ".[llm,admit]"    # add ,dev for tests
+pip install -e ".[llm]" "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"    # [llm,dev] for tests
 cd frontend && npm ci && npm run build && cd ..
 ollama pull qwen3:8b             # free local model (https://ollama.com); any Ollama model works
 operaitor doctor                 # checks the installation
@@ -158,7 +159,7 @@ benchmark_results/   campaign results and logs
 ## Development
 
 ```bash
-pip install -e ".[dev,admit]"
+pip install -e ".[dev]" "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"
 pytest                            # ~3 min
 cd frontend && npm run dev        # console with hot reload on http://localhost:5173 (proxy to :8001)
 ```

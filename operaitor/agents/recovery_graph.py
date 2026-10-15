@@ -110,7 +110,7 @@ PRESETS: dict[str, dict] = {
     # LLM as judge: no simulator; a second LLM accepts / rejects each proposal (rejections reprompt)
     "llm_judge":  dict(proposer="llm", use_kg=True, twin=False, judge=True, reprompt_max=3),
     # ADMIT: the agent files an action record per command; ADMIT's gates (evidence, hazard, authority /
-    # SOP steps, consequence projected on the plant) decide admissibility (needs operaitor[admit])
+    # SOP steps, consequence projected on the plant) decide admissibility (needs admit-bench)
     "llm_admit":  dict(proposer="llm", planner="llm", use_kg=True, twin=False, admit=True, reprompt_max=3),
     # ADMIT without the simulation layer: record, evidence, hazard, authority / mode / SOP steps (T0-T3)
     "llm_admit_nosim": dict(proposer="llm", planner="llm", use_kg=True, twin=False, admit=True, admit_sim=False,

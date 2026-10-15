@@ -31,8 +31,10 @@ dependencies = [
 [project.optional-dependencies]
 # LLM agents: Ollama (free, local), Groq / Gemini / OpenRouter / OpenAI / any OpenAI-compatible server.
 llm = ["langchain-openai>=1.0", "langchain-ollama>=0.3", "python-dotenv>=1.0"]
-# ADMIT admissibility gates as a validator, and the acetone plant ADMIT cartridge.
-admit = ["admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"]
+# ADMIT (admissibility gates as a validator, the plant as an ADMIT cartridge) is not an extra: it is not on
+# PyPI yet, and PyPI rejects git dependencies. Install it with
+#   pip install "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"
+# The Docker image and the Windows app include it.
 # Regenerate the plant knowledge graph (operaitor/data/knowledge_graph/build_*.py).
 kg = ["rdflib>=7"]
 # Benchmark plots (loop tests).
