@@ -1,0 +1,16 @@
+# Codecov: coverage of the Python package (uploaded by .github/workflows/ci.yml, Python 3.12 job).
+# Status checks are informational for now: they report on every PR but do not block a merge.
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+comment:
+  layout: "condensed_header, diff, flags, files"
+  require_changes: false
+ignore:
+  - "tests"
+  - "operaitor/data/knowledge_graph/build_*.py"   # one-off graph generator (needs rdflib); its output is tested

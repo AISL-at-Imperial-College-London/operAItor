@@ -1,6 +1,7 @@
 # OperAItor
 
 [![ci](https://github.com/AISL-at-Imperial-College-London/operAItor/actions/workflows/ci.yml/badge.svg)](https://github.com/AISL-at-Imperial-College-London/operAItor/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/AISL-at-Imperial-College-London/operAItor/branch/main/graph/badge.svg)](https://codecov.io/gh/AISL-at-Imperial-College-London/operAItor)
 [![website](https://github.com/AISL-at-Imperial-College-London/operAItor/actions/workflows/pages.yml/badge.svg)](https://aisl-at-imperial-college-london.github.io/operAItor/)
 [![dashboard](https://img.shields.io/badge/benchmark-dashboard-0a7bbb.svg)](https://aisl-at-imperial-college-london.github.io/operAItor/dashboard/)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
