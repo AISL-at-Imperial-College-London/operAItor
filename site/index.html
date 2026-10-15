@@ -176,7 +176,10 @@ footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--m
           Use the portable zip.</p>
         <p class="note">The app is not code-signed yet, so Windows may say “Windows protected your PC”: choose
           <b>More info → Run anyway</b>.</p>
-        <a class="btn primary" href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases/latest">Download for Windows</a>
+        <a class="btn primary" id="win-download" download
+           href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases/latest/download/OperAItor-Setup.exe">Download for Windows</a>
+        <p class="note" id="win-download-note">Other files (portable zip, pip wheel) are on the
+          <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases">releases page</a>.</p>
       </div>
       <div class="card">
         <h3>Docker</h3>
@@ -230,6 +233,30 @@ operaitor serve</pre>
 <script>
   // The live-demo link is filled in at build time from the repository variable DEMO_URL. Without one,
   // the download becomes the main button.
+  // "Download for Windows" downloads the installer itself: the newest release that has one (a release
+  // candidate too, while there is no full release yet). Falls back to the fixed-name file of the latest release.
+  (async () => {
+    const btn = document.getElementById("win-download");
+    try {
+      const r = await fetch("https://api.github.com/repos/AISL-at-Imperial-College-London/operAItor/releases?per_page=10");
+      if (!r.ok) return;
+      const releases = (await r.json()).filter((x) => !x.draft);
+      const pick = (list) => {
+        for (const rel of list) {
+          const exe = rel.assets.find((a) => /^OperAItor-Setup-[\d.]+.*\.exe$/.test(a.name))
+            || rel.assets.find((a) => a.name === "OperAItor-Setup.exe");
+          if (exe) return { rel, exe };
+        }
+      };
+      const found = pick(releases.filter((x) => !x.prerelease)) || pick(releases);
+      if (!found) return;
+      btn.href = found.exe.browser_download_url;
+      const mb = Math.round(found.exe.size / 1e6);
+      btn.textContent = `Download for Windows (${found.rel.tag_name.replace(/^v/, "")}, ${mb} MB)`;
+      if (found.rel.prerelease) document.getElementById("win-download-note").insertAdjacentText("afterbegin", "This is a release candidate. ");
+    } catch { /* offline or rate-limited: keep the fixed link */ }
+  })();
+
   const demo = document.getElementById("demo");
   if (!demo.getAttribute("href") || demo.getAttribute("href").startsWith("__")) {
     demo.remove();
