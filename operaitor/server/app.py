@@ -93,8 +93,6 @@ async def _set_llm(session: Session, msg: dict) -> dict:
     url = str(msg.get("url") or "").strip()
     if not model or len(model) > 120 or len(key) > 400 or len(url) > 300:
         return {"ok": False, "summary": "invalid model, key or address"}
-    if provider == "openai" and manager.settings.hosted and model not in manager.settings.models:
-        return {"ok": False, "summary": f"model {model!r} is not offered here"}
     if msg.get("in_browser"):
         if key:
             return {"ok": False, "summary": "send no key: the browser keeps it and calls the provider itself"}
@@ -105,6 +103,8 @@ async def _set_llm(session: Session, msg: dict) -> dict:
         return {"ok": not warning, "summary": warning or f"LLM agents on: {p['label']}, {model} (calls made by your browser)"}
     if manager.settings.hosted:
         return {"ok": False, "summary": "this server never receives API keys; reload the page to use the current console"}
+    if provider == "openai" and model not in manager.settings.models:
+        return {"ok": False, "summary": f"model {model!r} is not offered here"}
     if provider == "ollama" and not url and manager.settings.hosted:
         return {"ok": False, "summary": "give the https address of your Ollama server"}
     ep = endpoint_for(provider, model, key, url)
@@ -114,6 +114,35 @@ async def _set_llm(session: Session, msg: dict) -> dict:
     warning = await session.configure_agents(endpoint=ep)
     await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
     return {"ok": not warning, "summary": warning or f"LLM agents on: {p['label']}, {model}"}
+
+
+def _server_ollama(session: Session) -> bool:
+    """The session uses this machine's own Ollama (a private / desktop server, nothing connected by the visitor)."""
+    conn = session.connection() or {}
+    return not manager.settings.hosted and session.key_source == "server" and conn.get("provider") == "ollama"
+
+
+async def _list_models(session: Session) -> dict:
+    """Models the console may offer for the server's own Ollama (visitor connections list theirs in the browser)."""
+    from operaitor.agents.providers import local_ollama_models
+    models = await asyncio.to_thread(local_ollama_models) if _server_ollama(session) else []
+    return {"ok": True, "summary": f"{len(models)} models", "models": models}
+
+
+async def _set_model(session: Session, msg: dict) -> dict:
+    """Switch the model of the server's own Ollama for this session (visitor connections reconnect in the browser)."""
+    from operaitor.agents.providers import local_ollama_models
+    model = str(msg.get("model") or "").strip()
+    if not _server_ollama(session):
+        return {"ok": False, "summary": "only the Ollama on this machine is switched here; your own connection changes in the browser"}
+    if not model or len(model) > 120:
+        return {"ok": False, "summary": "invalid model name"}
+    names = await asyncio.to_thread(local_ollama_models)
+    if model not in names and f"{model}:latest" not in names:
+        return {"ok": False, "summary": f"Ollama on this machine has no model {model!r}" + (f"; it has {', '.join(names[:8])}" if names else "")}
+    warning = await session.configure_agents(model=model)
+    await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
+    return {"ok": not warning, "summary": warning or f"agents now use {model} (Ollama on this machine)"}
 
 
 async def _set_key(session: Session, msg: dict) -> dict:  # older consoles: OpenAI key only
@@ -199,6 +228,10 @@ async def ws(websocket: WebSocket):
                 ack = await _clear_key(session)
             elif kind == "set_agent_preset":
                 ack = await _set_preset(session, msg)
+            elif kind == "list_models":
+                ack = await _list_models(session)
+            elif kind == "set_model":
+                ack = await _set_model(session, msg)
             else:
                 ack = await service.handle_command(msg)
             push({"type": "ack", "request": kind, **ack})

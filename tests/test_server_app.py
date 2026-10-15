@@ -71,7 +71,6 @@ def test_public_server_never_accepts_a_key(client):
         ws.receive_json()
         cases = [
             ({"provider": "nope", "in_browser": True}, "unknown provider"),
-            ({"provider": "openai", "model": "gpt-4o", "in_browser": True}, "not offered"),   # not in the allowed list
             ({"provider": "groq", "model": "m" * 200, "in_browser": True}, "invalid model"),
             ({"provider": "groq", "model": "llama-3.3-70b-versatile", "key": "gsk-x", "in_browser": True}, "send no key"),
             ({"provider": "groq", "model": "llama-3.3-70b-versatile", "key": "gsk-x"}, "never receives API keys"),
@@ -149,3 +148,17 @@ def test_server_full_and_reattach(client):
             with c.websocket_connect(f"/ws?session={sid}") as ws3:  # same visitor, e.g. a reload
                 assert ws3.receive_json()["session"]["id"] == sid
         assert c.get("/api/health").json()["sessions"] == 1
+
+
+def test_model_switching_rules(client):
+    """Visitors pick any model of their provider (they pay, from their browser); only a private server's own
+    Ollama is switched on the server."""
+    with client() as c, c.websocket_connect("/ws") as ws:
+        ws.receive_json()
+        reset = _connect_in_browser(ws, "openai", "gpt-4.1-mini")      # not in PLANT_ALLOWED_MODELS: fine in-browser
+        assert reset["hello"]["session"]["llm"]["connection"]["model"] == "gpt-4.1-mini"
+        ws.send_json({"type": "set_model", "model": "qwen3:8b"})        # public server: no server-side Ollama
+        ack = _ack(ws, "set_model")
+        assert ack["ok"] is False and "only the Ollama on this machine" in ack["summary"]
+        ws.send_json({"type": "list_models"})
+        assert _ack(ws, "list_models")["models"] == []
