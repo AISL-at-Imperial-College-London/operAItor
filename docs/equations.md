@@ -206,11 +206,11 @@ same equilibrium algebraic equations as a tray.
 valve and $\eta$ the cooling effectiveness (the condenser-cooling-loss fault lowers $\eta$):
 
 $$
-Q_{\text{avail}} = UA_c\,u_c\,\eta\,\langle T_1 - T_{cw} \rangle, \qquad UA_c = 225\,000\ \text{kJ/(h K)}
+Q_{\text{avail}} = UA_c\,u_c\,\eta\,\langle T_1 - T_{cw} \rangle, \qquad UA_c = 229\,592\ \text{kJ/(h K)}
 $$
 
 $$
-F_{\text{cond}} = \min\!\left(\frac{Q_{\text{avail}}}{28\,991},\ \Big\langle V_1 + 80\,(P_c - 1.0) \Big\rangle\right)
+F_{\text{cond}} = \min\!\left(\frac{Q_{\text{avail}}}{29\,583},\ \Big\langle V_1 + 80\,(P_c - 1.0) \Big\rangle\right)
 $$
 
 **Condenser / top pressure** (vapour capacitance 20 kmol/bar):
@@ -335,10 +335,10 @@ Alarms move through the states NORMAL → ACTIVE_UNACK → ACTIVE_ACK → RTN_UN
 **SIF trip** when the true variable crosses its threshold. The table is in
 [plant-model.md](plant-model.md#sif--interrupt-layer); for example $P_R \ge 4.35$ bar or a lowest
 tray hold-up $\le 0.30$ kmol. SIFs latch. **A reset is accepted only inside the reset band**
-($h_r = 0.05$); for a high trip:
+($h_r = 0.05$ for levels and pressures, 3 K for temperatures); for a high trip:
 
 $$
-x < x_{\text{trip}}\,(1 - h_r)
+x < x_{\text{trip}}\,(1 - h_r) \qquad\text{or, for the reactor temperature,}\qquad T < T_{\text{trip}} - 3\ \text{K}
 $$
 
 A *plant-trip* SIF (R_P_HHH, RB_L_HH, DR_L_LL, DR_L_HH, COL_P_HH, COL_L_LL) ends the episode as

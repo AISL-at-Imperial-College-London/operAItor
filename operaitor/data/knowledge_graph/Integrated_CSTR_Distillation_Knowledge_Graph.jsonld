@@ -349,13 +349,13 @@
         ],
         "http://example.org/integrated_cstr_distillation/ontology#overrideTarget": [
           {
-            "@id": "http://example.org/integrated_cstr_distillation#act_param_fresh_ipa_feed"
+            "@id": "http://example.org/integrated_cstr_distillation#act_param_cstr_heater_factor"
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#comment": [
           {
             "@language": "en",
-            "@value": "set fresh_ipa_feed to/at 0.0."
+            "@value": "set cstr_heater_factor to/at 0.0."
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#label": [
@@ -510,13 +510,13 @@
         "http://example.org/integrated_cstr_distillation/ontology#setpointMaximum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 68.0
+            "@value": 60.0
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#setpointMinimum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 25.0
+            "@value": 40.0
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#sourceFile": [
@@ -1265,7 +1265,7 @@
         "http://example.org/integrated_cstr_distillation/ontology#setpointMaximum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 42.0
+            "@value": 40.0
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#setpointMinimum": [
@@ -3935,7 +3935,7 @@
         "http://www.w3.org/2000/01/rdf-schema#comment": [
           {
             "@language": "en",
-            "@value": "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-2, Ti=0.25 h, deadband=0.35."
+            "@value": "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-6, Ti=2 h, deadband=0.35."
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#label": [
@@ -5800,7 +5800,7 @@
         "http://example.org/integrated_cstr_distillation/ontology#setpointMaximum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 48.0
+            "@value": 46.0
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#setpointMinimum": [
@@ -6270,13 +6270,13 @@
         ],
         "http://example.org/integrated_cstr_distillation/ontology#overrideTarget": [
           {
-            "@id": "http://example.org/integrated_cstr_distillation#act_param_cstr_outflow"
+            "@id": "http://example.org/integrated_cstr_distillation#act_param_fresh_ipa_feed"
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#comment": [
           {
             "@language": "en",
-            "@value": "set cstr_outflow to/at 0.0."
+            "@value": "set fresh_ipa_feed to/at 0.0."
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#label": [
@@ -6294,13 +6294,13 @@
         "http://example.org/integrated_cstr_distillation/ontology#setpointMaximum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 68.0
+            "@value": 60.0
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#setpointMinimum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 25.0
+            "@value": 40.0
           }
         ],
         "http://www.hsu-ifa.de/ontologies/DIN17359#referenceConditions": [
@@ -7483,7 +7483,7 @@
         "http://example.org/integrated_cstr_distillation/ontology#setpointMaximum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 1.15
+            "@value": 1.12
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#setpointMinimum": [
@@ -7806,40 +7806,6 @@
           {
             "@language": "en",
             "@value": "exo_param_reboiler_liquid_leak_kmol_h – Reboiler liquid leak rate"
-          }
-        ]
-      },
-      {
-        "@id": "http://example.org/integrated_cstr_distillation#override_RB_L_HH_4",
-        "@type": [
-          "http://example.org/integrated_cstr_distillation/ontology#OverrideRule"
-        ],
-        "http://example.org/integrated_cstr_distillation/ontology#commandValue": [
-          {
-            "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 0.0
-          }
-        ],
-        "http://example.org/integrated_cstr_distillation/ontology#operator": [
-          {
-            "@value": "set"
-          }
-        ],
-        "http://example.org/integrated_cstr_distillation/ontology#overrideTarget": [
-          {
-            "@id": "http://example.org/integrated_cstr_distillation#act_param_cstr_heater_factor"
-          }
-        ],
-        "http://www.w3.org/2000/01/rdf-schema#comment": [
-          {
-            "@language": "en",
-            "@value": "set cstr_heater_factor to/at 0.0."
-          }
-        ],
-        "http://www.w3.org/2000/01/rdf-schema#label": [
-          {
-            "@language": "en",
-            "@value": "RB_L_HH override 4"
           }
         ]
       },
@@ -11950,9 +11916,6 @@
           },
           {
             "@id": "http://example.org/integrated_cstr_distillation#override_RB_L_HH_3"
-          },
-          {
-            "@id": "http://example.org/integrated_cstr_distillation#override_RB_L_HH_4"
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#implementedBy": [
@@ -14209,7 +14172,7 @@
         "http://www.w3.org/2000/01/rdf-schema#comment": [
           {
             "@language": "en",
-            "@value": "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-1.5, Ti=0.1 h, deadband=0.002."
+            "@value": "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-4.5, Ti=0.2 h, deadband=0.002."
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#label": [
@@ -15286,13 +15249,13 @@
         ],
         "http://example.org/integrated_cstr_distillation/ontology#overrideTarget": [
           {
-            "@id": "http://example.org/integrated_cstr_distillation#act_param_steam_factor"
+            "@id": "http://example.org/integrated_cstr_distillation#act_param_cstr_outflow"
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#comment": [
           {
             "@language": "en",
-            "@value": "set steam_factor to/at 0.0."
+            "@value": "set cstr_outflow to/at 0.0."
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#label": [
@@ -15513,7 +15476,7 @@
         "http://www.w3.org/2000/01/rdf-schema#comment": [
           {
             "@language": "en",
-            "@value": "Qavail = UA_condenser*cooling_valve*effectiveness*positive(T_top-T_CW); capacity = Qavail/condenser_capacity_per_kmol; Fcond = min(capacity,demand)."
+            "@value": "Qavail = UA_condenser*cooling_valve*effectiveness*positive(T_top-T_CW); capacity = Qavail/condenser_energy_per_kmol; Fcond = min(capacity,demand)."
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#label": [
@@ -16898,7 +16861,7 @@
         "http://www.w3.org/2000/01/rdf-schema#comment": [
           {
             "@language": "en",
-            "@value": "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-2, Ti=0.2 h, deadband=0.5."
+            "@value": "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-6, Ti=2 h, deadband=0.5."
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#label": [
@@ -17259,7 +17222,7 @@
         "http://example.org/integrated_cstr_distillation/ontology#setpointMaximum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 48.0
+            "@value": 46.0
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#setpointMinimum": [
@@ -18509,7 +18472,7 @@
         "http://example.org/integrated_cstr_distillation/ontology#setpointMaximum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 345.0
+            "@value": 340.0
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#setpointMinimum": [
@@ -20370,7 +20333,7 @@
         "http://example.org/integrated_cstr_distillation/ontology#setpointMaximum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 42.0
+            "@value": 40.0
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#setpointMinimum": [
@@ -20463,7 +20426,7 @@
         "http://example.org/integrated_cstr_distillation/ontology#setpointMaximum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 1.15
+            "@value": 1.12
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#setpointMinimum": [
@@ -21789,7 +21752,7 @@
         "http://www.w3.org/2000/01/rdf-schema#comment": [
           {
             "@language": "en",
-            "@value": "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-4, Ti=0.2 h, deadband=0.3."
+            "@value": "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-12, Ti=2 h, deadband=0.3."
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#label": [
@@ -22806,7 +22769,7 @@
         "http://example.org/integrated_cstr_distillation/ontology#setpointMaximum": [
           {
             "@type": "http://www.w3.org/2001/XMLSchema#double",
-            "@value": 345.0
+            "@value": 340.0
           }
         ],
         "http://example.org/integrated_cstr_distillation/ontology#setpointMinimum": [
@@ -22992,7 +22955,7 @@
         "http://www.w3.org/2000/01/rdf-schema#comment": [
           {
             "@language": "en",
-            "@value": "Lowest liquid holdup over the 10 column trays (IntegratedPlantDAE.measurements(): column_min_tray_holdup_kmol). Falls when reflux / internal liquid is lost; trays run dry."
+            "@value": "Observable process property exposed by IntegratedPlantDAE.measurements(): column_min_tray_holdup_kmol."
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#label": [
@@ -23145,7 +23108,7 @@
         "http://www.w3.org/2000/01/rdf-schema#comment": [
           {
             "@language": "en",
-            "@value": "Independent latched safety function monitoring column_min_tray_holdup_kmol (dry trays, e.g. loss of reflux); stops boil-up and the feeds; plant-trip latch. Benchmark threshold, not an engineered SIL set point."
+            "@value": "Independent latched safety function monitoring column_min_tray_holdup_kmol; benchmark threshold, not an engineered SIL set point."
           }
         ],
         "http://www.w3.org/2000/01/rdf-schema#label": [
@@ -23288,6 +23251,128 @@
           {
             "@language": "en",
             "@value": "COL_L_LL override 4"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#DE_column_min_tray_holdup_kmol",
+        "@type": [
+          "http://www.hsu-ifa.de/ontologies/DINEN61360#Data_Element"
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#has_Instance_Description": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#ID_column_min_tray_holdup_kmol"
+          }
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#has_Type_Description": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#TD_column_min_tray_holdup_kmol"
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "Data element column_min_tray_holdup_kmol"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#ID_column_min_tray_holdup_kmol",
+        "@type": [
+          "http://www.hsu-ifa.de/ontologies/DINEN61360#Instance_Description"
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#Value": [
+          {
+            "@type": "http://www.w3.org/2001/XMLSchema#double",
+            "@value": 2.24
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "Instance description column_min_tray_holdup_kmol"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#TD_column_min_tray_holdup_kmol",
+        "@type": [
+          "http://www.hsu-ifa.de/ontologies/DINEN61360#Type_Description"
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#Code": [
+          {
+            "@value": "column_min_tray_holdup_kmol"
+          }
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#Definition": [
+          {
+            "@language": "en",
+            "@value": "Lowest column tray liquid holdup"
+          }
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#Expression_Goal": [
+          {
+            "@value": "Actual value"
+          }
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#Logic_Interpretation": [
+          {
+            "@value": "="
+          }
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#Preferred_Name": [
+          {
+            "@language": "en",
+            "@value": "Lowest column tray liquid holdup"
+          }
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#Short_Name": [
+          {
+            "@value": "column_min_tray_holdup_kmol"
+          }
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#Unit_of_Measure": [
+          {
+            "@value": "kmol"
+          }
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#Version_Number": [
+          {
+            "@value": "1.0"
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "Type description column_min_tray_holdup_kmol"
+          }
+        ]
+      },
+      {
+        "@id": "http://example.org/integrated_cstr_distillation#information_column_min_tray_holdup_kmol",
+        "@type": [
+          "http://www.w3id.org/hsu-aut/VDI3682#Information"
+        ],
+        "http://www.hsu-ifa.de/ontologies/CPSMod#isCharacterizedByParameter": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#obs_param_column_min_tray_holdup_kmol"
+          }
+        ],
+        "http://www.hsu-ifa.de/ontologies/DINEN61360#has_Data_Element": [
+          {
+            "@id": "http://example.org/integrated_cstr_distillation#DE_column_min_tray_holdup_kmol"
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#comment": [
+          {
+            "@language": "en",
+            "@value": "Measured/observable information tag: column_min_tray_holdup_kmol."
+          }
+        ],
+        "http://www.w3.org/2000/01/rdf-schema#label": [
+          {
+            "@language": "en",
+            "@value": "Lowest column tray liquid holdup"
           }
         ]
       }

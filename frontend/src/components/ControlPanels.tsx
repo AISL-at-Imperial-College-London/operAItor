@@ -197,6 +197,12 @@ function CampaignSection() {
 }
 
 type Kind = "pump" | "actuator" | "sensor" | "process" | "disturbance";
+// Default sensor bias in engineering units: [bias, unit]. Large enough to matter, small enough to be plausible.
+const SENSOR_BIAS: Record<string, [number, string]> = {
+  cstr_pressure_bar: [-1.0, "bar"], cstr_temperature_K: [-5, "K"], cstr_holdup_kmol: [-8, "kmol"],
+  column_pressure_bar: [-0.1, "bar"], top_temperature_K: [-5, "K"], bottom_temperature_K: [-5, "K"],
+  reboiler_holdup_kmol: [-6, "kmol"], drum_holdup_kmol: [-6, "kmol"],
+};
 const KINDS: [Kind, string][] = [["pump", "Pump trip"], ["actuator", "Valve / actuator"], ["sensor", "Sensor"],
                                  ["process", "Process / utility"], ["disturbance", "Disturbance"]];
 
@@ -207,7 +213,7 @@ export function FaultsPanel() {
   const [duration, setDuration] = useState(0);
   const [pump, setPump] = useState("P-201A");
   const [actu, setActu] = useState({ target: "cstr_vent_valve", mode: "freeze", severity_pct: 50 });
-  const [sens, setSens] = useState({ target: "cstr_pressure_bar", mode: "bias", bias_pct: -20 });
+  const [sens, setSens] = useState({ target: "cstr_pressure_bar", mode: "bias", bias: SENSOR_BIAS.cstr_pressure_bar[0] });
   const [proc, setProc] = useState({ fault: "catalyst_activity_loss", severity: 50 });
   const [dist, setDist] = useState({ target: "cooling_water_temperature_K", direction: "1" });
   if (!meta || !snap) return null;
@@ -249,10 +255,12 @@ export function FaultsPanel() {
         </>)}
         {kind === "sensor" && (<>
           <div className="row">
-            <Field label="Sensor"><Select value={sens.target} options={inj.sensor_targets} onChange={(v) => setSens({ ...sens, target: v })} /></Field>
+            <Field label="Sensor"><Select value={sens.target} options={inj.sensor_targets}
+              onChange={(v) => setSens({ ...sens, target: v, bias: SENSOR_BIAS[v]?.[0] ?? 0 })} /></Field>
             <Field label="Failure"><Select value={sens.mode} options={["bias", "freeze"]} onChange={(v) => setSens({ ...sens, mode: v })} /></Field>
           </div>
-          {sens.mode === "bias" && <Field label="Bias [% of value]"><Num value={sens.bias_pct} onChange={(v) => setSens({ ...sens, bias_pct: v })} /></Field>}
+          {sens.mode === "bias" && <Field label={`Bias [${SENSOR_BIAS[sens.target]?.[1] ?? ""}] (added to the reading)`}>
+            <Num value={sens.bias} onChange={(v) => setSens({ ...sens, bias: v })} /></Field>}
         </>)}
         {kind === "process" && (<>
           <Field label="Fault"><Select value={proc.fault} options={inj.process_faults} onChange={(v) => setProc({ ...proc, fault: v })} /></Field>

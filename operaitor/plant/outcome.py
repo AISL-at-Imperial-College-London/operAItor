@@ -5,7 +5,7 @@ from enum import Enum
 import numpy as np
 
 from .plant import IntegratedPlantDAE, PlantInputs
-from .safety import SafetyResult
+from .safety import SafetyConfig, SafetyResult
 
 
 class EpisodeStatus(str, Enum):
@@ -82,15 +82,16 @@ class OutcomeEvaluator:
                 return f"tray_{i+1:02d}_holdup_below_model_limit"
         return None
 
-    def _safe_envelope(self, m: dict[str, float]) -> bool:
-        # Broad envelope inside the trip thresholds; this is not a quality spec.
+    def _safe_envelope(self, m: dict[str, float], s: SafetyConfig = SafetyConfig()) -> bool:
+        # Inside every SIF trip threshold; this is not a quality spec.
         return (
-            20.0 < m["cstr_holdup_kmol"] < 72.0
-            and m["cstr_pressure_bar"] < 4.0
-            and m["cstr_temperature_K"] < 355.0
-            and 12.08 < m["reboiler_holdup_kmol"] < 51.76
-            and 10.59 < m["drum_holdup_kmol"] < 45.37
-            and m["column_pressure_bar"] < 1.35
+            s.cstr_level_ll_kmol < m["cstr_holdup_kmol"] < s.cstr_level_hh_kmol
+            and m["cstr_pressure_bar"] < s.cstr_pressure_hh_bar
+            and m["cstr_temperature_K"] < s.cstr_temperature_hh_K
+            and s.reboiler_level_ll_kmol < m["reboiler_holdup_kmol"] < s.reboiler_level_hh_kmol
+            and s.drum_level_ll_kmol < m["drum_holdup_kmol"] < s.drum_level_hh_kmol
+            and m["column_pressure_bar"] < s.column_pressure_hh_bar
+            and m.get("column_min_tray_holdup_kmol", float("inf")) > s.column_tray_holdup_ll_kmol
         )
 
     def _near_nominal(self, m: dict[str, float]) -> bool:

@@ -147,6 +147,7 @@ primary_obs = {
  'reboiler_pressure_bar':('Reboiler pressure',1.0440133659626392,'bar','module_Reboiler'),
  'distillate_x_acetone':('Distillate acetone mole fraction',0.9416968951186497,'mol frac','module_CondenserDrum'),
  'bottoms_x_acetone':('Bottoms acetone mole fraction',0.03974394764126594,'mol frac','module_Reboiler'),
+ 'column_min_tray_holdup_kmol':('Lowest column tray liquid holdup',2.24,'kmol','module_Column'),
 }
 tray_nom_T=[331.7216115988592,333.37738868222436,334.9602562482823,336.32498367710286,337.40479422918804,338.20810848330717,341.1814788574808,345.09937051415955,349.1624713275198,352.3864826367744]
 tray_nom_P=[1.0046485453535037,1.0092264286958201,1.0136834380706392,1.0180386774867054,1.0223163315131973,1.0265392173143684,1.0305315579829568,1.0342351689726583,1.0376593779070038,1.0408881375250272]
@@ -325,12 +326,12 @@ for i in range(10):
 
 # ---------- setpoints and controllers ----------
 loops={
- 'R_LIC':('Reactor Level Controller','cstr_holdup_kmol','cstr_outflow',50.0,25.0,68.0,'kmol',-2.0,0.20,0.0,160.0,0.50,'module_CSTR','LT-101','P-102A'),
- 'R_TIC':('Reactor Temperature Controller','cstr_temperature_K','cstr_heater_factor',335.7416402201051,325.0,345.0,'K',0.030,0.12,0.0,1.0,0.30,'module_CSTR','TT-101','E-101'),
+ 'R_LIC':('Reactor Level Controller','cstr_holdup_kmol','cstr_outflow',50.0,40.0,60.0,'kmol',-6.0,2.0,0.0,160.0,0.50,'module_CSTR','LT-101','P-102A'),
+ 'R_TIC':('Reactor Temperature Controller','cstr_temperature_K','cstr_heater_factor',335.7416402201051,325.0,340.0,'K',0.030,0.12,0.0,1.0,0.30,'module_CSTR','TT-101','E-101'),
  'R_PIC':('Reactor Pressure Controller','cstr_pressure_bar','cstr_vent_valve',3.0,2.5,3.4,'bar',-0.10,0.30,0.0,1.0,0.015,'module_H2Protection','PT-101','PCV-101'),
- 'RB_LIC':('Reboiler Level Controller','reboiler_holdup_kmol','bottoms_flow',34.509631253467084,18.0,48.0,'kmol',-2.0,0.25,0.0,90.0,0.35,'module_Reboiler','LT-202','P-203A'),
- 'DR_LIC':('Reflux Drum Level Controller','drum_holdup_kmol','distillate_flow',30.24518437326646,16.0,42.0,'kmol',-4.0,0.20,0.0,130.0,0.30,'module_CondenserDrum','LT-201','P-202A'),
- 'COL_PIC':('Column Pressure Controller','column_pressure_bar','condenser_cooling_valve',1.0,0.90,1.15,'bar',-1.5,0.10,0.0,1.0,0.002,'module_CondenserDrum','PT-201','CV-201'),
+ 'RB_LIC':('Reboiler Level Controller','reboiler_holdup_kmol','bottoms_flow',34.509631253467084,18.0,46.0,'kmol',-6.0,2.0,0.0,90.0,0.35,'module_Reboiler','LT-202','P-203A'),
+ 'DR_LIC':('Reflux Drum Level Controller','drum_holdup_kmol','distillate_flow',30.24518437326646,16.0,40.0,'kmol',-12.0,2.0,0.0,130.0,0.30,'module_CondenserDrum','LT-201','P-202A'),
+ 'COL_PIC':('Column Pressure Controller','column_pressure_bar','condenser_cooling_valve',1.0,0.90,1.12,'bar',-4.5,0.20,0.0,1.0,0.002,'module_CondenserDrum','PT-201','CV-201'),
  'TOP_TIC':('Top Temperature / Reflux Controller','top_temperature_K','reflux_flow',331.7216115988592,325.0,340.0,'K',-7.0,0.15,0.0,180.0,0.30,'module_CondenserDrum','TT-201','P-201A'),
  'BOT_TIC':('Bottom Temperature / Steam Controller','bottom_temperature_K','steam_factor',354.42228104157755,345.0,365.0,'K',0.0325,0.15,0.0,1.0,0.30,'module_Reboiler','TT-202','FV-202'),
 }
@@ -383,7 +384,7 @@ po_reb=procop('PO_Reboiler','PO – Reboiler','module_Reboiler',[U('product_bott
  ('Equation_Reboiler','Reboiler balances','Q_reb = UA_reboiler*steam_factor*positive(T_steam - T_reboiler); total, light-component and energy balances include bottoms + leak withdrawal and vapour return.')])
 source(po_reb,'integrated_plant/distillation.py','DistillationDAE.residual')
 po_cond=procop('PO_Condenser','PO – Condenser Capacity and Column Pressure','module_CondenserDrum',[U('product_overhead_vapor'),info_uri['condenser_cooling_valve'],info_uri['condenser_cooling_effectiveness'],info_uri['cooling_water_temperature_K']],[U('product_condensate'),info_uri['column_pressure_bar']],'Condenser capacity is limited by available cooling duty; column pressure integrates the imbalance between top vapour generation and condensation.',[
- ('Equation_CondenserCapacity','Condenser capacity','Qavail = UA_condenser*cooling_valve*effectiveness*positive(T_top-T_CW); capacity = Qavail/condenser_capacity_per_kmol; Fcond = min(capacity,demand).'),
+ ('Equation_CondenserCapacity','Condenser capacity','Qavail = UA_condenser*cooling_valve*effectiveness*positive(T_top-T_CW); capacity = Qavail/condenser_energy_per_kmol; Fcond = min(capacity,demand).'),
  ('Equation_ColumnPressure','Lumped column pressure dynamics','dPcond/dt = (V_top - Fcond) / vapour_capacitance.')])
 source(po_cond,'integrated_plant/distillation.py','DistillationDAE.condenser_capacity')
 po_drum=procop('PO_RefluxDrum','PO – Reflux Drum','module_CondenserDrum',[U('product_condensate'),info_uri['reflux_flow'],info_uri['distillate_flow'],info_uri['drum_liquid_leak_kmol_h']],[U('product_distillate'),info_uri['drum_holdup_kmol'],info_uri['distillate_x_acetone']],'Reflux drum accumulates condensed overhead and splits withdrawal into reflux, distillate and physical leak.',[
@@ -412,10 +413,11 @@ sifs={
  'R_L_HH':('cstr_holdup_kmol','HIGH',72.0,False,[('fresh_ipa_feed','set',0.0),('cstr_heater_factor','set',0.0)]),
  'R_L_LL':('cstr_holdup_kmol','LOW',20.0,False,[('cstr_heater_factor','set',0.0),('cstr_outflow','set',0.0)]),
  'RB_L_LL':('reboiler_holdup_kmol','LOW',12.08,False,[('steam_factor','set',0.0),('bottoms_flow','set',0.0)]),
- 'RB_L_HH':('reboiler_holdup_kmol','HIGH',51.76,True,[('steam_factor','set',0.0),('cstr_outflow','set',0.0),('fresh_ipa_feed','set',0.0),('cstr_heater_factor','set',0.0)]),
+ 'RB_L_HH':('reboiler_holdup_kmol','HIGH',51.76,True,[('cstr_outflow','set',0.0),('fresh_ipa_feed','set',0.0),('cstr_heater_factor','set',0.0)]),
  'DR_L_LL':('drum_holdup_kmol','LOW',10.59,True,[('reflux_flow','set',0.0),('distillate_flow','set',0.0),('steam_factor','set',0.0),('cstr_outflow','set',0.0),('fresh_ipa_feed','set',0.0),('cstr_heater_factor','set',0.0)]),
  'DR_L_HH':('drum_holdup_kmol','HIGH',45.37,True,[('steam_factor','set',0.0),('cstr_outflow','set',0.0),('fresh_ipa_feed','set',0.0),('cstr_heater_factor','set',0.0)]),
  'COL_P_HH':('column_pressure_bar','HIGH',1.35,True,[('steam_factor','set',0.0),('condenser_cooling_valve','max',1.0),('cstr_outflow','set',0.0),('fresh_ipa_feed','set',0.0),('cstr_heater_factor','set',0.0)]),
+ 'COL_L_LL':('column_min_tray_holdup_kmol','LOW',0.30,True,[('steam_factor','set',0.0),('cstr_outflow','set',0.0),('fresh_ipa_feed','set',0.0),('cstr_heater_factor','set',0.0)]),
 }
 safety_sys=component('SIS-001','Independent Safety System','module_Safety',(VDI2206.InformationProcessing,), 'Deterministic, independent, latched SIF layer. Final-element faults are applied after this safety layer.')
 for sid,(tag,direction,limit,ptrip,overrides) in sifs.items():
@@ -432,6 +434,7 @@ alarm_rows=[
  ('RB_L_HH','reboiler_holdup_kmol','Reboiler level high-high','HIGH',48.0,1,1.0,'kmol'),('RB_L_LL','reboiler_holdup_kmol','Reboiler level low-low','LOW',16.0,1,1.0,'kmol'),
  ('DR_L_HH','drum_holdup_kmol','Reflux drum level high-high','HIGH',42.0,1,1.0,'kmol'),('DR_L_LL','drum_holdup_kmol','Reflux drum level low-low','LOW',14.0,1,1.0,'kmol'),
  ('COL_P_H','column_pressure_bar','Column pressure high','HIGH',1.15,2,0.02,'bar'),('COL_P_HH','column_pressure_bar','Column pressure high-high','HIGH',1.28,1,0.02,'bar'),
+ ('COL_TRAY_L','column_min_tray_holdup_kmol','Column tray liquid low (dry-tray risk)','LOW',1.0,1,0.1,'kmol'),
  ('DIST_X_L','distillate_x_acetone','Distillate acetone purity low','LOW',0.90,3,0.01,'mol frac'),('BTM_X_H','bottoms_x_acetone','Bottoms acetone high','HIGH',0.08,3,0.01,'mol frac'),
 ]
 # pump status observable params
@@ -441,7 +444,8 @@ for row in [('P101_TRIP','pump_FEED_failed','Fresh-feed duty pump trip / no sele
 for aid,tag,desc,direction,limit,prio,hyst,unit in alarm_rows:
     a=add(U('alarm_'+aid),INT.Alarm,aid+' – '+desc,'Operator alarm; logic uses BPCS measurements and is separate from SIF latching/acknowledgement.')
     link(system,INT.hasAlarm,a); link(a,INT.monitorsParameter,param_uri[tag]); lit(a,INT.direction,direction); lit(a,INT.limitValue,float(limit),XSD.double); lit(a,INT.priority,int(prio),XSD.integer); lit(a,INT.hysteresis,float(hyst),XSD.double); lit(a,INT.unit,unit); source(a,'integrated_plant/alarms.py','default_alarm_definitions')
-    if aid in sifs: link(a,INT.relatedSIF,U('SIF_'+aid))
+    related = {'COL_TRAY_L': 'COL_L_LL'}.get(aid, aid)
+    if related in sifs: link(a,INT.relatedSIF,U('SIF_'+related))
 
 # ---------- disturbances ----------
 disturbances={
@@ -466,6 +470,7 @@ features={
  'feat_distillate_quality':('Distillate quality deviation','distillate_x_acetone'),
  'feat_bottoms_quality':('Bottoms quality deviation','bottoms_x_acetone'),
  'feat_conversion':('CSTR conversion / acetone fraction deviation','cstr_x_acetone'),
+ 'feat_column_tray_liquid':('Column tray liquid deviation (dry trays)','column_min_tray_holdup_kmol'),
 }
 for fid,(label,tag) in features.items():
     f=add(U(fid),DIN17359.Feature,label,f'Feature derived from {tag}.'); link(param_uri[tag],DIN17359.ParameterIsDescribedByFeature,f)
@@ -591,7 +596,7 @@ sparql = f'''# =================================================================
 sp_path=OUT/'Integrated_CSTR_Distillation_GraphDB_Queries.sparql'
 sp_path.write_text(sparql,encoding='utf-8')
 
-readme=f'''# Integrated CSTR + Distillation Knowledge Graph (GraphDB)\n\nGenerated from the uploaded v0.5.3 simulator and patterned after `CSTR_Knowledge_Graph.jsonld`.\n\n## Files\n- `Integrated_CSTR_Distillation_Knowledge_Graph.jsonld` — JSON-LD with a named graph.\n- `Integrated_CSTR_Distillation_Knowledge_Graph.trig` — equivalent TriG serialization; often the clearest GraphDB import format for a named graph.\n- `Integrated_CSTR_Distillation_GraphDB_Queries.sparql` — process, control, safety, fault, operator-authority, alarm and state-machine queries.\n\n## Named graph\n`<{GRAPH_URI}>`\n\n## Base namespace\n`<{BASE}>`\n\n## GraphDB import\nCreate/select a repository, open **Import → RDF**, upload either the `.jsonld` or `.trig` file, and import. The graph context is already encoded in the file; you do not need to assign another context.\n\n## Scope encoded\nThe graph includes the CSTR and H2 protection, 10 column trays, condenser/reflux drum/reboiler, five A/B duty-standby pump trains, 34+ observable process tags, manipulated/exogenous variables, eight PI loops, 21 alarms, ten SIF causes and their override rules, operator/agent actions and prohibited master variables, curated/surprise fault modes, disturbances, mathematical-model nodes, and the episode outcome state machine.\n\n## Important modelling choice\nThe simulator explicitly separates controller request → supervisory request → safety-commanded request → actual plant input after actuator/pump faults. The KG preserves this as four `ip:CommandStage` nodes. This is important because an SIF can command a safe position while a failed final element still does not move.\n'''
+readme=f'''# Integrated CSTR + Distillation Knowledge Graph (GraphDB)\n\nGenerated from the uploaded v0.5.3 simulator and patterned after `CSTR_Knowledge_Graph.jsonld`.\n\n## Files\n- `Integrated_CSTR_Distillation_Knowledge_Graph.jsonld` — JSON-LD with a named graph.\n- `Integrated_CSTR_Distillation_Knowledge_Graph.trig` — equivalent TriG serialization; often the clearest GraphDB import format for a named graph.\n- `Integrated_CSTR_Distillation_GraphDB_Queries.sparql` — process, control, safety, fault, operator-authority, alarm and state-machine queries.\n\n## Named graph\n`<{GRAPH_URI}>`\n\n## Base namespace\n`<{BASE}>`\n\n## GraphDB import\nCreate/select a repository, open **Import → RDF**, upload either the `.jsonld` or `.trig` file, and import. The graph context is already encoded in the file; you do not need to assign another context.\n\n## Scope encoded\nThe graph includes the CSTR and H2 protection, 10 column trays, condenser/reflux drum/reboiler, five A/B duty-standby pump trains, 34+ observable process tags, manipulated/exogenous variables, eight PI loops, {len(set(g.objects(system, INT.hasAlarm)))} alarms, {len(sifs)} SIF causes and their override rules, operator/agent actions and prohibited master variables, curated/surprise fault modes, disturbances, mathematical-model nodes, and the episode outcome state machine.\n\n## Important modelling choice\nThe simulator explicitly separates controller request → supervisory request → safety-commanded request → actual plant input after actuator/pump faults. The KG preserves this as four `ip:CommandStage` nodes. This is important because an SIF can command a safe position while a failed final element still does not move.\n'''
 (OUT/'Integrated_CSTR_Distillation_KG_README.md').write_text(readme,encoding='utf-8')
 
 print('Triples in named graph:', len(g))

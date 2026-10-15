@@ -38,7 +38,9 @@ class ColumnConfig:
     # v0.5.2: condenser cooling-water valve is the regulatory pressure MV.
     # UA is rescaled so 60% nominal valve opening gives the same nominal duty
     # as the previous UA=135000, cooling_factor=1.0 formulation.
-    UA_condenser: float = 225000.0
+    # One energy per kmol condensed is used for both the capacity limit and the heat removed (until
+    # 2026-10-15 the capacity used 28 991 kJ/kmol); UA carries the old 2 % headroom so the capacity is unchanged.
+    UA_condenser: float = 225000.0 * 29582.771975577365 / 28991.11653606582
     condenser_cooling_valve_nominal: float = 0.60
     condenser_cooling_effectiveness_nominal: float = 1.0
     cooling_water_temperature: float = 298.15
@@ -55,7 +57,6 @@ class ColumnConfig:
     vapour_capacitance_kmol_per_bar: float = 20.0
     pressure_recovery_gain_kmol_h_per_bar: float = 80.0
     condenser_energy_per_kmol_kJ: float = 29582.771975577365
-    condenser_capacity_per_kmol_kJ: float = 28991.11653606582
 
 
 @dataclass(frozen=True)
@@ -162,7 +163,7 @@ class DistillationDAE:
             top[self.TRAY_T] - inputs.cooling_water_temperature_K
         )
         latent = self.cfg.condenser_energy_per_kmol_kJ
-        capacity = max(Qavail / self.cfg.condenser_capacity_per_kmol_kJ, 0.0)
+        capacity = max(Qavail / latent, 0.0)
         demand = self._positive(
             Vtop + self.cfg.pressure_recovery_gain_kmol_h_per_bar
             * (Pcond - self.cfg.condenser_pressure_bar)

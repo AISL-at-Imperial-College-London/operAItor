@@ -50,6 +50,8 @@ ACTUATOR_TARGETS = ["fresh_ipa_feed", "cstr_outflow", "cstr_heater_factor", "cst
                     "distillate_flow", "condenser_cooling_valve"]
 SENSOR_TARGETS = ["cstr_pressure_bar", "cstr_temperature_K", "cstr_holdup_kmol", "column_pressure_bar",
                   "top_temperature_K", "bottom_temperature_K", "reboiler_holdup_kmol", "drum_holdup_kmol"]
+# Actuators that are valve openings (0-1): a capacity ramp degrades their travel, not their nominal value.
+VALVE_TARGETS = {"cstr_vent_valve", "cstr_bdv_valve", "condenser_cooling_valve", "steam_factor"}
 PROCESS_FAULTS = ["catalyst_activity_loss", "cstr_liquid_leak", "reboiler_liquid_leak",
                   "drum_liquid_leak", "condenser_cooling_loss"]
 
@@ -409,7 +411,7 @@ class PlantService:
                 if mode in ("capacity", "capacity_ramp"):
                     kw["capacity_fraction"] = float(m.get("capacity_fraction", frac))
                     if mode == "capacity_ramp":
-                        kw["capacity_reference_value"] = 1.0 if target.endswith("_valve") else None
+                        kw["capacity_reference_value"] = 1.0 if target in VALVE_TARGETS else None
                         kw["ramp_duration_h"] = float(m.get("ramp_min", 10.0)) / 60.0
                 elif mode == "fixed":
                     kw["fixed_value"] = (float(m["fixed_value"]) if "fixed_value" in m

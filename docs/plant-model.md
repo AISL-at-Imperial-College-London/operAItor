@@ -175,7 +175,7 @@ The first safety layer is deterministic, independent and latched. Current synthe
 | Reactor L-HH | 72 kmol | fresh feed OFF, heater OFF |
 | Reactor L-LL | 20 kmol | heater OFF, reactor outlet stopped |
 | Reboiler L-LL | 12.08 kmol | steam OFF, bottoms withdrawal stopped |
-| Reboiler L-HH | 51.76 kmol | steam OFF, column feed, fresh feed and reactor heater stopped; plant-trip latch |
+| Reboiler L-HH | 51.76 kmol | column feed, fresh feed and reactor heater stopped (boil-up kept); plant-trip latch |
 | Drum L-LL | 10.59 kmol | reflux/distillate stopped, steam/feed stopped; plant-trip latch |
 | Drum L-HH | 45.37 kmol | steam/feed stopped; plant-trip latch |
 | Column P-HH | 1.35 bar | steam OFF, condenser CW valve forced to 100%, feed stopped; plant-trip latch |

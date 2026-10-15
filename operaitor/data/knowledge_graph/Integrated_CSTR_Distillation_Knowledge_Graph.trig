@@ -114,6 +114,12 @@
         DINEN61360:has_Data_Element int:DE_bottoms_x_acetone ;
         rdfs:comment "Measured/observable information tag: bottoms_x_acetone."@en .
 
+    int:information_column_min_tray_holdup_kmol a VDI3682:Information ;
+        rdfs:label "Lowest column tray liquid holdup"@en ;
+        CPSMod:isCharacterizedByParameter int:obs_param_column_min_tray_holdup_kmol ;
+        DINEN61360:has_Data_Element int:DE_column_min_tray_holdup_kmol ;
+        rdfs:comment "Measured/observable information tag: column_min_tray_holdup_kmol."@en .
+
     int:information_condenser_pressure_bar a VDI3682:Information ;
         rdfs:label "Legacy condenser reference pressure"@en ;
         CPSMod:isCharacterizedByParameter int:exo_param_condenser_pressure_bar ;
@@ -579,6 +585,11 @@
         DINEN61360:has_Instance_Description int:ID_catalyst_activity ;
         DINEN61360:has_Type_Description int:TD_catalyst_activity .
 
+    int:DE_column_min_tray_holdup_kmol a DINEN61360:Data_Element ;
+        rdfs:label "Data element column_min_tray_holdup_kmol"@en ;
+        DINEN61360:has_Instance_Description int:ID_column_min_tray_holdup_kmol ;
+        DINEN61360:has_Type_Description int:TD_column_min_tray_holdup_kmol .
+
     int:DE_column_pressure_bar a DINEN61360:Data_Element ;
         rdfs:label "Data element column_pressure_bar"@en ;
         DINEN61360:has_Instance_Description int:ID_column_pressure_bar ;
@@ -886,6 +897,10 @@
         rdfs:label "Instance description catalyst_activity"@en ;
         DINEN61360:Value 1e+00 .
 
+    int:ID_column_min_tray_holdup_kmol a DINEN61360:Instance_Description ;
+        rdfs:label "Instance description column_min_tray_holdup_kmol"@en ;
+        DINEN61360:Value 2.24e+00 .
+
     int:ID_column_pressure_bar a DINEN61360:Instance_Description ;
         rdfs:label "Instance description column_pressure_bar"@en ;
         DINEN61360:Value 1e+00 .
@@ -1124,6 +1139,7 @@
         ip:hasAlarm int:alarm_BTM_X_H,
             int:alarm_COL_P_H,
             int:alarm_COL_P_HH,
+            int:alarm_COL_TRAY_L,
             int:alarm_DIST_X_L,
             int:alarm_DR_L_HH,
             int:alarm_DR_L_LL,
@@ -1146,7 +1162,8 @@
             int:stage_ControllerRequest,
             int:stage_SafetyCommand,
             int:stage_SupervisoryRequest ;
-        ip:hasInterlock int:SIF_COL_P_HH,
+        ip:hasInterlock int:SIF_COL_L_LL,
+            int:SIF_COL_P_HH,
             int:SIF_DR_L_HH,
             int:SIF_DR_L_LL,
             int:SIF_RB_L_HH,
@@ -1403,6 +1420,17 @@
         DINEN61360:Preferred_Name "Catalyst activity multiplier"@en ;
         DINEN61360:Short_Name "catalyst_activity" ;
         DINEN61360:Unit_of_Measure "fraction" ;
+        DINEN61360:Version_Number "1.0" .
+
+    int:TD_column_min_tray_holdup_kmol a DINEN61360:Type_Description ;
+        rdfs:label "Type description column_min_tray_holdup_kmol"@en ;
+        DINEN61360:Code "column_min_tray_holdup_kmol" ;
+        DINEN61360:Definition "Lowest column tray liquid holdup"@en ;
+        DINEN61360:Expression_Goal "Actual value" ;
+        DINEN61360:Logic_Interpretation "=" ;
+        DINEN61360:Preferred_Name "Lowest column tray liquid holdup"@en ;
+        DINEN61360:Short_Name "column_min_tray_holdup_kmol" ;
+        DINEN61360:Unit_of_Measure "kmol" ;
         DINEN61360:Version_Number "1.0" .
 
     int:TD_column_pressure_bar a DINEN61360:Type_Description ;
@@ -1971,6 +1999,7 @@
         ip:actsOn int:alarm_BTM_X_H,
             int:alarm_COL_P_H,
             int:alarm_COL_P_HH,
+            int:alarm_COL_TRAY_L,
             int:alarm_DIST_X_L,
             int:alarm_DR_L_HH,
             int:alarm_DR_L_LL,
@@ -2003,7 +2032,8 @@
 
     int:action_RESET_SIF a ip:OperatorAction ;
         rdfs:label "RESET_SIF"@en ;
-        ip:actsOn int:SIF_COL_P_HH,
+        ip:actsOn int:SIF_COL_L_LL,
+            int:SIF_COL_P_HH,
             int:SIF_DR_L_HH,
             int:SIF_DR_L_LL,
             int:SIF_RB_L_HH,
@@ -2101,6 +2131,10 @@
         ip:sourceSymbol "PlantInputs" ;
         ip:unit "bar" ;
         rdfs:comment "Exogenous/environment or fault-injection property: condenser_pressure_bar; not part of normal operator/agent authority."@en .
+
+    int:feat_column_tray_liquid a DIN17359:Feature ;
+        rdfs:label "Column tray liquid deviation (dry trays)"@en ;
+        rdfs:comment "Feature derived from column_min_tray_holdup_kmol."@en .
 
     int:information_BOT_TIC_sp a VDI3682:Information ;
         rdfs:label "BOT_TIC Setpoint Information"@en ;
@@ -2541,6 +2575,34 @@
         rdfs:comment "Observable process property exposed by IntegratedPlantDAE.measurements(): tray_10_temperature_K."@en ;
         sosa:isObservedBy int:TT-201-10 .
 
+    int:override_COL_L_LL_1 a ip:OverrideRule ;
+        rdfs:label "COL_L_LL override 1"@en ;
+        ip:commandValue 0e+00 ;
+        ip:operator "set" ;
+        ip:overrideTarget int:act_param_steam_factor ;
+        rdfs:comment "set steam_factor to/at 0.0."@en .
+
+    int:override_COL_L_LL_2 a ip:OverrideRule ;
+        rdfs:label "COL_L_LL override 2"@en ;
+        ip:commandValue 0e+00 ;
+        ip:operator "set" ;
+        ip:overrideTarget int:act_param_cstr_outflow ;
+        rdfs:comment "set cstr_outflow to/at 0.0."@en .
+
+    int:override_COL_L_LL_3 a ip:OverrideRule ;
+        rdfs:label "COL_L_LL override 3"@en ;
+        ip:commandValue 0e+00 ;
+        ip:operator "set" ;
+        ip:overrideTarget int:act_param_fresh_ipa_feed ;
+        rdfs:comment "set fresh_ipa_feed to/at 0.0."@en .
+
+    int:override_COL_L_LL_4 a ip:OverrideRule ;
+        rdfs:label "COL_L_LL override 4"@en ;
+        ip:commandValue 0e+00 ;
+        ip:operator "set" ;
+        ip:overrideTarget int:act_param_cstr_heater_factor ;
+        rdfs:comment "set cstr_heater_factor to/at 0.0."@en .
+
     int:override_COL_P_HH_1 a ip:OverrideRule ;
         rdfs:label "COL_P_HH override 1"@en ;
         ip:commandValue 0e+00 ;
@@ -2650,25 +2712,18 @@
         rdfs:label "RB_L_HH override 1"@en ;
         ip:commandValue 0e+00 ;
         ip:operator "set" ;
-        ip:overrideTarget int:act_param_steam_factor ;
-        rdfs:comment "set steam_factor to/at 0.0."@en .
+        ip:overrideTarget int:act_param_cstr_outflow ;
+        rdfs:comment "set cstr_outflow to/at 0.0."@en .
 
     int:override_RB_L_HH_2 a ip:OverrideRule ;
         rdfs:label "RB_L_HH override 2"@en ;
         ip:commandValue 0e+00 ;
         ip:operator "set" ;
-        ip:overrideTarget int:act_param_cstr_outflow ;
-        rdfs:comment "set cstr_outflow to/at 0.0."@en .
-
-    int:override_RB_L_HH_3 a ip:OverrideRule ;
-        rdfs:label "RB_L_HH override 3"@en ;
-        ip:commandValue 0e+00 ;
-        ip:operator "set" ;
         ip:overrideTarget int:act_param_fresh_ipa_feed ;
         rdfs:comment "set fresh_ipa_feed to/at 0.0."@en .
 
-    int:override_RB_L_HH_4 a ip:OverrideRule ;
-        rdfs:label "RB_L_HH override 4"@en ;
+    int:override_RB_L_HH_3 a ip:OverrideRule ;
+        rdfs:label "RB_L_HH override 3"@en ;
         ip:commandValue 0e+00 ;
         ip:operator "set" ;
         ip:overrideTarget int:act_param_cstr_heater_factor ;
@@ -2810,7 +2865,7 @@
         rdfs:label "COL_PIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-1.5, Ti=0.1 h, deadband=0.002."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-4.5, Ti=0.2 h, deadband=0.002."@en .
 
     int:Equation_CSTR_Acetone a VDI2206:MathematicalModel ;
         rdfs:label "CSTR acetone balance"@en ;
@@ -2828,7 +2883,7 @@
         rdfs:label "DR_LIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-4, Ti=0.2 h, deadband=0.3."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-12, Ti=2 h, deadband=0.3."@en .
 
     int:Equation_FeedPump a VDI2206:MathematicalModel ;
         rdfs:label "Feed pump transmission"@en ;
@@ -2842,13 +2897,13 @@
         rdfs:label "RB_LIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-2, Ti=0.25 h, deadband=0.35."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-6, Ti=2 h, deadband=0.35."@en .
 
     int:Equation_R_LIC a VDI2206:MathematicalModel ;
         rdfs:label "R_LIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-2, Ti=0.2 h, deadband=0.5."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-6, Ti=2 h, deadband=0.5."@en .
 
     int:Equation_R_PIC a VDI2206:MathematicalModel ;
         rdfs:label "R_PIC PI control law"@en ;
@@ -3026,6 +3081,19 @@
         ip:sourceFile "integrated_plant/alarms.py" ;
         ip:sourceSymbol "default_alarm_definitions" ;
         ip:unit "bar" ;
+        rdfs:comment "Operator alarm; logic uses BPCS measurements and is separate from SIF latching/acknowledgement."@en .
+
+    int:alarm_COL_TRAY_L a ip:Alarm ;
+        rdfs:label "COL_TRAY_L – Column tray liquid low (dry-tray risk)"@en ;
+        ip:direction "LOW" ;
+        ip:hysteresis 1e-01 ;
+        ip:limitValue 1e+00 ;
+        ip:monitorsParameter int:obs_param_column_min_tray_holdup_kmol ;
+        ip:priority 1 ;
+        ip:relatedSIF int:SIF_COL_L_LL ;
+        ip:sourceFile "integrated_plant/alarms.py" ;
+        ip:sourceSymbol "default_alarm_definitions" ;
+        ip:unit "kmol" ;
         rdfs:comment "Operator alarm; logic uses BPCS measurements and is separate from SIF latching/acknowledgement."@en .
 
     int:alarm_DIST_X_L a ip:Alarm ;
@@ -3681,7 +3749,7 @@
 
     int:ref_COL_PIC_SP a DIN17359:ReferenceValue ;
         rdfs:label "COL_PIC Setpoint"@en ;
-        ip:setpointMaximum 1.15e+00 ;
+        ip:setpointMaximum 1.12e+00 ;
         ip:setpointMinimum 9e-01 ;
         DIN17359:referenceConditions "Nominal integrated steady state"@en ;
         DIN17359:referenceUnit "bar" ;
@@ -3690,7 +3758,7 @@
 
     int:ref_DR_LIC_SP a DIN17359:ReferenceValue ;
         rdfs:label "DR_LIC Setpoint"@en ;
-        ip:setpointMaximum 4.2e+01 ;
+        ip:setpointMaximum 4e+01 ;
         ip:setpointMinimum 1.6e+01 ;
         DIN17359:referenceConditions "Nominal integrated steady state"@en ;
         DIN17359:referenceUnit "kmol" ;
@@ -3699,7 +3767,7 @@
 
     int:ref_RB_LIC_SP a DIN17359:ReferenceValue ;
         rdfs:label "RB_LIC Setpoint"@en ;
-        ip:setpointMaximum 4.8e+01 ;
+        ip:setpointMaximum 4.6e+01 ;
         ip:setpointMinimum 1.8e+01 ;
         DIN17359:referenceConditions "Nominal integrated steady state"@en ;
         DIN17359:referenceUnit "kmol" ;
@@ -3708,8 +3776,8 @@
 
     int:ref_R_LIC_SP a DIN17359:ReferenceValue ;
         rdfs:label "R_LIC Setpoint"@en ;
-        ip:setpointMaximum 6.8e+01 ;
-        ip:setpointMinimum 2.5e+01 ;
+        ip:setpointMaximum 6e+01 ;
+        ip:setpointMinimum 4e+01 ;
         DIN17359:referenceConditions "Nominal integrated steady state"@en ;
         DIN17359:referenceUnit "kmol" ;
         DIN17359:referenceValue 5e+01 ;
@@ -3726,7 +3794,7 @@
 
     int:ref_R_TIC_SP a DIN17359:ReferenceValue ;
         rdfs:label "R_TIC Setpoint"@en ;
-        ip:setpointMaximum 3.45e+02 ;
+        ip:setpointMaximum 3.4e+02 ;
         ip:setpointMinimum 3.25e+02 ;
         DIN17359:referenceConditions "Nominal integrated steady state"@en ;
         DIN17359:referenceUnit "K" ;
@@ -3886,7 +3954,7 @@
 
     int:Equation_CondenserCapacity a VDI2206:MathematicalModel ;
         rdfs:label "Condenser capacity"@en ;
-        rdfs:comment "Qavail = UA_condenser*cooling_valve*effectiveness*positive(T_top-T_CW); capacity = Qavail/condenser_capacity_per_kmol; Fcond = min(capacity,demand)."@en .
+        rdfs:comment "Qavail = UA_condenser*cooling_valve*effectiveness*positive(T_top-T_CW); capacity = Qavail/condenser_energy_per_kmol; Fcond = min(capacity,demand)."@en .
 
     int:Equation_Reboiler a VDI2206:MathematicalModel ;
         rdfs:label "Reboiler balances"@en ;
@@ -4041,6 +4109,21 @@
         rdfs:comment "Sensor abstraction for measurement tag reboiler_pressure_bar; Gaussian noise is applied by MeasurementModel."@en ;
         VDI2206:isConnectedWith int:E-202 .
 
+    int:SIF_COL_L_LL a ip:SafetyInterlock ;
+        rdfs:label "SIF COL_L_LL"@en ;
+        ip:direction "LOW" ;
+        ip:hasOverrideRule int:override_COL_L_LL_1,
+            int:override_COL_L_LL_2,
+            int:override_COL_L_LL_3,
+            int:override_COL_L_LL_4 ;
+        ip:implementedBy int:SIS-001 ;
+        ip:limitValue 3e-01 ;
+        ip:monitorsParameter int:obs_param_column_min_tray_holdup_kmol ;
+        ip:plantTrip true ;
+        ip:sourceFile "integrated_plant/safety.py" ;
+        ip:sourceSymbol "SafetySystem.apply" ;
+        rdfs:comment "Independent latched safety function monitoring column_min_tray_holdup_kmol; benchmark threshold, not an engineered SIL set point."@en .
+
     int:SIF_COL_P_HH a ip:SafetyInterlock ;
         rdfs:label "SIF COL_P_HH"@en ;
         ip:direction "HIGH" ;
@@ -4094,8 +4177,7 @@
         ip:direction "HIGH" ;
         ip:hasOverrideRule int:override_RB_L_HH_1,
             int:override_RB_L_HH_2,
-            int:override_RB_L_HH_3,
-            int:override_RB_L_HH_4 ;
+            int:override_RB_L_HH_3 ;
         ip:implementedBy int:SIS-001 ;
         ip:limitValue 5.176e+01 ;
         ip:monitorsParameter int:obs_param_reboiler_holdup_kmol ;
@@ -4405,6 +4487,16 @@
             int:PCV-101,
             int:PSV-101 .
 
+    int:obs_param_column_min_tray_holdup_kmol a DIN17359:Parameter,
+            sosa:ObservableProperty ;
+        rdfs:label "obs_param_column_min_tray_holdup_kmol – Lowest column tray liquid holdup"@en ;
+        ip:nominalValue 2.24e+00 ;
+        ip:sourceFile "integrated_plant/plant.py" ;
+        ip:sourceSymbol "IntegratedPlantDAE.measurements" ;
+        ip:unit "kmol" ;
+        DIN17359:ParameterIsDescribedByFeature int:feat_column_tray_liquid ;
+        rdfs:comment "Observable process property exposed by IntegratedPlantDAE.measurements(): column_min_tray_holdup_kmol."@en .
+
     int:obs_param_top_temperature_K a DIN17359:Parameter,
             sosa:ObservableProperty ;
         rdfs:label "obs_param_top_temperature_K – Top tray temperature"@en ;
@@ -4607,7 +4699,7 @@
         ip:monitorsParameter int:obs_param_column_pressure_bar ;
         ip:mvMaximum 1e+00 ;
         ip:mvMinimum 0e+00 ;
-        ip:setpointMaximum 1.15e+00 ;
+        ip:setpointMaximum 1.12e+00 ;
         ip:setpointMinimum 9e-01 ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "RegulatoryControlSystem.LOOP_SPECS" ;
@@ -4623,7 +4715,7 @@
         ip:monitorsParameter int:obs_param_drum_holdup_kmol ;
         ip:mvMaximum 1.3e+02 ;
         ip:mvMinimum 0e+00 ;
-        ip:setpointMaximum 4.2e+01 ;
+        ip:setpointMaximum 4e+01 ;
         ip:setpointMinimum 1.6e+01 ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "RegulatoryControlSystem.LOOP_SPECS" ;
@@ -4639,7 +4731,7 @@
         ip:monitorsParameter int:obs_param_reboiler_holdup_kmol ;
         ip:mvMaximum 9e+01 ;
         ip:mvMinimum 0e+00 ;
-        ip:setpointMaximum 4.8e+01 ;
+        ip:setpointMaximum 4.6e+01 ;
         ip:setpointMinimum 1.8e+01 ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "RegulatoryControlSystem.LOOP_SPECS" ;
@@ -4655,8 +4747,8 @@
         ip:monitorsParameter int:obs_param_cstr_holdup_kmol ;
         ip:mvMaximum 1.6e+02 ;
         ip:mvMinimum 0e+00 ;
-        ip:setpointMaximum 6.8e+01 ;
-        ip:setpointMinimum 2.5e+01 ;
+        ip:setpointMaximum 6e+01 ;
+        ip:setpointMinimum 4e+01 ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "RegulatoryControlSystem.LOOP_SPECS" ;
         ip:unit "kmol" ;
@@ -4687,7 +4779,7 @@
         ip:monitorsParameter int:obs_param_cstr_temperature_K ;
         ip:mvMaximum 1e+00 ;
         ip:mvMinimum 0e+00 ;
-        ip:setpointMaximum 3.45e+02 ;
+        ip:setpointMaximum 3.4e+02 ;
         ip:setpointMinimum 3.25e+02 ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "RegulatoryControlSystem.LOOP_SPECS" ;
@@ -4972,7 +5064,7 @@
     int:act_param_steam_factor a DIN17359:Parameter,
             sosa:ActuatableProperty ;
         rdfs:label "act_param_steam_factor – Reboiler steam valve opening"@en ;
-        ip:nominalValue 1.014891e+00 ;
+        ip:nominalValue 6e-01 ;
         ip:sourceFile "integrated_plant/plant.py" ;
         ip:sourceSymbol "PlantInputs" ;
         ip:unit "fraction" ;
@@ -5025,6 +5117,11 @@
             int:P-203A,
             int:P-203B .
 
+    int:state_RUNNING a ip:EpisodeOutcome,
+            UML:State ;
+        rdfs:label "RUNNING State"@en ;
+        rdfs:comment "Episode is active and process simulation continues."@en .
+
     int:act_param_cstr_outflow a DIN17359:Parameter,
             sosa:ActuatableProperty ;
         rdfs:label "act_param_cstr_outflow – CSTR liquid outflow / column feed"@en ;
@@ -5043,14 +5140,13 @@
         ip:unit "kmol/h" ;
         rdfs:comment "Manipulated plant input field: fresh_ipa_feed. Requested, supervisory, safety-commanded, and actual values are distinguished by the episode runner."@en .
 
-    int:state_RUNNING a ip:EpisodeOutcome,
-            UML:State ;
-        rdfs:label "RUNNING State"@en ;
-        rdfs:comment "Episode is active and process simulation continues."@en .
-
     ip:OperatorAction a owl:Class ;
         rdfs:label "OperatorAction"@en ;
         rdfs:comment "Action available through the restricted operator/agent interface"@en .
+
+    ip:ExogenousProperty a owl:Class ;
+        rdfs:label "ExogenousProperty"@en ;
+        rdfs:comment "Property supplied by the environment rather than normal operator authority"@en .
 
     ip:SafetyInterlock a owl:Class ;
         rdfs:label "SafetyInterlock"@en ;
@@ -5059,19 +5155,6 @@
     int:SIS-001 a VDI2206:InformationProcessing ;
         rdfs:label "Independent Safety System"@en ;
         rdfs:comment "Deterministic, independent, latched SIF layer. Final-element faults are applied after this safety layer."@en .
-
-    ip:ExogenousProperty a owl:Class ;
-        rdfs:label "ExogenousProperty"@en ;
-        rdfs:comment "Property supplied by the environment rather than normal operator authority"@en .
-
-    int:act_param_cstr_heater_factor a DIN17359:Parameter,
-            sosa:ActuatableProperty ;
-        rdfs:label "act_param_cstr_heater_factor – CSTR heater factor"@en ;
-        ip:nominalValue 6.076044e-01 ;
-        ip:sourceFile "integrated_plant/plant.py" ;
-        ip:sourceSymbol "PlantInputs" ;
-        ip:unit "fraction" ;
-        rdfs:comment "Manipulated plant input field: cstr_heater_factor. Requested, supervisory, safety-commanded, and actual values are distinguished by the episode runner."@en .
 
     int:R-101 a DIN17359:DiagnosticSubject,
             VDI2206:Component ;
@@ -5088,6 +5171,15 @@
             int:P-102B,
             int:PCV-101,
             int:PSV-101 .
+
+    int:act_param_cstr_heater_factor a DIN17359:Parameter,
+            sosa:ActuatableProperty ;
+        rdfs:label "act_param_cstr_heater_factor – CSTR heater factor"@en ;
+        ip:nominalValue 6.076044e-01 ;
+        ip:sourceFile "integrated_plant/plant.py" ;
+        ip:sourceSymbol "PlantInputs" ;
+        ip:unit "fraction" ;
+        rdfs:comment "Manipulated plant input field: cstr_heater_factor. Requested, supervisory, safety-commanded, and actual values are distinguished by the episode runner."@en .
 
     ip:FaultMode a owl:Class ;
         rdfs:label "FaultMode"@en ;
