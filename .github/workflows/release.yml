@@ -95,6 +95,8 @@ jobs:
           Compress-Archive -Path build-win\dist\OperAItor -DestinationPath "out\OperAItor-$env:VERSION-windows-portable.zip"
           choco install innosetup -y --no-progress
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" "/DSourceDir=$PWD\build-win\dist\OperAItor" "/DOutputDir=$PWD\out" packaging\windows\installer.iss
+          # A copy with a fixed name, so .../releases/latest/download/OperAItor-Setup.exe always works (project page)
+          Copy-Item "out\OperAItor-Setup-$env:VERSION.exe" "out\OperAItor-Setup.exe"
       - name: smoke test of the installer
         shell: pwsh
         run: |
