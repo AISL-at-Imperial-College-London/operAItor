@@ -41,7 +41,9 @@ before they reach the plant.
 
 ### In the browser (hosted)
 
-Open the deployed Space and press **Run**, then inject a fault from the **Faults** panel.
+Open the live console (linked from the project page) and press **Run**, then inject a fault from the
+**Faults** panel. It runs on a dedicated lab machine; [docs/deployment.md](docs/deployment.md) covers
+setting one up.
 
 Without an LLM, the plant, the fault detection and the safety functions all work, and the agents
 monitor and diagnose but take no actions. To let the agents act, open **Assistant → Connect an LLM**

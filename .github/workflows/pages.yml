@@ -26,15 +26,17 @@ jobs:
       - uses: actions/checkout@v4
       - name: Assemble the site
         env:
+          DEMO_URL: ${{ vars.DEMO_URL }}    # the live console, e.g. the self-hosted https://<machine>.<tailnet>.ts.net
           HF_SPACE: ${{ vars.HF_SPACE }}
         run: |
           mkdir -p _site/dashboard
           cp -r site/. _site/
           cp benchmark_results/fault_campaign_dashboard.html _site/dashboard/index.html
-          if [ -n "$HF_SPACE" ]; then
+          url="$DEMO_URL"
+          if [ -z "$url" ] && [ -n "$HF_SPACE" ]; then
             url="https://$(echo "$HF_SPACE" | tr '/' '-' | tr '[:upper:]' '[:lower:]' | tr '_.' '--').hf.space"
-            sed -i "s#__DEMO_URL__#$url#" _site/index.html
           fi
+          if [ -n "$url" ]; then sed -i "s#__DEMO_URL__#$url#" _site/index.html; fi
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
