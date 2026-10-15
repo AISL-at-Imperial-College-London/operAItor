@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { callLlm, checkConnection, type LlmConn, type LlmRequest } from "./browserLlm";
+import { callLlm, checkConnection, listModels, type LlmConn, type LlmRequest } from "./browserLlm";
 import type { AgentEvent, AgentInfo, Brief, Campaign, ChatMessage, Hello, HumanTest, LlmUsage, Message, Meta, MonitorEvent, Num, SessionInfo, Snapshot, TrendPoint } from "./types";
 
 const MAX_POINTS = 1440;
@@ -44,6 +44,7 @@ export interface PlantState {
   keyBusy: boolean;
   /** A request from one panel to show another (e.g. a control-loop row opens Operate on that loop). */
   nav: NavRequest | null;
+  serverModels: string[];   // models of the server's own Ollama (desktop / private server)
 }
 
 export interface NavRequest { tab?: "plant" | "trends" | "agents" | "alarms"; drawer?: "operate" | "assistant" | "faults"; loop?: string; at: number }
@@ -68,7 +69,6 @@ const idlePipeline = (cycle = 0, t: number | null = null): Pipeline => ({
 function advance(p: Pipeline, ev: AgentEvent): Pipeline {
   if (ev.cycle == null || ev.cycle < p.cycle) return p;
   const next = ev.cycle > p.cycle ? { ...idlePipeline(ev.cycle, ev.time_min) } : { ...p, status: { ...p.status } };
-  next.status.monitoring = "ok";
   const set = (n: string, s: NodeStatus) => { next.status[n] = s; };
   switch (ev.stage) {
     case "node": if (ev.node) set(ev.node, "running"); if (ev.node === "action_propose" && (ev.attempt ?? 0) > 0) set("reprompt", "ok"); break;
@@ -121,7 +121,7 @@ class PlantStore {
     connected: false, backendVersion: null, meta: null, snap: null, trend: {}, trendVersion: 0,
     monitor: emptyMonitor(), lastMonitor: null, agentLog: [], agent: null, pending: {},
     messages: [], toast: null, brief: null, campaign: null, humanTest: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
-    pipeline: idlePipeline(), session: null, notice: null, keyBusy: false, nav: null,
+    pipeline: idlePipeline(), session: null, notice: null, keyBusy: false, nav: null, serverModels: [],
   };
   // The visitor's LLM connection (incl. key) lives only in this page's memory (never in browser storage or on
   // the server): this tab makes the agents' LLM calls itself (browserLlm.ts). A new session (server restart or
@@ -201,6 +201,22 @@ class PlantStore {
     }
     this.llmConn = c;
     this.send({ type: "set_llm", provider: c.provider, model: c.model, url: c.url, in_browser: true });
+  }
+
+  /** Switch model without retyping the key: reconnect in the browser, or ask the server for its own Ollama. */
+  changeModel(model: string) {
+    if (this.llmConn) void this.connectLlm({ ...this.llmConn, model });
+    else {
+      this.set({ keyBusy: true });
+      this.send({ type: "set_model", model });
+    }
+  }
+
+  /** The models this connection can use: listed by the browser for its own connection, by the server for its Ollama. */
+  async availableModels(): Promise<string[]> {
+    if (this.llmConn) return listModels(this.llmConn);
+    this.send({ type: "list_models" });
+    return [];
   }
 
   /** The server's agents need a model call: make it from this browser with the key held here. */
@@ -285,11 +301,13 @@ class PlantStore {
         void this.answerLlm(msg as LlmRequest);
         break;
       case "ack":
+        if (msg.request === "list_models") { this.set({ serverModels: msg.models ?? [] }); break; }
+        if (msg.request === "set_model") this.set({ keyBusy: false });
         if (msg.request === "set_llm" || msg.request === "set_api_key") {
           if (!msg.ok) this.llmConn = null;
           this.set({ keyBusy: false });
         }
-        if (!msg.ok || ["set_llm", "set_api_key", "clear_api_key", "set_agent_preset"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop", "human_test_start", "human_test_stop"].includes(msg.request))
+        if (!msg.ok || ["set_llm", "set_api_key", "clear_api_key", "set_agent_preset", "set_model"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop", "human_test_start", "human_test_stop"].includes(msg.request))
           this.set({ toast: { ok: msg.ok, text: msg.summary, at: Date.now() } });
         break;
     }
@@ -311,5 +329,7 @@ export function usePlant<T>(select: (s: PlantState) => T): T {
 export const send = (msg: Record<string, unknown>) => store.send(msg);
 export const ask = (text: string) => store.ask(text);
 export const connectLlm = (c: LlmConn) => store.connectLlm(c);
+export const changeModel = (model: string) => store.changeModel(model);
+export const availableModels = () => store.availableModels();
 export const forgetKey = () => store.forgetKey();
 export const navigate = (r: Omit<NavRequest, "at">) => store.set({ nav: { ...r, at: Date.now() } });

@@ -118,14 +118,19 @@ async def check_endpoint(ep: Endpoint, public: bool) -> tuple[bool, str]:
     return False, f"{p['label']} answered {r.status_code}"
 
 
-def local_ollama_model() -> str | None:
-    """The default local Ollama model if an Ollama server is running here (free fallback), else None."""
+def local_ollama_models() -> list[str]:
+    """Models installed in the Ollama server on this machine ([] if it is not running)."""
     import httpx
     try:
         r = httpx.get(_ollama_root(OLLAMA_LOCAL) + "/api/tags", timeout=1.5)
-        names = [m.get("name", "") for m in r.json().get("models", [])]
+        return sorted(m.get("name", "") for m in r.json().get("models", []) if m.get("name"))
     except Exception:  # noqa: BLE001 - not running / not installed
-        return None
+        return []
+
+
+def local_ollama_model() -> str | None:
+    """The default local Ollama model if an Ollama server is running here (free fallback), else None."""
+    names = local_ollama_models()
     if not names:
         return None
     for want in (DEFAULT_OLLAMA_MODEL, f"{DEFAULT_OLLAMA_MODEL}:latest"):

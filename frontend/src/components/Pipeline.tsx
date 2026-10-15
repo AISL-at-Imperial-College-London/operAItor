@@ -4,7 +4,7 @@ import type { AgentEvent } from "../types";
 
 type Step = { id: string; title: string; sub: string };
 const BASE: Step[] = [
-  { id: "monitoring", title: "Monitoring", sub: "PCA T² / SPE confirms a fault" },
+  { id: "monitoring", title: "Monitoring", sub: "PCA T² / SPE every 0.5 min" },
   { id: "kg_retrieval", title: "Knowledge graph", sub: "fault → symptoms → loops → actions" },
   { id: "planning", title: "Planning", sub: "target, objective, levers" },
   { id: "action_propose", title: "Action agent", sub: "proposes commands" },
@@ -53,6 +53,11 @@ export function PipelineCard() {
   const p = usePlant((s) => s.pipeline);
   const agent = usePlant((s) => s.agent);
   const held = usePlant((s) => s.snap?.held);
+  const last = usePlant((s) => s.lastMonitor);
+  const human = usePlant((s) => s.snap?.operator_mode === "human");
+  // Monitoring (PCA) runs on every observation while the agents are on: always shown live.
+  const watching = !human && agent?.mode !== "off";
+  const monitorState = !watching ? "off" : !last ? "starting…" : last.fault ? "fault confirmed" : "watching";
   const log = usePlant((s) => s.agentLog);
   const steps = flow(agent?.preset);
   const admit = agent?.preset?.startsWith("llm_admit");
@@ -75,6 +80,18 @@ export function PipelineCard() {
       </h3>
       <div className="flow" role="list">
         {steps.map((s, i) => {
+          if (s.id === "monitoring") {
+            return (
+              <Fragment key={s.id}>
+                <div role="listitem" className={`node ${watching ? "live" : "off"} ${watching && last?.fault ? "alert" : ""}`}
+                  title="PCA fault detection on every observation (Hotelling T² and SPE against their limits)">
+                  <b>{s.title}</b>
+                  <span className="sub">{s.sub}</span>
+                  <span className="state">{monitorState}</span>
+                </div>
+              </Fragment>
+            );
+          }
           const st = p.status[s.id] ?? "idle";
           const isAdmit = admit && s.id === "twin_evaluate";
           return (

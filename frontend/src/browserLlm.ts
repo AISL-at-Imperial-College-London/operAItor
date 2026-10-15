@@ -134,3 +134,29 @@ function ollamaReply(data: any): LlmReply {
 function safeJson(s: string): unknown {
   try { return JSON.parse(s || "{}"); } catch { return {}; }
 }
+
+// Not chat models: speech, images, embeddings, moderation and the like.
+const NOT_CHAT = /(embed|tts|whisper|audio|realtime|transcri|image|dall-e|moderation|guard|search|aqa|babbage|davinci)/i;
+
+/** The chat models this connection can use, listed by the provider from this browser ([] if unavailable). */
+export async function listModels(c: LlmConn): Promise<string[]> {
+  try {
+    if (c.provider === "ollama") {
+      const r = await fetchWithTimeout(`${ollamaRoot(c.url)}/api/tags`, {}, 10_000);
+      if (!r.ok) return [];
+      return ((await r.json()).models ?? []).map((m: { name: string }) => m.name).sort();
+    }
+    const api = API[c.provider];
+    if (!api || !c.key) return [];
+    const r = await fetchWithTimeout(`${api.base}/models`, { headers: { Authorization: `Bearer ${c.key}` } }, 10_000);
+    if (!r.ok) return [];
+    let ids: string[] = ((await r.json()).data ?? []).map((m: { id: string }) => String(m.id).replace(/^models\//, ""));
+    ids = ids.filter((id) => !NOT_CHAT.test(id));
+    if (c.provider === "openai") ids = ids.filter((id) => /^(gpt|o\d|chatgpt)/.test(id));
+    if (c.provider === "gemini") ids = ids.filter((id) => id.startsWith("gemini"));
+    const free = (id: string) => (id.endsWith(":free") ? 0 : 1);   // OpenRouter: free models first
+    return [...new Set(ids)].sort((a, b) => free(a) - free(b) || a.localeCompare(b));
+  } catch {
+    return [];
+  }
+}
