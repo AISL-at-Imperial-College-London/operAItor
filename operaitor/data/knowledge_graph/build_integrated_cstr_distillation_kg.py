@@ -1,11 +1,21 @@
+"""Generate the plant knowledge graph (JSON-LD, TriG, SPARQL queries, README) that the agents read.
+
+    pip install -e ".[kg]"
+    python operaitor/data/knowledge_graph/build_integrated_cstr_distillation_kg.py [output dir]
+
+Writes next to this file by default. Keep it in step with the plant code: tests/test_physics_consistency.py
+checks the generated graph against the SIFs, alarms, setpoint ranges and loop tuning.
+"""
 from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 from rdflib import Dataset, Namespace, URIRef, Literal
 from rdflib.namespace import RDF, RDFS, OWL, XSD
 
-OUT = Path('/mnt/data')
+OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent
+OUT.mkdir(parents=True, exist_ok=True)
 GRAPH_URI = URIRef('http://www.hsu-ifa.de/graphs/Integrated_CSTR_Distillation_Simulation')
 BASE = Namespace('http://example.org/integrated_cstr_distillation#')
 VDI3682 = Namespace('http://www.w3id.org/hsu-aut/VDI3682#')
