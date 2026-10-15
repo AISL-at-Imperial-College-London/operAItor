@@ -72,7 +72,13 @@ machine. Options:
 
    The status shows the public address, `https://<machine>.<tailnet>.ts.net`. `--bg` keeps the Funnel
    on across reboots.
-5. Open that address from a phone on mobile data to check it works from outside.
+5. Open that address from a phone on mobile data to check it works from outside. A new address can
+   stay missing from public DNS until the machine has its HTTPS certificate. If it does not resolve
+   after a few minutes, run `tailscale cert <machine>.<tailnet>.ts.net` once (in an empty folder; delete
+   the two files it writes). The address appears seconds later.
+
+   On an Imperial network, Tailscale Funnel works; Cloudflare's quick tunnels (`trycloudflare.com`)
+   are blocked. Check Imperial ICT's rules before running a public service from a university machine.
 6. To make the project page's **Open the live demo** button point there, set it in the GitHub
    repository: Settings → Secrets and variables → Actions → Variables → `DEMO_URL` = the address.
    It takes effect on the next Pages build.
@@ -93,16 +99,19 @@ the network any other way.
 | Remove | `update.ps1 -Stop`, `Unregister-ScheduledTask OperAItor`, `tailscale funnel --bg 7860 off`, delete `C:\OperAItor` |
 
 Do not put an `.env` file or API keys on this machine. Public mode ignores them, and visitors' keys
-are held in memory for their session only.
+never reach it: their browsers call the providers directly (see below).
 
 **With your own domain instead of a `ts.net` address:** use a Cloudflare named tunnel
 (`cloudflared`, free with a domain on Cloudflare) pointing at `http://127.0.0.1:7860`. The rest of
 the setup is unchanged.
 
-## Hugging Face Spaces (free alternative)
+## Hugging Face Spaces (needs a paid plan)
 
-A Docker Space on the free **CPU basic** hardware (2 vCPU, 16 GB) runs the image as is and gives a
-public `https://<owner>-<space>.hf.space` URL.
+A Docker Space on **CPU basic** hardware (2 vCPU, 16 GB) runs the image as is and gives a public
+`https://<owner>-<space>.hf.space` URL. The hardware has no hourly cost, but since 2026 creating a
+Docker (or Gradio) Space needs a paid Hugging Face plan: PRO for a personal account, Team or Enterprise
+for an organisation. Only static Spaces are free.
+([Spaces overview](https://huggingface.co/docs/hub/spaces-overview), checked 15 Oct 2026.)
 
 One-time setup:
 1. Create the Space **under the AISL organisation on Hugging Face** (not a personal account) at
