@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.1.0 (unreleased)
+
+**Run it on your own computer**
+- Windows app: per-user installer (`OperAItor-Setup-<version>.exe`, no administrator rights) and a portable zip.
+  It starts the console on this computer and opens it in the browser.
+- Docker image on the GitHub Container Registry: `ghcr.io/aisl-at-imperial-college-london/operaitor`.
+- pip wheel with the web console bundled (`pip install "operaitor[llm]"`, then `operaitor serve`).
+- One release workflow builds, smoke-tests and publishes all three on a version tag; `vX.Y.Z-rc.N` tags make
+  pre-releases.
+- ADMIT is bundled in the Windows app and the Docker image. It is no longer a pip extra, because PyPI rejects
+  git dependencies.
+
+**Console**
+- Human operator mode, with a scored, optionally blind human test on the 20 benchmark scenarios.
+- Clean-up: one place per control, Agent settings card, clearer Operate panel, lamps only in alarm.
+- Visitors' LLM calls are made by their own browser: a public server never receives an API key.
+
+**Model**
+- Reboiler steam is a 0–100 % valve (60 % at design duty).
+- Fixes from a logical-consistency review:
+  - reboiler high-level trip keeps boil-up;
+  - temperature trip reset band;
+  - condenser energy constant;
+  - safe envelope;
+  - setpoint ranges inside the alarm limits.
+- Knowledge graph regenerated from its builder (`pip install -e ".[kg]"`).
+
+**Hosting and quality**
+- Self-hosting kit for an always-on Windows machine with Tailscale Funnel (`deploy/windows/`).
+- Codecov coverage; tests for the web server, CLI, providers, PCA, campaigns and benchmark scoring.
+
 ## 1.0.0 (2026-10-09)
 
 First public release of **OperAItor**, a package and hosted web app, under the Apache License 2.0.

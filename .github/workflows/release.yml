@@ -1,7 +1,8 @@
 name: release
 
 # Builds every way to get OperAItor and publishes them on a version tag:
-#   git tag v1.0.1 && git push origin v1.0.1      (the tag must match operaitor/__init__.py __version__)
+#   git tag v1.1.0 && git push origin v1.1.0      (the tag must match operaitor/__init__.py __version__)
+#   git tag v1.1.0-rc.1 && ...                     a test release: marked pre-release, never Docker 'latest' or PyPI
 # - pip:     wheel + source archive (console bundled) -> GitHub release, and PyPI when PYPI_PUBLISH=1
 # - Docker:  ghcr.io/aisl-at-imperial-college-london/operaitor:<version> and :latest
 # - Windows: OperAItor-Setup-<version>.exe (per-user installer) and a portable zip
@@ -20,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,8 +36,12 @@ jobs:
         run: |
           v=$(python -c "import re;print(re.search(r'__version__ = \"(.+?)\"', open('operaitor/__init__.py').read()).group(1))")
           echo "version=$v" >> "$GITHUB_OUTPUT"
-          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v$v" ]; then
-            echo "::error::tag ${GITHUB_REF_NAME} does not match __version__ $v"; exit 1
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            case "${GITHUB_REF_NAME}" in
+              "v$v") echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+              "v$v"-*) echo "prerelease=true" >> "$GITHUB_OUTPUT" ;;   # e.g. v1.1.0-rc.1
+              *) echo "::error::tag ${GITHUB_REF_NAME} does not match __version__ $v (use v$v or v$v-rc.N)"; exit 1 ;;
+            esac
           fi
       - run: pip install build==1.2.2.post1
       - run: python packaging/build_dist.py
@@ -127,12 +133,14 @@ jobs:
         if: github.ref_type == 'tag'
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          docker push "$IMAGE:$VERSION"
-          docker push "$IMAGE:latest"
+          tag="${GITHUB_REF_NAME#v}"                       # 1.1.0 or 1.1.0-rc.1
+          docker tag "$IMAGE:$VERSION" "$IMAGE:$tag"
+          docker push "$IMAGE:$tag"
+          if [ "${{ needs.dist.outputs.prerelease }}" != "true" ]; then docker push "$IMAGE:latest"; fi
 
   pypi:
     needs: [dist, windows, docker]
-    if: github.ref_type == 'tag' && vars.PYPI_PUBLISH == '1'
+    if: github.ref_type == 'tag' && needs.dist.outputs.prerelease != 'true' && vars.PYPI_PUBLISH == '1'
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -158,11 +166,12 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: assets/*
+          prerelease: ${{ needs.dist.outputs.prerelease == 'true' }}
           generate_release_notes: true
           body: |
             ## Install
             - **Windows:** download `OperAItor-Setup-${{ needs.dist.outputs.version }}.exe`, run it, then start OperAItor from the Start menu.
               Windows may warn that the publisher is unknown (the app is not code-signed): choose **More info**, then **Run anyway**.
               No installer wanted? Unzip the `-windows-portable.zip` and run `OperAItor.exe`.
-            - **Docker:** `docker run -p 7860:7860 ghcr.io/aisl-at-imperial-college-london/operaitor:${{ needs.dist.outputs.version }}`, then open http://localhost:7860
+            - **Docker:** `docker run -p 7860:7860 ghcr.io/aisl-at-imperial-college-london/operaitor:${{ github.ref_name }}` (without the leading `v`), then open http://localhost:7860
             - **Python 3.11+:** `pip install "operaitor-${{ needs.dist.outputs.version }}-py3-none-any.whl[llm]"` (or from PyPI when published), then `operaitor serve`
