@@ -48,7 +48,7 @@ Download from the [Releases page](https://github.com/AISL-at-Imperial-College-Lo
 
 | You have | Do this |
 |---|---|
-| **Windows** | Run `OperAItor-Setup-<version>.exe`, then start **OperAItor** from the Start menu. The console opens in your browser; closing the OperAItor window stops it. The app is not code-signed, so Windows may say "Windows protected your PC": choose **More info → Run anyway**. Prefer no installer? Unzip `OperAItor-<version>-windows-portable.zip` and run `OperAItor.exe`. |
+| **Windows** | Run `OperAItor-Setup-<version>.exe`, then start **OperAItor** from the Start menu. The console opens in your browser; closing the OperAItor window stops it. The app is new and not code-signed, so your browser and Windows ask you to confirm: in Edge choose **… → Keep → Show more → Keep anyway**, in Chrome **Keep** (until then the file is `Unconfirmed ….crdownload`), in Firefox **Allow download**; if Windows says "Windows protected your PC", choose **More info → Run anyway**. Prefer no installer? Unzip `OperAItor-<version>-windows-portable.zip` and run `OperAItor.exe`. |
 | **Docker** (Windows, Mac, Linux) | `docker run -p 7860:7860 ghcr.io/aisl-at-imperial-college-london/operaitor`, then open http://localhost:7860 |
 | **Python 3.11+** | `pip install "operaitor[llm]"` (or the `.whl` from the release), then `operaitor serve` and open http://localhost:8001 |
 

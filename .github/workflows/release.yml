@@ -173,7 +173,9 @@ jobs:
           body: |
             ## Install
             - **Windows:** download `OperAItor-Setup-${{ needs.dist.outputs.version }}.exe`, run it, then start OperAItor from the Start menu.
-              Windows may warn that the publisher is unknown (the app is not code-signed): choose **More info**, then **Run anyway**.
+              The app is new and not code-signed, so your browser and Windows ask you to confirm:
+              Edge: **…** → **Keep** → **Show more** → **Keep anyway**; Chrome: **Keep** (until then the file is `Unconfirmed ….crdownload`);
+              Firefox: **Allow download**; "Windows protected your PC": **More info** → **Run anyway**.
               No installer wanted? Unzip the `-windows-portable.zip` and run `OperAItor.exe`.
             - **Docker:** `docker run -p 7860:7860 ghcr.io/aisl-at-imperial-college-london/operaitor:${{ github.ref_name }}` (without the leading `v`), then open http://localhost:7860
             - **Python 3.11+:** `pip install "operaitor-${{ needs.dist.outputs.version }}-py3-none-any.whl[llm]"` (or from PyPI when published), then `operaitor serve`
