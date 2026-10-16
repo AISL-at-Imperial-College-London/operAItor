@@ -13,6 +13,8 @@
   git dependencies.
 
 **Console**
+- New logo, process-generic: a control valve as drawn on a process diagram (`branding/`). It is used on the
+  website, in the console and as the Windows app and installer icon.
 - Human operator mode, with a scored, optionally blind human test on the 20 benchmark scenarios.
 - Clean-up: one place per control, Agent settings card, clearer Operate panel, lamps only in alarm.
 - Visitors' LLM calls are made by their own browser: a public server never receives an API key.

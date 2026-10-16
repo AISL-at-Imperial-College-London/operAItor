@@ -1,3 +1,5 @@
+<img src="branding/operaitor-512.png" alt="OperAItor logo: a control valve" width="88" align="right">
+
 # OperAItor
 
 [![ci](https://github.com/AISL-at-Imperial-College-London/operAItor/actions/workflows/ci.yml/badge.svg)](https://github.com/AISL-at-Imperial-College-London/operAItor/actions/workflows/ci.yml)
