@@ -218,6 +218,11 @@ td.num, th.num { text-align: right; font-family: var(--mono); white-space: nowra
 .icon { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; background: rgba(79,125,255,.14); border: 1px solid rgba(79,125,255,.35); color: #c3d0ff; }
 .icon svg { width: 24px; height: 24px; }
 .dl .tile .btn { align-self: flex-start; margin-top: 8px; }
+details.warn { margin: 0; font-size: 13.5px; border-top: 1px solid var(--line); padding-top: 12px; }
+details.warn summary { font-size: 13.5px; color: var(--muted); }
+details.warn p, details.warn ul { margin: 10px 0 0; color: var(--muted); }
+details.warn ul { padding-left: 18px; display: grid; gap: 6px; }
+details.warn b { color: var(--ink); font-weight: 600; }
 .small { font-size: 13.5px; color: var(--dim); margin: 0; }
 .small a { color: var(--muted); }
 pre { margin: 4px 0 0; padding: 14px 16px; border-radius: 12px; background: rgba(0,0,0,.35); border: 1px solid var(--line); overflow-x: auto; font: 13px/1.65 var(--mono); color: #d7e2ff; }
@@ -460,8 +465,18 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
              href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases/latest/download/OperAItor-Setup.exe">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
             <span id="win-download-label">Download for Windows</span></a>
-          <p class="small" id="win-download-note">Not code-signed yet: if Windows warns, choose <b>More info → Run anyway</b>.
-            Portable zip and wheel on the <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases">releases page</a>.</p>
+          <p class="small" id="win-download-note">Portable zip and wheel on the <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases">releases page</a>.</p>
+          <details class="warn">
+            <summary>Browser or Windows asks if you trust it?</summary>
+            <p>The installer is new and not code-signed, so browsers and Windows ask you to confirm. It is safe to keep.</p>
+            <ul>
+              <li><b>Edge:</b> on the download, choose <b>…</b> → <b>Keep</b> → <b>Show more</b> → <b>Keep anyway</b>.</li>
+              <li><b>Chrome:</b> choose <b>Keep</b> in the downloads bubble or on <code>chrome://downloads</code>. Until then the file
+                is named <code>Unconfirmed ….crdownload</code>.</li>
+              <li><b>Firefox:</b> in the downloads list, choose <b>Allow download</b>.</li>
+              <li><b>Windows</b> (“Windows protected your PC”): choose <b>More info</b> → <b>Run anyway</b>.</li>
+            </ul>
+          </details>
         </div>
         <div class="tile reveal">
           <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 7.5l-9-5-9 5v9l9 5 9-5z"/><path d="M3 7.5l9 5 9-5M12 12.5v9"/></svg></span>
