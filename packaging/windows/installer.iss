@@ -34,6 +34,8 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayName=OperAItor {#AppVersion}
 LicenseFile=..\..\LICENSE
+SetupIconFile=..\..\branding\operaitor.ico
+UninstallDisplayIcon={app}\OperAItor.exe
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"

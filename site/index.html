@@ -3,219 +3,314 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OperAItor · AI operators for a chemical plant</title>
-<meta name="description" content="OperAItor: LLM operator agents for a simulated chemical plant, with PCA fault detection, safety instrumented functions, a digital twin and ADMIT admissibility gates. An AISL project, Imperial College London.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l7 7-7 7-7-7z' fill='%234c8dff'/%3E%3C/svg%3E">
+<title>OperAItor · AI operators for process plants</title>
+<meta name="description" content="OperAItor: AI operator agents for process plants, checked before they act. A simulated plant with control loops, alarms and safety functions, PCA fault detection, and LLM agents validated by a digital twin or the ADMIT admissibility gates. An AISL project, Imperial College London.">
+<meta property="og:title" content="OperAItor · AI operators for process plants">
+<meta property="og:description" content="Break a simulated process plant on purpose and watch AI agents detect, diagnose and fix the fault, with every action checked before it reaches the plant.">
+<meta property="og:image" content="assets/logo-512.png">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <style>
 :root {
-  --bg: #f6f8fa; --panel: #ffffff; --ink: #1b2129; --muted: #57606a; --line: #d8dee4;
-  --accent: #2563c9; --accent-ink: #ffffff; --ok: #1f7a4c; --warn: #9a6400; --bad: #b42318; --code: #eef1f4;
+  --bg: #f6f8fb; --panel: #ffffff; --panel-2: #f0f4fa; --ink: #141a22; --muted: #5a6573; --line: #dde3ea;
+  --accent: #2459e6; --accent-2: #1238a8; --accent-soft: #e8efff; --accent-ink: #ffffff;
+  --ok: #1f7a4c; --ok-soft: #e6f4ec; --warn: #9a6400; --code: #eef2f7; --spark: #f2b134;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 8px 24px rgba(16, 24, 40, .08);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #0d1117; --panel: #151b23; --ink: #e6edf3; --muted: #8b96a5; --line: #29313c;
-          --accent: #4c8dff; --accent-ink: #ffffff; --ok: #3fb97a; --warn: #f0a83a; --bad: #f25555; --code: #1b222c;
+  :root { --bg: #0b0f15; --panel: #131a23; --panel-2: #18212c; --ink: #e8edf3; --muted: #93a0b0; --line: #263040;
+          --accent: #5b8cff; --accent-2: #3b6cf0; --accent-soft: #17264a; --accent-ink: #ffffff;
+          --ok: #45c287; --ok-soft: #12291e; --warn: #f0a83a; --code: #18212c; --spark: #ffd166;
+          --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px rgba(0, 0, 0, .35);
           color-scheme: dark; }
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; overflow-x: clip; }
+body { margin: 0; overflow-x: clip; background: var(--bg); color: var(--ink); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 a { color: var(--accent); }
-.wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
-header.top { border-bottom: 1px solid var(--line); background: var(--panel); }
-header.top .wrap { display: flex; align-items: center; gap: 16px; min-height: 56px; flex-wrap: wrap; }
-.logo { font-weight: 700; font-size: 18px; display: flex; gap: 8px; align-items: center; color: var(--ink); text-decoration: none; }
-.logo i { width: 12px; height: 12px; background: var(--accent); transform: rotate(45deg); display: inline-block; }
+img { max-width: 100%; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+/* header */
+header.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--panel) 86%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; gap: 18px; min-height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 700; font-size: 19px; letter-spacing: -.01em; }
+.brand img { width: 30px; height: 30px; display: block; }
 .ai { color: var(--accent); }
-nav.links { margin-left: auto; display: flex; gap: 18px; flex-wrap: wrap; font-size: 15px; }
+nav.links { margin-left: auto; display: flex; align-items: center; gap: 22px; font-size: 15px; }
 nav.links a { color: var(--muted); text-decoration: none; }
 nav.links a:hover { color: var(--ink); }
-.hero { padding: 56px 0 28px; }
-.hero h1 { font-size: clamp(32px, 6vw, 52px); line-height: 1.1; margin: 0 0 14px; letter-spacing: -.02em; }
-.hero p.lead { font-size: clamp(17px, 2.4vw, 20px); color: var(--muted); max-width: 720px; margin: 0 0 24px; }
+nav.links a.gh { color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; background: var(--panel); }
+@media (max-width: 760px) { nav.links a.opt { display: none; } }
+
+/* hero */
+.hero { position: relative; padding: 64px 0 36px; }
+.hero::before { content: ""; position: absolute; inset: -60px -20vw auto; height: 520px; z-index: -1; pointer-events: none;
+  background: radial-gradient(60% 60% at 30% 10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%); }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--accent);
+  background: var(--accent-soft); border-radius: 999px; padding: 4px 12px; margin-bottom: 18px; }
+.hero h1 { font-size: clamp(34px, 5.6vw, 58px); line-height: 1.06; margin: 0 0 18px; letter-spacing: -.03em; max-width: 880px; }
+.hero h1 .soft { color: var(--muted); }
+.lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--muted); max-width: 760px; margin: 0 0 26px; }
 .ctas { display: flex; gap: 10px; flex-wrap: wrap; }
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line);
-       background: var(--panel); color: var(--ink); text-decoration: none; font-weight: 600; font-size: 15px; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.btn[aria-disabled="true"] { opacity: .55; pointer-events: none; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink); text-decoration: none; font-weight: 600; font-size: 15px; transition: transform .12s, box-shadow .12s; }
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: var(--accent-ink); }
 .btn small { font-weight: 400; opacity: .85; }
-.dl { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); margin: 6px 0 18px; }
-.dl .card { display: flex; flex-direction: column; gap: 10px; }
-.dl .card p { margin: 0; }
-.dl .card .btn { margin-top: auto; align-self: flex-start; }
-.dl pre { margin: 0; font-size: 13px; padding: 10px 12px; white-space: pre; overflow-x: auto; }
-.note { color: var(--muted); font-size: 14px; }
-.shot { margin: 28px 0 8px; border-radius: 12px; border: 1px solid var(--line); overflow: hidden; background: #0d1117; }
-.shot img { width: 100%; height: auto; display: block; }
-.caption { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
-section { padding: 36px 0; border-top: 1px solid var(--line); }
-section h2 { font-size: 26px; margin: 0 0 14px; letter-spacing: -.01em; }
-section p { max-width: 760px; }
-.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
-.card h3 { margin: 0 0 6px; font-size: 16px; }
+.trust { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 22px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 14.5px; }
+.trust li { display: flex; align-items: center; gap: 7px; }
+.trust svg { width: 17px; height: 17px; color: var(--ok); flex: none; }
+.window { margin: 38px 0 0; border-radius: 14px; border: 1px solid var(--line); background: #0d1117; box-shadow: var(--shadow); overflow: hidden; }
+.window .bar { display: flex; gap: 6px; align-items: center; padding: 9px 12px; background: #161c25; border-bottom: 1px solid #222a35; }
+.window .bar i { width: 10px; height: 10px; border-radius: 50%; background: #39424f; display: block; }
+.window .bar span { margin-left: 10px; font-size: 12px; color: #8b96a5; }
+.window img { width: 100%; height: auto; display: block; }
+.caption { color: var(--muted); font-size: 14px; margin: 10px 2px 0; }
+
+/* key numbers */
+.stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); margin: 34px 0 6px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+.stat b { display: block; font-size: 30px; line-height: 1.15; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 14.5px; }
+
+/* sections */
+section { padding: 56px 0 8px; }
+.kicker { color: var(--accent); font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 6px; }
+section h2 { font-size: clamp(26px, 3.4vw, 34px); line-height: 1.15; margin: 0 0 12px; letter-spacing: -.02em; }
+section > p, .intro { max-width: 760px; color: var(--muted); }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr)); margin-top: 22px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+.card h3 { margin: 10px 0 6px; font-size: 17px; letter-spacing: -.01em; }
 .card p { margin: 0; color: var(--muted); font-size: 15px; }
-.flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 14px; margin: 10px 0 4px; }
-.flow span { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
-.flow span.key { border-color: var(--accent); font-weight: 600; }
-.flow b { color: var(--muted); font-weight: 400; }
-table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 15px; }
-th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); }
-th { font-size: 13px; color: var(--muted); font-weight: 600; }
+.icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.icon svg { width: 22px; height: 22px; }
+
+/* decision steps */
+.steps { list-style: none; margin: 24px 0 8px; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); counter-reset: step; }
+.steps li { counter-increment: step; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 12px; font-size: 14.5px; position: relative; }
+.steps li::before { content: counter(step); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--panel-2); color: var(--muted); font-weight: 700; font-size: 12.5px; margin-bottom: 8px; }
+.steps li b { display: block; font-size: 15px; }
+.steps li span { color: var(--muted); font-size: 13.5px; }
+.steps li.key { border-color: var(--accent); background: var(--accent-soft); }
+.steps li.key::before { background: var(--accent); color: #fff; }
+.two { display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); align-items: start; margin-top: 18px; }
+.gates { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+.gates li { display: flex; gap: 10px; align-items: baseline; font-size: 15px; }
+.gates code { flex: none; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 7px; }
+.shot { margin: 0; border-radius: 14px; border: 1px solid var(--line); overflow: hidden; background: #0d1117; box-shadow: var(--shadow); }
+.shot img { width: 100%; height: auto; display: block; }
+
+/* results */
+.tw { overflow-x: auto; margin-top: 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+th { font-size: 12.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; background: var(--panel-2); }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 tr:last-child td { border-bottom: 0; }
-.tw { overflow-x: auto; }
-pre { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font: 14px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; }
+tr.best td { background: var(--ok-soft); }
+tr.best td:first-child { font-weight: 600; }
+.note { color: var(--muted); font-size: 14px; }
+
+/* downloads */
+.dl { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); margin: 24px 0 8px; }
+.dl .card { display: flex; flex-direction: column; gap: 12px; }
+.dl .card h3 { margin: 0; display: flex; align-items: center; gap: 10px; }
+.dl .card.main { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.dl .card .btn { margin-top: auto; align-self: flex-start; }
+pre { margin: 0; background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; overflow-x: auto;
+  font: 13.5px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace; }
 code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .92em; }
-.two { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); align-items: start; }
-footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--muted); font-size: 14px; }
-.pill { display: inline-block; font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; color: var(--muted); }
-.pill.free { color: var(--ok); border-color: var(--ok); }
+.providers { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.providers li { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 14.5px; }
+.pill { font-size: 12px; color: var(--ok); margin-left: 4px; }
+.pill.paid { color: var(--muted); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+.panel h3 { margin: 0 0 8px; font-size: 18px; }
+
+footer { margin-top: 64px; border-top: 1px solid var(--line); padding: 28px 0 44px; color: var(--muted); font-size: 14px; }
+footer .wrap { display: flex; gap: 18px; align-items: flex-start; }
+footer img { width: 34px; height: 34px; flex: none; }
+footer p { margin: 0 0 6px; }
 </style>
 </head>
 <body>
 <header class="top">
   <div class="wrap">
-    <a class="logo" href="./"><i aria-hidden="true"></i><span>Oper<span class="ai">AI</span>tor</span></a>
+    <a class="brand" href="./"><img src="assets/logo.svg" alt="" width="30" height="30"><span>Oper<span class="ai">AI</span>tor</span></a>
     <nav class="links" aria-label="Site">
-      <a href="#how">How it works</a>
-      <a href="#results">Results</a>
+      <a class="opt" href="#how">How it works</a>
+      <a class="opt" href="#results">Results</a>
       <a href="#run">Download</a>
-      <a href="./dashboard/">Dashboard</a>
-      <a href="https://github.com/AISL-at-Imperial-College-London/operAItor">GitHub</a>
+      <a class="opt" href="./dashboard/">Dashboard</a>
+      <a class="gh" href="https://github.com/AISL-at-Imperial-College-London/operAItor">GitHub</a>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
   <div class="hero">
-    <h1>Oper<span class="ai">AI</span>tor</h1>
-    <p class="lead">AI operators for a chemical plant, checked before they act. Break a simulated acetone plant on purpose,
-      and watch LLM agents detect the fault, diagnose it and propose a fix. A digital twin or the ADMIT admissibility
-      gates decide whether the fix may reach the plant.</p>
+    <span class="eyebrow">Open source · AISL, Imperial College London</span>
+    <h1>AI operators for process plants, <span class="soft">checked before they act.</span></h1>
+    <p class="lead">Break a simulated process plant on purpose and watch AI agents detect the fault, diagnose it and
+      propose a fix. A digital twin or the ADMIT admissibility gates decide whether the fix may reach the plant. Or take
+      the controls yourself and compare.</p>
     <div class="ctas">
       <a class="btn primary" id="demo" href="__DEMO_URL__">Open the live demo</a>
-      <a class="btn" id="download" href="#run">Download <small>(Windows, Docker, Python)</small></a>
-      <a class="btn" href="./dashboard/">Campaign results <small>(20 fault scenarios)</small></a>
-      <a class="btn" href="https://github.com/AISL-at-Imperial-College-London/operAItor">Source code</a>
+      <a class="btn" id="download" href="#run">Download <small>Windows · Docker · Python</small></a>
+      <a class="btn" href="./dashboard/">Benchmark results</a>
     </div>
-    <figure class="shot"><img src="assets/plant.webp" width="1400" height="915"
-      alt="OperAItor console: process graphic of the reactor and distillation column with safety functions, key variables and control loops"></figure>
-    <p class="caption">The console: every visitor gets their own plant, fault injection, alarms, PCA fault detection and the agent pipeline.</p>
+    <ul class="trust">
+      <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Free and open source</li>
+      <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Runs on your own computer</li>
+      <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Your AI key stays in your browser</li>
+    </ul>
+    <figure class="window">
+      <div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>OperAItor console</span></div>
+      <img src="assets/plant.webp" width="1400" height="915"
+        alt="OperAItor console: process graphic of the reactor and distillation column with safety functions, key variables and control loops">
+    </figure>
+    <p class="caption">The console: your own plant, fault injection, alarms, PCA fault detection and the agent pipeline.
+      The example process is an acetone plant, a reactor feeding a distillation column.</p>
+  </div>
+
+  <div class="stats" aria-label="Benchmark highlights">
+    <div class="stat"><b>18 → 5</b><span>plant stops in 20 fault scenarios, without agents vs. with validated agents</span></div>
+    <div class="stat"><b>$260k</b><span>saved over the 20 scenarios compared with no agents</span></div>
+    <div class="stat"><b>42 s</b><span>per decision with ADMIT record checks, a quarter of the digital twin's time</span></div>
   </div>
 
   <section id="what">
-    <h2>What is in it</h2>
+    <p class="kicker">What is in it</p>
+    <h2>A plant, its safety layers and the agents</h2>
     <div class="grid">
-      <div class="card"><h3>A plant you can break</h3><p>Isopropanol → acetone CSTR feeding a 10-tray distillation column:
-        8 PI loops, 5 duty/standby pump trains, ISA-18.2 alarms and 11 independent safety instrumented functions.</p></div>
-      <div class="card"><h3>Fault detection</h3><p>PCA (Hotelling T² and SPE) confirms faults; rule checks and an LLM
-        diagnosis agent rank the likely causes.</p></div>
-      <div class="card"><h3>LLM operator agents</h3><p>A knowledge graph, a planning agent and an action agent propose
-        concrete commands: setpoints, standby pumps, throughput, emergency auxiliaries.</p></div>
-      <div class="card"><h3>Checked before they act</h3><p>A digital twin, an LLM judge or the
-        <a href="https://github.com/Refiant-Inc/admit-bench">ADMIT</a> hard gates validate every proposal; rejections
-        go back to the agent with the reason.</p></div>
+      <div class="card">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19h18M6 19V9l4 3V9l4 3V5h4v14"/></svg></span>
+        <h3>A plant you can break</h3>
+        <p>A dynamic process model with 8 PI loops, duty/standby pump trains, ISA-18.2 alarms and 11 independent safety
+          functions. Inject pump trips, valve and sensor faults or disturbances.</p></div>
+      <div class="card">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-6 4 4 4-7 5 6"/><path d="M3 21h18"/></svg></span>
+        <h3>Fault detection</h3>
+        <p>PCA (Hotelling T² and SPE) watches every reading and confirms faults; rule checks and an LLM diagnosis agent
+          rank the likely causes.</p></div>
+      <div class="card">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V5M9 13h.01M15 13h.01M9.5 16h5"/></svg></span>
+        <h3>AI operator agents</h3>
+        <p>A knowledge graph, a planning agent and an action agent propose concrete commands: setpoints, standby pumps,
+          throughput, emergency devices.</p></div>
+      <div class="card">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+        <h3>Checked before they act</h3>
+        <p>A digital twin, an LLM judge or the <a href="https://github.com/Refiant-Inc/admit-bench">ADMIT</a> hard gates
+          validate every proposal; rejections go back to the agent with the reason.</p></div>
     </div>
   </section>
 
   <section id="how">
-    <h2>How a decision works</h2>
-    <div class="flow" aria-label="Agent pipeline">
-      <span>PCA confirms a fault</span><b>→</b><span>Knowledge graph</span><b>→</b><span>Planning</span><b>→</b>
-      <span>Action agent</span><b>→</b><span class="key">ADMIT gate T0–T4</span><b>→</b><span>Dispatch to the plant</span>
-    </div>
+    <p class="kicker">How it works</p>
+    <h2>How a decision is made</h2>
+    <ol class="steps" aria-label="Agent pipeline">
+      <li><b>Monitoring</b><span>PCA confirms a fault</span></li>
+      <li><b>Knowledge graph</b><span>fault → symptoms → actions</span></li>
+      <li><b>Planning</b><span>target and objective</span></li>
+      <li><b>Action agent</b><span>proposes commands</span></li>
+      <li class="key"><b>ADMIT gate</b><span>T0–T4 checks</span></li>
+      <li><b>Dispatch</b><span>applied to the plant</span></li>
+    </ol>
     <div class="two">
       <div>
         <p>With ADMIT, the action agent files an <b>action record</b> with every command: the evidence it relied on, the
-          procedure steps it followed, its confidence, whether the action can be undone, and how. The platform builds the
-          evidence ledger from the live plant. ADMIT then checks the record gate by gate:</p>
-        <ul>
-          <li><b>T0</b> the record is complete and valid;</li>
-          <li><b>T1</b> the cited evidence exists, is trusted and fresh;</li>
-          <li><b>T2</b> the active hazard is addressed;</li>
-          <li><b>T3</b> authority, operating mode and SOP steps;</li>
-          <li><b>T4</b> the plan, projected on the plant, stays inside the safety limits.</li>
+          procedure steps it followed, its confidence, and whether and how the action can be undone. The platform builds the
+          evidence ledger from the live plant, then ADMIT checks the record gate by gate:</p>
+        <ul class="gates">
+          <li><code>T0</code><span>the record is complete and valid</span></li>
+          <li><code>T1</code><span>the cited evidence exists, is trusted and fresh</span></li>
+          <li><code>T2</code><span>the active hazard is addressed</span></li>
+          <li><code>T3</code><span>authority, operating mode and procedure steps</span></li>
+          <li><code>T4</code><span>the plan, projected on the plant, stays inside the safety limits</span></li>
         </ul>
-        <p>Only an admissible plan is applied. Every record, rule and gate result is shown in the console and logged.</p>
+        <p class="note">Only an admissible plan is applied. Every record, rule and gate result is shown in the console and logged.</p>
       </div>
-      <figure class="shot" style="margin:0"><img src="assets/admit.webp" width="1400" height="1330" loading="lazy"
+      <figure class="shot"><img src="assets/admit.webp" width="1400" height="1330" loading="lazy"
         alt="Agents tab: the ADMIT gate block after the action agent, and the record the agent filed next to the rule and each gate result"></figure>
     </div>
   </section>
 
   <section id="results">
-    <h2>Results</h2>
-    <p>The same 20 fault scenarios (single, coupled and triple faults), the same fault-lift times and economics for every
-      configuration. Agents run with gpt-5-nano; one run per configuration, so differences of 2–3 stops are within the
-      run-to-run noise.</p>
+    <p class="kicker">Results</p>
+    <h2>20 fault scenarios, six configurations</h2>
+    <p>The same single, coupled and triple faults, the same fault-lift times and economics for every configuration. Agents
+      run with gpt-5-nano; one run per configuration, so differences of 2–3 stops are within the run-to-run noise.</p>
     <div class="tw"><table>
       <thead><tr><th>Configuration</th><th class="num">Plant stops / 20</th><th class="num">Saving vs no agents</th><th class="num">Time per decision</th></tr></thead>
       <tbody>
         <tr><td>No agents</td><td class="num">18</td><td class="num">—</td><td class="num">—</td></tr>
         <tr><td>LLM, no validation</td><td class="num">9</td><td class="num">$179k</td><td class="num">21 s</td></tr>
         <tr><td>LLM + LLM judge</td><td class="num">11</td><td class="num">$135k</td><td class="num">29 s</td></tr>
-        <tr><td>LLM + digital twin</td><td class="num">5</td><td class="num">$260k</td><td class="num">167 s</td></tr>
+        <tr class="best"><td>LLM + digital twin</td><td class="num">5</td><td class="num">$260k</td><td class="num">167 s</td></tr>
         <tr><td>LLM + ADMIT, with simulation (T0–T4)</td><td class="num">6</td><td class="num">$237k</td><td class="num">143 s</td></tr>
-        <tr><td>LLM + ADMIT, no simulation (T0–T3)</td><td class="num">5</td><td class="num">$259k</td><td class="num">42 s</td></tr>
+        <tr class="best"><td>LLM + ADMIT, no simulation (T0–T3)</td><td class="num">5</td><td class="num">$259k</td><td class="num">42 s</td></tr>
       </tbody>
     </table></div>
-    <p>ADMIT's record checks alone matched the digital twin at a quarter of the decision time. The absolute consequence
-      gate (T4) blocks actions that would only delay an unavoidable trip, which is an open design question for admissibility
-      gating. Every run, decision and ADMIT record is in the <a href="./dashboard/">campaign dashboard</a>.</p>
+    <p class="note">ADMIT's record checks alone matched the digital twin at a quarter of the decision time. The absolute
+      consequence gate (T4) blocks actions that would only delay an unavoidable trip, which is an open design question for
+      admissibility gating. Every run, decision and ADMIT record is in the <a href="./dashboard/">benchmark dashboard</a>.</p>
   </section>
 
   <section id="run">
-    <h2>Run it on your own computer (free)</h2>
-    <p>Everything runs on your machine: the plant, the console in your browser and the agents. Downloads are on the
+    <p class="kicker">Download</p>
+    <h2>Run it on your own computer, free</h2>
+    <p>Everything runs on your machine: the plant, the console in your browser and the agents. All downloads are on the
       <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases/latest">latest release</a>.</p>
     <div class="dl">
-      <div class="card">
-        <h3>Windows app</h3>
-        <p>Download <b>OperAItor-Setup</b>, run it, then start <b>OperAItor</b> from the Start menu. The console opens
-          in your browser; closing the OperAItor window stops it. No administrator rights needed. Prefer no installer?
-          Use the portable zip.</p>
-        <p class="note">The app is not code-signed yet, so Windows may say “Windows protected your PC”: choose
-          <b>More info → Run anyway</b>.</p>
+      <div class="card main">
+        <h3><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>Windows app</h3>
+        <p>Run the installer, then start <b>OperAItor</b> from the Start menu. The console opens in your browser; closing
+          the OperAItor window stops it. No administrator rights needed.</p>
+        <p class="note">Not code-signed yet: if Windows says “Windows protected your PC”, choose <b>More info → Run anyway</b>.</p>
         <a class="btn primary" id="win-download" download
            href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases/latest/download/OperAItor-Setup.exe">Download for Windows</a>
-        <p class="note" id="win-download-note">Other files (portable zip, pip wheel) are on the
-          <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases">releases page</a>.</p>
+        <p class="note" id="win-download-note">Portable zip and pip wheel: <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases">releases page</a>.</p>
       </div>
       <div class="card">
-        <h3>Docker</h3>
+        <h3><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h15a3 3 0 003-3M4 12v3a5 5 0 005 5h4a7 7 0 006.5-4.5"/><rect x="5" y="8" width="3" height="4"/><rect x="9" y="8" width="3" height="4"/><rect x="13" y="8" width="3" height="4"/><rect x="9" y="4" width="3" height="4"/></svg></span>Docker</h3>
         <p>Windows, Mac or Linux with <a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a>:</p>
 <pre>docker run -p 7860:7860 \
   ghcr.io/aisl-at-imperial-college-london/operaitor</pre>
         <p>then open <a href="http://localhost:7860">http://localhost:7860</a>.</p>
       </div>
       <div class="card">
-        <h3>Python 3.11+</h3>
+        <h3><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12"/></svg></span>Python 3.11+</h3>
         <p>For researchers using the plant or the benchmark in their own code:</p>
 <pre>pip install "operaitor[llm]"
 operaitor serve</pre>
-        <p>then open <a href="http://localhost:8001">http://localhost:8001</a>. The wheel is also on the release page.</p>
+        <p>then open <a href="http://localhost:8001">http://localhost:8001</a>.</p>
       </div>
     </div>
     <div class="two">
-      <div>
+      <div class="panel">
         <h3>Let the agents act</h3>
-        <p>Without an LLM the plant, fault detection and safety functions all work, and the agents monitor and
+        <p class="note">Without an LLM the plant, fault detection and safety functions all work, and the agents monitor and
           diagnose. To let them act, connect one in <b>Agents → Agent settings</b>:</p>
-        <ul>
-          <li>Groq <span class="pill free">free tier</span></li>
-          <li>Google Gemini <span class="pill free">free tier</span></li>
-          <li>OpenRouter <span class="pill free">free models</span></li>
-          <li><a href="https://ollama.com">Ollama</a> on your own computer <span class="pill free">free</span></li>
-          <li>OpenAI <span class="pill">billed to your own key</span></li>
+        <ul class="providers">
+          <li>Groq <span class="pill">free tier</span></li>
+          <li>Google Gemini <span class="pill">free tier</span></li>
+          <li>OpenRouter <span class="pill">free models</span></li>
+          <li><a href="https://ollama.com">Ollama</a> <span class="pill">free, local</span></li>
+          <li>OpenAI <span class="pill paid">your own key</span></li>
         </ul>
+        <p class="note">Switch models at any time from the same card.</p>
       </div>
-      <div>
+      <div class="panel">
         <h3>Your key stays with you</h3>
-        <p>Your browser calls the AI provider directly with your key. The key is held in your browser tab only and is
-          never sent to the OperAItor server.</p>
-        <p>The Windows app and the Docker image include the <a href="https://github.com/Refiant-Inc/admit-bench">ADMIT</a>
-          validator. With pip, add it with <code>pip install "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"</code>.</p>
-        <p class="note">From source: see the <a href="https://github.com/AISL-at-Imperial-College-London/operAItor#run-it">README</a>.</p>
+        <p class="note">Your browser calls the AI provider directly with your key. The key is held in your browser tab only
+          and is never sent to the OperAItor server.</p>
+        <p class="note">The Windows app and the Docker image include the <a href="https://github.com/Refiant-Inc/admit-bench">ADMIT</a>
+          validator. With pip, add it with <code>pip install "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"</code>.
+          From source: see the <a href="https://github.com/AISL-at-Imperial-College-London/operAItor#run-it">README</a>.</p>
       </div>
     </div>
   </section>
@@ -223,16 +318,18 @@ operaitor serve</pre>
 
 <footer>
   <div class="wrap">
-    OperAItor is a project of AISL, Imperial College London, released under the
-    <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/blob/main/LICENSE">Apache License 2.0</a>.
-    The ADMIT gates come from <a href="https://github.com/Refiant-Inc/admit-bench">ADMIT Bench</a> (Apache-2.0).
-    <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/tree/main/docs">Documentation</a> ·
-    <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/blob/main/CHANGELOG.md">Changelog</a>
+    <img src="assets/logo.svg" alt="" width="34" height="34">
+    <div>
+      <p>OperAItor is a project of AISL, Imperial College London, released under the
+        <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/blob/main/LICENSE">Apache License 2.0</a>.
+        The ADMIT gates come from <a href="https://github.com/Refiant-Inc/admit-bench">ADMIT Bench</a> (Apache-2.0).</p>
+      <p><a href="https://github.com/AISL-at-Imperial-College-London/operAItor/tree/main/docs">Documentation</a> ·
+        <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/blob/main/CHANGELOG.md">Changelog</a> ·
+        <a href="https://github.com/AISL-at-Imperial-College-London/operAItor">Source code</a></p>
+    </div>
   </div>
 </footer>
 <script>
-  // The live-demo link is filled in at build time from the repository variable DEMO_URL. Without one,
-  // the download becomes the main button.
   // "Download for Windows" downloads the installer itself: the newest release that has one (a release
   // candidate too, while there is no full release yet). Falls back to the fixed-name file of the latest release.
   (async () => {
@@ -252,11 +349,15 @@ operaitor serve</pre>
       if (!found) return;
       btn.href = found.exe.browser_download_url;
       const mb = Math.round(found.exe.size / 1e6);
-      btn.textContent = `Download for Windows (${found.rel.tag_name.replace(/^v/, "")}, ${mb} MB)`;
-      if (found.rel.prerelease) document.getElementById("win-download-note").insertAdjacentText("afterbegin", "This is a release candidate. ");
+      btn.textContent = `Download for Windows · ${mb} MB`;
+      const version = found.rel.tag_name.replace(/^v/, "");
+      document.getElementById("win-download-note").insertAdjacentText("afterbegin",
+        `Version ${version}${found.rel.prerelease ? " (release candidate)" : ""}. `);
     } catch { /* offline or rate-limited: keep the fixed link */ }
   })();
 
+  // The live-demo link is filled in at build time from the repository variable DEMO_URL. Without one,
+  // the download becomes the main button.
   const demo = document.getElementById("demo");
   if (!demo.getAttribute("href") || demo.getAttribute("href").startsWith("__")) {
     demo.remove();

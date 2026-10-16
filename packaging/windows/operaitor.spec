@@ -3,7 +3,11 @@
 #   (+ admit-bench for ADMIT; PyInstaller must be recent enough for the installed NumPy)
 #   pyinstaller packaging/windows/operaitor.spec --noconfirm
 # The wheel must be built first (packaging/build_dist.py) so the web console is inside the package.
+import os
+
 from PyInstaller.utils.hooks import collect_all, collect_submodules
+
+ICON = os.path.join(SPECPATH, "..", "..", "branding", "operaitor.ico")
 
 datas, binaries, hiddenimports = [], [], []
 for pkg in ("operaitor", "langgraph", "langchain_core", "langchain_openai", "langchain_ollama", "tiktoken",
@@ -35,6 +39,6 @@ exe = EXE(
     exclude_binaries=True,
     name="OperAItor",
     console=True,              # the window shows where it runs; closing it stops the server
-    icon=None,
+    icon=ICON,
 )
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="OperAItor")
