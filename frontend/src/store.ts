@@ -47,6 +47,7 @@ export interface PlantState {
   serverModels: string[];   // models of the server's own Ollama (desktop / private server)
   pipelineDefaults: PipelineDefaults | null;   // reference pipelines, prompts and settings (pipeline editor)
   kgCheck: { ok: boolean; summary: string; report?: KgReport; at: number } | null;
+  codeCheck: { ok: boolean; summary: string; at: number } | null;
   pipelineBusy: boolean;
 }
 
@@ -82,6 +83,7 @@ function advance(p: Pipeline, ev: AgentEvent): Pipeline {
     case "twin": set("twin_evaluate", ev.restored ? "ok" : ev.safe_reached ? "warn" : "fail"); break;
     case "twin_skipped": set("twin_evaluate", "skip"); break;
     case "admit": set("twin_evaluate", ev.admissible ? "ok" : "fail"); break;
+    case "custom_validator": set("twin_evaluate", ev.accept ? "ok" : "fail"); break;
     case "validation": set("validate", ev.accepted ? "ok" : "fail"); break;
     case "reprompt": set("reprompt", "running"); break;
     case "fallback": set("validate", "warn"); next.outcome = "mitigation"; break;
@@ -125,7 +127,7 @@ class PlantStore {
     monitor: emptyMonitor(), lastMonitor: null, agentLog: [], agent: null, pending: {},
     messages: [], toast: null, brief: null, campaign: null, humanTest: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
     pipeline: idlePipeline(), session: null, notice: null, keyBusy: false, nav: null, serverModels: [],
-    pipelineDefaults: null, kgCheck: null, pipelineBusy: false,
+    pipelineDefaults: null, kgCheck: null, codeCheck: null, pipelineBusy: false,
   };
   // The visitor's LLM connection (incl. key) lives only in this page's memory (never in browser storage or on
   // the server): this tab makes the agents' LLM calls itself (browserLlm.ts). A new session (server restart or
@@ -308,6 +310,7 @@ class PlantStore {
         if (msg.request === "list_models") { this.set({ serverModels: msg.models ?? [] }); break; }
         if (msg.request === "pipeline_defaults") { if (msg.ok) this.set({ pipelineDefaults: msg as PipelineDefaults }); break; }
         if (msg.request === "check_kg") { this.set({ kgCheck: { ok: msg.ok, summary: msg.summary, report: msg.report, at: Date.now() } }); break; }
+        if (msg.request === "check_code") { this.set({ codeCheck: { ok: msg.ok, summary: msg.summary, at: Date.now() } }); break; }
         if (msg.request === "set_pipeline" || msg.request === "set_agent_preset") this.set({ pipelineBusy: false });
         if (msg.request === "set_model") this.set({ keyBusy: false });
         if (msg.request === "set_llm" || msg.request === "set_api_key") {
@@ -344,7 +347,7 @@ export const navigate = (r: Omit<NavRequest, "at">) => store.set({ nav: { ...r, 
 /** Run a custom pipeline in this session (settings, prompts and knowledge graph travel as data). */
 export function runPipeline(p: CustomPipeline) {
   store.set({ pipelineBusy: true });
-  store.send({ type: "set_pipeline", pipeline: { id: p.id, name: p.name, base: p.base, settings: p.settings, prompts: p.prompts, kg: p.kg ?? null } });
+  store.send({ type: "set_pipeline", pipeline: { id: p.id, name: p.name, base: p.base, settings: p.settings, prompts: p.prompts, kg: p.kg ?? null, code: p.code ?? null } });
 }
 /** Back to a reference (baseline) pipeline. */
 export function runReference(preset: string) {
@@ -354,5 +357,9 @@ export function runReference(preset: string) {
 export function checkKg(text: string) {
   store.set({ kgCheck: null });
   store.send({ type: "check_kg", kg: text });
+}
+export function checkCode(code: string) {
+  store.set({ codeCheck: null });
+  store.send({ type: "check_code", code });
 }
 export const loadPipelineDefaults = () => { if (!store.state.pipelineDefaults) store.send({ type: "pipeline_defaults" }); };

@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { usePlant, type NodeStatus } from "../store";
-import type { AgentEvent } from "../types";
+import type { AgentEvent, AgentInfo } from "../types";
 
 type Step = { id: string; title: string; sub: string };
 const BASE: Step[] = [
@@ -11,16 +11,20 @@ const BASE: Step[] = [
 ];
 const DISPATCH: Step = { id: "dispatch", title: "Dispatch", sub: "apply to the plant" };
 
-/** The steps after the action agent depend on the agent configuration. */
-function flow(preset: string | undefined): Step[] {
-  if (preset?.startsWith("llm_admit")) {
-    const sim = preset === "llm_admit";
+/** The steps after the action agent depend on the validator that runs (a custom pipeline may change it). */
+function flow(agent: AgentInfo | null): Step[] {
+  const preset = agent?.preset;
+  if (preset === "passive" || !preset || !agent?.actor) return [BASE[0]];
+  const validator = agent.validator ?? (preset.startsWith("llm_admit") ? (preset === "llm_admit" ? "admit" : "admit_nosim")
+    : preset === "llm_judge" ? "judge" : preset === "llm_lucky" ? "none" : "twin");
+  if (validator.startsWith("admit")) {
     return [...BASE, { id: "twin_evaluate", title: "ADMIT gate",
-      sub: sim ? "record, evidence, authority, consequence" : "record, evidence, authority (no simulation)" }, DISPATCH];
+      sub: validator === "admit" ? "record, evidence, authority, consequence" : "record, evidence, authority (no simulation)" }, DISPATCH];
   }
-  if (preset === "llm_judge") return [...BASE, { id: "twin_evaluate", title: "LLM judge", sub: "a second LLM reviews" }, DISPATCH];
-  if (preset === "llm_lucky" || preset === "llm_notwin") return [...BASE, DISPATCH];
-  if (preset === "passive" || !preset) return [BASE[0]];
+  if (validator === "judge") return [...BASE, { id: "twin_evaluate", title: "LLM judge", sub: "a second LLM reviews" }, DISPATCH];
+  if (validator === "custom") return [...BASE, { id: "twin_evaluate", title: "Your validator",
+    sub: agent.plugin?.validator ?? "Python" }, DISPATCH];
+  if (validator === "none") return [...BASE, DISPATCH];
   return [...BASE, { id: "twin_evaluate", title: "Digital twin", sub: "simulate the action ahead" },
           { id: "validate", title: "Validate", sub: "faulty variables back in limits" }, DISPATCH];
 }
@@ -59,8 +63,8 @@ export function PipelineCard() {
   const watching = !human && agent?.mode !== "off";
   const monitorState = !watching ? "off" : !last ? "starting…" : last.fault ? "fault confirmed" : "watching";
   const log = usePlant((s) => s.agentLog);
-  const steps = flow(agent?.preset);
-  const admit = agent?.preset?.startsWith("llm_admit");
+  const steps = flow(agent);
+  const admit = agent?.validator ? agent.validator.startsWith("admit") : agent?.preset?.startsWith("llm_admit");
   const lastAdmit = [...log].reverse().find((e) => e.stage === "admit" && e.cycle === p.cycle);
   const passive = steps.length === 1;
   const openTrace = () => {

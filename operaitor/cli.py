@@ -37,6 +37,7 @@ def _serve(args: argparse.Namespace) -> None:
         os.environ.setdefault("PLANT_CAMPAIGN_DIR", "")  # nothing written to disk
     if args.max_sessions:
         os.environ["PLANT_MAX_SESSIONS"] = str(args.max_sessions)
+    os.environ["PLANT_BIND_HOST"] = args.host  # Python agents only run when the server is not on the network
     uvicorn.run("operaitor.server.app:app", host=args.host, port=args.port, log_level="info",
                 proxy_headers=True, forwarded_allow_ips="*")
 

@@ -129,6 +129,57 @@ def test_custom_pipeline_runs_in_the_session_and_reference_comes_back(client):
         assert reset["hello"]["agent"]["validator"] == "twin" and reset["hello"]["agent"]["custom_prompts"] == []
 
 
+PLUGIN = """
+def watch(observation):
+    return {"alarm": False, "detail": "quiet"}
+
+class Always:
+    name = "always_yes"
+    def validate(self, proposal):
+        return {"accept": True, "reason": "ok"}
+
+DETECTORS = [watch]
+VALIDATOR = Always()
+"""
+
+
+def test_a_public_server_never_runs_python_agents(client):
+    with client() as c, c.websocket_connect("/ws") as ws:
+        hello = ws.receive_json()
+        assert hello["session"]["plugins"]["allowed"] is False and "public server" in hello["session"]["plugins"]["reason"]
+        ws.send_json({"type": "check_code", "code": PLUGIN})
+        ack = _ack(ws, "check_code")
+        assert ack["ok"] is False and "public server" in ack["summary"]
+        ws.send_json({"type": "set_pipeline", "pipeline": {"base": "llm", "code": PLUGIN}})
+        ack = _ack(ws, "set_pipeline")
+        assert ack["ok"] is False and "public server" in ack["summary"]
+
+
+def test_python_agents_run_on_your_own_computer():
+    settings = Settings(hosted=False, llm_mode="auto", preset="", model="gpt-5-nano", chat_model="", diagnoser="",
+                        max_sessions=2, idle_min=15, max_age_min=180, models=("gpt-5-nano",))
+    env = {"PLANT_HOSTED": "0", "PLANT_ALLOW_PLUGINS": "", "PLANT_BIND_HOST": "127.0.0.1"}
+    with mock.patch.dict(os.environ, env):
+        A.manager = SessionManager(settings)
+        with TestClient(A.app) as c, c.websocket_connect("/ws") as ws:
+            assert ws.receive_json()["session"]["plugins"]["allowed"] is True
+            ws.send_json({"type": "check_code", "code": "def f(:"})
+            assert "line 1" in _ack(ws, "check_code")["summary"]
+            ws.send_json({"type": "check_code", "code": PLUGIN})
+            ack = _ack(ws, "check_code")
+            assert ack["ok"] and ack["plugin"] == {"detectors": ["watch"], "validator": "always_yes"}
+            ws.send_json({"type": "set_pipeline", "pipeline": {"base": "llm", "settings": {"validator": "custom"},
+                                                               "code": "DETECTORS = []"}})
+            assert "defines no VALIDATOR" in _ack(ws, "set_pipeline")["summary"]
+            _connect_in_browser(ws)
+            ack, reset = _request_with_reset(ws, {"type": "set_pipeline", "pipeline": {
+                "name": "py", "base": "llm", "settings": {"validator": "custom"}, "code": PLUGIN}})
+            assert ack["ok"] is True, ack
+            agent, p = reset["hello"]["agent"], reset["hello"]["session"]["pipeline"]
+            assert agent["validator"] == "custom" and agent["plugin"] == {"detectors": ["watch"], "validator": "always_yes"}
+            assert p["python"] is True and "Always" not in str(p)  # the code itself is not sent back
+
+
 def test_chat_runs_through_the_browser_with_tools(client):
     """The chat assistant's model calls (including a tool call) go to the browser and back; no key travels."""
     with client() as c, c.websocket_connect("/ws") as ws:

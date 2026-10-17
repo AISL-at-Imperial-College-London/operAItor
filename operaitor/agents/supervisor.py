@@ -42,7 +42,8 @@ _STAGE = {"reject": "rejected"}
 class AsyncSupervisor:
     def __init__(self, service: PlantService, cfg: AgentConfig | None = None, mode: str = "autonomous",
                  kg: KnowledgeGraph | None = None, pca: PCAMonitor | None = None,
-                 action_agent=None, planner=None, prompts: dict | None = None):
+                 action_agent=None, planner=None, prompts: dict | None = None, plugin=None,
+                 custom_validator: bool = False):
         # Live sessions can run many faults (campaigns), so do not cap the action count.
         self.cfg = replace(cfg or make_config("passive"), max_actions=10**9)
         self.service = service
@@ -50,7 +51,9 @@ class AsyncSupervisor:
         self.kg = kg or KnowledgeGraph()
         if pca is None and Path(DEFAULT_MODEL_PATH).exists():
             pca = PCAMonitor.load(DEFAULT_MODEL_PATH)
+        self.plugin = plugin  # a custom pipeline's Python agents (operaitor/plugins.py)
         self.monitor = MonitoringAgent(pca if self.cfg.use_pca else None, persistence=self.cfg.persistence,
+                                       extra_detectors=plugin.detectors if plugin else None,
                                        cooldown_min=self.cfg.cooldown_min, rules_trigger=self.cfg.rules_trigger, quality_needs_pca=self.cfg.quality_needs_pca, trigger=self.cfg.trigger, episode_clear_min=self.cfg.episode_clear_min)
         self.prompts = dict(prompts or {})  # custom pipeline prompts (agents/pipeline.py)
         self.action_agent = action_agent or make_action_agent(self.cfg, self.prompts)
@@ -62,7 +65,9 @@ class AsyncSupervisor:
         self.ctx = RunContext(self.cfg, self.monitor, self.kg if self.cfg.use_kg else None, self.planner,
                               self.action_agent, self._snapshot_env, self._dispatch, self._emit,
                               on_decision_start=lambda: service.set_agent_hold(True),
-                              on_decision_end=lambda: service.set_agent_hold(False), prompts=self.prompts)
+                              on_decision_end=lambda: service.set_agent_hold(False), prompts=self.prompts,
+                              validator=plugin.validator if plugin and custom_validator else None,
+                              validator_name=(plugin.validator_name or "") if plugin and custom_validator else "")
         self.graph = build_recovery_graph(self.ctx)
         self._task: asyncio.Task | None = None
         self.last_cycle_t: float | None = None     # sim time of the last finished monitoring cycle
@@ -282,7 +287,8 @@ class AsyncSupervisor:
         return {"mode": self.mode, "preset": self.cfg.name, "planner": type(self.planner).__name__,
                 "llm_model": self.cfg.llm_model if uses_llm else None, "llm_usage": self._usage.summary()["total"],
                 "actor": type(self.action_agent).__name__ if self.action_agent else None,
-                "validator": validator_of(self.cfg), "custom_prompts": sorted(self.prompts),
+                "validator": "custom" if self.ctx.validator is not None else validator_of(self.cfg),
+                "custom_prompts": sorted(self.prompts), "plugin": self.plugin.summary() if self.plugin else None,
                 "twin": self.cfg.twin, "twin_horizon_min": self.cfg.twin_horizon_min,
                 "reprompt_max": self.cfg.reprompt_max, "kg": self.cfg.use_kg,
                 "acceptance": self.cfg.acceptance, "fallback_to_safe": self.cfg.fallback_to_safe,
