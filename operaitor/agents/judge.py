@@ -65,9 +65,11 @@ def _limits() -> dict:
 
 
 class LLMJudge:
-    def __init__(self, model: str = DEFAULT_MODEL, timeout: float = 120.0, llm: Any = None):
+    def __init__(self, model: str = DEFAULT_MODEL, timeout: float = 120.0, llm: Any = None, prompt: dict | None = None):
+        from .pipeline import resolve_prompt
         self.model = model
         self.llm = llm if llm is not None else make_llm(model, timeout, json_mode=True)
+        self.system_prompt = resolve_prompt(JUDGE_SYSTEM_PROMPT, prompt)
         self.last_usage: dict = {}
 
     async def judge(self, context: dict, plan: dict) -> dict:
@@ -83,7 +85,7 @@ class LLMJudge:
         }
         t0 = time.perf_counter()
         try:
-            msg = await ainvoke(self.llm, [("system", JUDGE_SYSTEM_PROMPT), ("human", json.dumps(user, default=str))])
+            msg = await ainvoke(self.llm, [("system", self.system_prompt),("human", json.dumps(user, default=str))])
             text = message_text(msg)
             self.last_usage = {**USAGE.record("judge", self.model, msg), "latency_s": time.perf_counter() - t0}
             out = parse_json_object(text)

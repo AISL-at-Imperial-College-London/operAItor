@@ -96,6 +96,39 @@ def _connect_in_browser(ws, provider: str = "groq", model: str = "llama-3.3-70b-
     return reset
 
 
+def test_custom_pipeline_runs_in_the_session_and_reference_comes_back(client):
+    """A visitor's pipeline (settings, prompts, knowledge graph) runs in their session only; the reference returns."""
+    from operaitor.agents.kg import KG_PATH
+    with client() as c, c.websocket_connect("/ws") as ws:
+        hello = ws.receive_json()
+        assert hello["session"]["pipeline"]["reference"] is True
+        ws.send_json({"type": "pipeline_defaults"})
+        d = _ack(ws, "pipeline_defaults")
+        assert set(d["references"]) == set(A.VISITOR_PRESETS) and set(d["prompts"]) >= {"action", "planning"}
+        assert "validator" in d["settings"]
+        ws.send_json({"type": "check_kg", "kg": "{broken"})
+        assert "not valid JSON" in _ack(ws, "check_kg")["summary"]
+        ws.send_json({"type": "set_pipeline", "pipeline": {"base": "llm", "settings": {"reprompt_max": 99}}})
+        bad = _ack(ws, "set_pipeline")
+        assert bad["ok"] is False and "reprompt_max" in bad["summary"]
+
+        _connect_in_browser(ws)
+        spec = {"name": "my judge", "base": "llm", "settings": {"validator": "judge", "reprompt_max": 1},
+                "prompts": {"action": {"mode": "append", "text": "Prefer setpoint changes."}},
+                "kg": KG_PATH.read_text(encoding="utf-8")}
+        ack, reset = _request_with_reset(ws, {"type": "set_pipeline", "pipeline": spec})
+        assert ack["ok"] is True and "my judge" in ack["summary"] and ack["report"]["warnings"] == []
+        p = reset["hello"]["session"]["pipeline"]
+        assert p["reference"] is False and p["name"] == "my judge" and p["custom_kg"] is True
+        assert p["prompts"] == ["action"] and "kg" not in p and "Prefer" not in str(p)  # no prompt / KG text sent back
+        agent = reset["hello"]["agent"]
+        assert agent["validator"] == "judge" and agent["reprompt_max"] == 1 and agent["custom_prompts"] == ["action"]
+
+        ack, reset = _request_with_reset(ws, {"type": "set_agent_preset", "preset": "llm"})
+        assert reset["hello"]["session"]["pipeline"]["reference"] is True
+        assert reset["hello"]["agent"]["validator"] == "twin" and reset["hello"]["agent"]["custom_prompts"] == []
+
+
 def test_chat_runs_through_the_browser_with_tools(client):
     """The chat assistant's model calls (including a tool call) go to the browser and back; no key travels."""
     with client() as c, c.websocket_connect("/ws") as ws:

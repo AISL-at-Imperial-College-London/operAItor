@@ -206,9 +206,11 @@ def action_system_prompt(level: str) -> str:
 
 
 class LLMActionAgent:
-    def __init__(self, model: str = DEFAULT_MODEL, timeout: float = 120.0, llm: Any = None):
+    def __init__(self, model: str = DEFAULT_MODEL, timeout: float = 120.0, llm: Any = None,
+                 prompt: dict | None = None):
         self.model = model
         self.llm = llm if llm is not None else make_llm(model, timeout, json_mode=True)
+        self.prompt = prompt  # custom pipeline: {"mode": "append"|"replace", "text": ...} (agents/pipeline.py)
         self.last_usage: dict = {}
 
     async def propose(self, context: dict) -> dict:
@@ -235,8 +237,9 @@ class LLMActionAgent:
                                        **({"principles": OPERATING_MANUAL} if level in ("manual", "dynamics") else {})}
         if level == "dynamics":
             user["dynamics"] = context["detection"].get("trends") or {}
-        system = action_system_prompt(level)
-        if context.get("admit"):
+        from .pipeline import resolve_prompt
+        system = resolve_prompt(action_system_prompt(level), self.prompt)
+        if context.get("admit"):  # the record format ADMIT checks stays, whatever the custom prompt says
             user["admit"] = context["admit"]
             system += ADMIT_ADDENDUM
         t0 = time.perf_counter()

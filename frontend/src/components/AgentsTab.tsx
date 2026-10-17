@@ -5,6 +5,7 @@ import { AdmitCard } from "./AdmitPanel";
 import { LlmKeyCard } from "./LlmKey";
 import { Chart } from "./Chart";
 import { PipelineCard } from "./Pipeline";
+import { PipelineManager } from "./PipelineEditor";
 import { C } from "./Trends";
 
 const pretty = (v: string) => v.replace(/^meas\./, "").replace(/^op\./, "OP ").replace(/_/g, " ");
@@ -62,15 +63,19 @@ function ConfigSelect() {
   const presets = session?.llm.presets;
   if (!presets) return null;
   const on = session.llm.active;
-  if (!on) return <span className="dim small">needs an LLM (connect one below)</span>;
+  const custom = session.pipeline && !session.pipeline.reference ? session.pipeline : null;
+  if (!on) return <span className="dim small">needs an LLM (connect one below){custom ? ` · your pipeline "${custom.name}" runs once connected` : ""}</span>;
   return (
-    <label className="inline-field" title={on ? "How each proposed action is checked before it reaches the plant" : "Needs an LLM (below)"}>
-      <select value={on ? (agent?.preset ?? session.llm.preset) : ""} disabled={!on}
-        onChange={(e) => send({ type: "set_agent_preset", preset: e.target.value })}>
-        {!on && <option value="">no LLM</option>}
-        {Object.entries(presets).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-      </select>
-    </label>
+    <span className="row">
+      <label className="inline-field" title="The agent pipeline: baselines, or your own (Agent pipeline section below)">
+        <select value={custom ? "__custom" : (agent?.preset ?? session.llm.preset)}
+          onChange={(e) => send({ type: "set_agent_preset", preset: e.target.value })}>
+          {custom && <option value="__custom" disabled>Your pipeline: {custom.name}</option>}
+          {Object.entries(presets).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+      </label>
+      {custom ? <span className="pill pill-ok" title={`fingerprint ${custom.fingerprint}`}>custom</span> : <span className="pill">baseline</span>}
+    </span>
   );
 }
 
@@ -105,7 +110,7 @@ function AgentSettings() {
       <div className="settings-grid">
         <span className="settings-label">The agents</span>
         <div><ModeSwitch /> <span className="dim small">{agent ? MODE_TEXT[agent.mode]?.[1] : ""}</span></div>
-        <span className="settings-label">Check each action with</span>
+        <span className="settings-label">Pipeline</span>
         <div><ConfigSelect /></div>
         <span className="settings-label">While they decide</span>
         <label className="check"><input type="checkbox" checked={snap?.hold_for_agents ?? true}
@@ -297,7 +302,7 @@ function Timeline() {
 
 export function AgentsTab() {
   const agent = usePlant((s) => s.agent);
-  const admit = agent?.preset?.startsWith("llm_admit");
+  const admit = agent?.validator ? agent.validator.startsWith("admit") : agent?.preset?.startsWith("llm_admit");
   const human = usePlant((s) => s.snap?.operator_mode === "human");
   return (
     <div className="stack">
@@ -314,6 +319,7 @@ export function AgentsTab() {
       </Section>
       <Section title="LLM diagnosis" hint="ranked hypotheses from T², SPE, contributions and rule evidence"><LlmDiagnosis /></Section>
       <Section title="Planning brief" hint="target fault, objective, knowledge-graph levers"><PlanningBrief /></Section>
+      <Section title="Agent pipeline" hint="baselines, or your own settings, prompts and knowledge graph"><PipelineManager /></Section>
       {!admit && <AdmitCard />}
       <Section title="Agent timeline" hint="every step of every decision" open><Timeline /></Section>
     </div>

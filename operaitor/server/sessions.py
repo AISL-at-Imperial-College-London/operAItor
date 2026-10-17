@@ -72,10 +72,8 @@ class Settings:
                 "max_sessions": self.max_sessions, "idle_min": self.idle_min, "providers": provider_catalog()}
 
 
-# Agent configurations a visitor can choose in the console (label shown in the UI).
-VISITOR_PRESETS = {"llm_admit": "LLM + ADMIT gates", "llm_admit_nosim": "LLM + ADMIT (no simulation)",
-                   "llm": "LLM + digital twin", "llm_judge": "LLM + LLM judge",
-                   "llm_lucky": "LLM, no validation"}
+# Agent configurations a visitor can choose in the console (label shown in the UI): the reference pipelines.
+from operaitor.agents.pipeline import REFERENCE_PIPELINES as VISITOR_PRESETS  # noqa: E402
 
 
 def default_preset() -> str:
@@ -88,7 +86,10 @@ class Session:
     def __init__(self, sid: str, settings: Settings, kg: KnowledgeGraph, pca: PCAMonitor | None):
         self.id = sid
         self.settings = settings
-        self.kg = kg
+        self.kg = kg               # the knowledge graph this session's agents use
+        self.reference_kg = kg     # the shared reference graph (a custom pipeline may bring its own)
+        self.pipeline = None       # custom pipeline (agents/pipeline.py PipelineSpec); None = the reference preset
+        self.kg_report: dict | None = None
         self.pca = pca
         self.service = PlantService()
         self.usage = UsageMeter()
@@ -143,8 +144,12 @@ class Session:
         return None
 
     async def configure_agents(self, endpoint: Endpoint | None = None, clear: bool = False,
-                               model: str | None = None, preset: str | None = None) -> str:
-        """(Re)build supervisor + chat with this session's LLM connection; returns a warning or ''."""
+                               model: str | None = None, preset: str | None = None,
+                               pipeline=None, kg=None, kg_report: dict | None = None) -> str:
+        """(Re)build supervisor + chat with this session's LLM connection; returns a warning or ''.
+
+        ``preset``: run that reference pipeline. ``pipeline``: run a custom pipeline (with ``kg``, its
+        parsed knowledge graph, if it brings one)."""
         if clear:
             self.endpoint, self.model = None, self.settings.model
         if endpoint is not None:
@@ -152,7 +157,11 @@ class Session:
         if model:
             self.model = model
         if preset is not None:
-            self.preset = preset
+            self.preset, self.pipeline = preset, None
+            self.kg, self.kg_report = self.reference_kg, None
+        if pipeline is not None:
+            self.preset, self.pipeline = pipeline.base, (None if pipeline.reference else pipeline)
+            self.kg, self.kg_report = (kg, kg_report) if kg is not None else (self.reference_kg, None)
         if self.supervisor is not None:
             await self.supervisor.stop()
             self.supervisor = None
@@ -179,8 +188,13 @@ class Session:
         diag = s.diagnoser or ("llm" if use_llm else "heuristic")
         warning = "" if use_llm else f"no LLM ({reason}); agents monitor only (no actions), chat is offline"
         try:
-            self.supervisor = AsyncSupervisor(self.service, make_config(preset, llm_model=self.model, diagnoser=diag),
-                                              kg=self.kg, pca=self.pca)
+            if use_llm and self.pipeline is not None:
+                from operaitor.agents.pipeline import config_for
+                cfg = config_for(self.pipeline, llm_model=self.model, diagnoser=diag)
+                prompts = self.pipeline.prompts
+            else:
+                cfg, prompts = make_config(preset, llm_model=self.model, diagnoser=diag), {}
+            self.supervisor = AsyncSupervisor(self.service, cfg, kg=self.kg, pca=self.pca, prompts=prompts)
         except Exception as exc:  # e.g. preset needs a package that is missing
             warning = f"agent preset {preset!r} failed ({exc}); agents monitor only"
             self.supervisor = AsyncSupervisor(self.service, make_config("passive"), kg=self.kg, pca=self.pca)
@@ -199,13 +213,21 @@ class Session:
     def usage_summary(self) -> dict:
         return self.usage.summary()
 
+    def pipeline_info(self) -> dict:
+        """The pipeline this session runs: a reference one, or the visitor's custom one (no prompt / KG text)."""
+        from operaitor.agents.pipeline import reference_spec
+        if self.pipeline is not None:
+            return self.pipeline.public(self.kg_report)
+        return reference_spec(self.preset or default_preset()).public()
+
     def _hello(self) -> dict:
         return {"session": {"id": self.id, "hosted": self.settings.hosted, "models": list(self.settings.models),
                             "llm": {"model": self.model, "key_source": self.key_source,
                                     "connection": self.connection(), "providers": provider_catalog(),
                                     "active": bool(self.chat is not None and self.chat.mode == "llm"),
                                     "reason": self.llm_reason, "preset": self.preset or default_preset(),
-                                    "presets": VISITOR_PRESETS}},
+                                    "presets": VISITOR_PRESETS},
+                            "pipeline": self.pipeline_info()},
                 "chat": {"mode": self.chat.mode if self.chat else "offline",
                          "model": getattr(self.chat, "model", None) if self.chat and self.chat.mode == "llm" else None}}
 

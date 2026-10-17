@@ -76,7 +76,7 @@ def jsonable(obj: Any) -> Any:
 
 
 # Bump when the WebSocket messages change; the console warns if the backend is older.
-API_VERSION = 8
+API_VERSION = 9
 
 
 class PlantService:

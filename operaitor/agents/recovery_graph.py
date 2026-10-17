@@ -208,14 +208,16 @@ def plain_verdict(state: dict, cfg: AgentConfig) -> str:
     return head + why
 
 
-def make_action_agent(cfg: AgentConfig):
+def make_action_agent(cfg: AgentConfig, prompts: dict | None = None):
     if cfg.proposer == "llm":
-        return LLMActionAgent(cfg.llm_model, cfg.llm_timeout_s)
+        return LLMActionAgent(cfg.llm_model, cfg.llm_timeout_s, prompt=(prompts or {}).get("action"))
     return None
 
 
-def make_planner(cfg: AgentConfig):
-    return LLMPlanner(cfg.llm_model, cfg.llm_timeout_s) if cfg.planner == "llm" else KGPlanner()
+def make_planner(cfg: AgentConfig, prompts: dict | None = None):
+    if cfg.planner == "llm":
+        return LLMPlanner(cfg.llm_model, cfg.llm_timeout_s, prompt=(prompts or {}).get("planning"))
+    return KGPlanner()
 
 
 # =============================================================================
@@ -510,6 +512,8 @@ class RunContext:
     on_decision_start: Callable[[], Awaitable[None]] | None = None
     on_decision_end: Callable[[], Awaitable[None]] | None = None
     cycle: int = 0
+    # Custom pipeline prompts, per agent: {"diagnosis" | "judge": {"mode", "text"}} (agents/pipeline.py)
+    prompts: dict = field(default_factory=dict)
 
 
 def build_recovery_graph(ctx: RunContext):
@@ -517,11 +521,11 @@ def build_recovery_graph(ctx: RunContext):
     diagnoser = None
     if cfg.diagnoser == "llm":
         from .diagnosis_llm import LLMDiagnoser
-        diagnoser = LLMDiagnoser(cfg.llm_model, cfg.llm_timeout_s, kg=ctx.kg)
+        diagnoser = LLMDiagnoser(cfg.llm_model, cfg.llm_timeout_s, kg=ctx.kg, prompt=ctx.prompts.get("diagnosis"))
     judge = None
     if cfg.judge and not cfg.twin:
         from .judge import LLMJudge
-        judge = LLMJudge(cfg.llm_model, cfg.llm_timeout_s)
+        judge = LLMJudge(cfg.llm_model, cfg.llm_timeout_s, prompt=ctx.prompts.get("judge"))
     gate = None
     if cfg.admit:
         from operaitor.admit.gate import AdmitGate
