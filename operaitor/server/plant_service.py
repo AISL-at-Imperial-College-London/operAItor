@@ -470,8 +470,11 @@ class PlantService:
         from .human_test import OPERATOR_MODES
         if mode not in OPERATOR_MODES:
             return {"ok": False, "summary": f"operator mode must be one of {OPERATOR_MODES}"}
-        if mode == "agents" and self.human_test is not None and self.human_test.state == "running":
-            return {"ok": False, "summary": "stop the human test before handing over to the agents"}
+        if self.human_test is not None and self.human_test.state == "running":
+            if mode == "agents" and self.human_test.who == "human":
+                return {"ok": False, "summary": "stop the human test before handing over to the agents"}
+            if mode == "human" and self.human_test.who == "agents":
+                return {"ok": False, "summary": "stop the pipeline benchmark before taking the controls"}
         self.operator_mode = mode
         if mode == "human":
             await self.set_agent_hold(False)
@@ -482,6 +485,8 @@ class PlantService:
 
     async def start_human_test(self, msg: dict) -> dict:
         from .human_test import HumanTest, pick
+        if self.human_test is not None and self.human_test.state == "running" and self.human_test.who == "agents":
+            return {"ok": False, "summary": "a pipeline benchmark is running; stop it first"}
         sid, random_pick = pick(msg.get("scenario", "random"))
         if self.operator_mode != "human":
             await self.set_operator_mode("human")
@@ -504,7 +509,9 @@ class PlantService:
         return {"ok": True, "summary": "human test stopped"}
 
     def human_test_status(self) -> dict:
-        return self.human_test.status() if self.human_test is not None else {"human_test": None}
+        if self.human_test is None or self.human_test.who != "human":  # agent runs report as a pipeline benchmark
+            return {"human_test": None}
+        return self.human_test.status()
 
     # ------------------------------------------------------------ fault campaigns
     async def start_campaign(self, msg: dict) -> dict:

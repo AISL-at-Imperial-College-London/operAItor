@@ -521,6 +521,9 @@ class RunContext:
     # Custom pipeline's Python validator (operaitor/plugins.py): replaces twin / judge / ADMIT when set
     validator: Any = None
     validator_name: str = ""
+    # Custom pipeline's wiring (operaitor/plugins.py BUILD_GRAPH) and the extra steps it added
+    build_graph: Callable | None = None
+    custom_steps: list = field(default_factory=list)
 
 
 def build_recovery_graph(ctx: RunContext):
@@ -831,23 +834,36 @@ def build_recovery_graph(ctx: RunContext):
     def retry_or_reject(state: RecoveryState) -> str:
         return "reprompt" if state["attempts"] <= cfg.reprompt_max else "reject"
 
+    nodes = {"monitoring": monitoring, "kg_retrieval": kg_retrieval, "planning": planning,
+             "action_propose": action_propose, "twin_evaluate": twin_evaluate, "validate": validate,
+             "reprompt": reprompt, "dispatch": dispatch, "reject": reject}
+    routes = {"after_monitoring": lambda s: "act" if s["detection"]["should_act"] else "end",
+              "after_validate": lambda s: "dispatch" if s["evaluation"]["accepted"] else retry_or_reject(s),
+              "after_reject": lambda s: "dispatch" if s.get("outcome") == "mitigation" else "end"}
     g = StateGraph(RecoveryState)
-    for name, fn in [("monitoring", monitoring), ("kg_retrieval", kg_retrieval), ("planning", planning),
-                     ("action_propose", action_propose),
-                     ("twin_evaluate", twin_evaluate), ("validate", validate), ("reprompt", reprompt),
-                     ("dispatch", dispatch), ("reject", reject)]:
+    if ctx.build_graph is not None:  # a custom pipeline's own wiring (operaitor/plugins.py BUILD_GRAPH)
+        from operaitor.plugins import GraphBuilder
+        builder = GraphBuilder(g, set(nodes), emit)
+        ctx.build_graph(builder, dict(nodes), dict(routes))
+        ctx.custom_steps = builder.custom_steps
+    else:
+        wire_default(g, nodes, routes)
+    return g.compile()
+
+
+def wire_default(g, nodes: dict, routes: dict) -> None:
+    """The reference wiring: monitoring → KG → planning → action → validator → validate → dispatch, with the
+    reprompt loop and the fallback after the last rejection."""
+    for name, fn in nodes.items():
         g.add_node(name, fn)
     g.add_edge(START, "monitoring")
-    g.add_conditional_edges("monitoring", lambda s: "act" if s["detection"]["should_act"] else "end",
-                            {"act": "kg_retrieval", "end": END})
+    g.add_conditional_edges("monitoring", routes["after_monitoring"], {"act": "kg_retrieval", "end": END})
     g.add_edge("kg_retrieval", "planning")
     g.add_edge("planning", "action_propose")
     g.add_edge("action_propose", "twin_evaluate")
     g.add_edge("twin_evaluate", "validate")
-    g.add_conditional_edges("validate", lambda s: "dispatch" if s["evaluation"]["accepted"] else retry_or_reject(s),
+    g.add_conditional_edges("validate", routes["after_validate"],
                             {"dispatch": "dispatch", "reprompt": "reprompt", "reject": "reject"})
     g.add_edge("reprompt", "action_propose")
-    g.add_conditional_edges("reject", lambda s: "dispatch" if s.get("outcome") == "mitigation" else "end",
-                            {"dispatch": "dispatch", "end": END})
+    g.add_conditional_edges("reject", routes["after_reject"], {"dispatch": "dispatch", "end": END})
     g.add_edge("dispatch", END)
-    return g.compile()

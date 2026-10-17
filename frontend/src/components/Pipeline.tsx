@@ -113,6 +113,14 @@ export function PipelineCard() {
           );
         })}
       </div>
+      {agent?.plugin?.graph && (
+        <div className="loop">
+          <span className="pill pill-warn">your wiring</span>
+          <span className="dim small">The order of the steps comes from your Python code (BUILD_GRAPH).</span>
+          {(agent.plugin.steps ?? []).map((s) => (
+            <span key={s} className={`node small ${p.status[s] ?? "idle"}`}>{s}{p.status[s] && p.status[s] !== "idle" ? ` · ${STATUS_TEXT[p.status[s]]}` : ""}</span>))}
+        </div>
+      )}
       {passive ? (
         <p className="dim small">Agents monitor and diagnose only; they take no actions in this configuration.</p>
       ) : (

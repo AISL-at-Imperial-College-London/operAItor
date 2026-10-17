@@ -17,10 +17,9 @@ import json
 import random
 from typing import TYPE_CHECKING
 
+from operaitor.benchmark import reference
 from operaitor.benchmark.economics import INVENTORY_TAGS, PRICES, hourly_margin, inventory_value
-from operaitor.benchmark.profit_campaign import (
-    BY_ID, MODE_LABEL, OUT, RUNS, SCENARIOS, lift_schedule, window_for,
-)
+from operaitor.benchmark.profit_campaign import BY_ID, SCENARIOS
 
 if TYPE_CHECKING:
     from .plant_service import PlantService
@@ -28,54 +27,29 @@ if TYPE_CHECKING:
 OPERATOR_MODES = ("agents", "human")
 STOP_STATUSES = ("SAFE_TRIP", "DAMAGE", "MODEL_LIMIT", "NUMERICAL_FAILURE")
 SIF_RESET_EVERY_MIN = 5.0
-SHORT = {"lucky": "LLM, no validation", "judge": "LLM + judge", "llmtwin": "LLM + digital twin",
-         "admit": "LLM + ADMIT (sim)", "admit_nosim": "LLM + ADMIT (no sim)"}
-
-
-def _probe(sid: str) -> dict | None:
-    p = RUNS / f"{sid}_probe.json"
-    try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
 
 
 def schedule(sid: str) -> tuple[dict, float]:
-    """Onset/lift per fault and the scoring window, as in the benchmark (lift 30 min after onset
-    when the probe run is not available)."""
-    scn = BY_ID[sid]
-    probe = _probe(sid)
-    sched = lift_schedule(scn, probe if probe is not None else {"trip_min": None})
-    return sched, window_for(sched)
+    """Onset/lift per fault and the scoring window, as in the benchmark (benchmark/reference.py)."""
+    return reference.schedule(sid)
 
 
 def benchmark_rows(sid: str) -> list[dict]:
     """The benchmark's results for this scenario: no agents, then every model x configuration (v2)."""
-    rows: list[dict] = []
-    roots = sorted((OUT / "open_models_v2").glob("*/profit_campaign.json"))
-    for i, path in enumerate(roots):
-        try:
-            camp = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            continue
-        row = next((r for r in camp.get("rows", []) if r["id"] == sid), None)
-        if row is None:
-            continue
-        if not rows:
-            rows.append({"who": "No agents", "config": "passive", "profit": row["passive_profit"],
-                         "stopped": row.get("passive_trip_min") is not None, "stop_min": row.get("passive_trip_min")})
-        for mode, c in row["configs"].items():
-            rows.append({"who": f"{path.parent.name} · {SHORT.get(mode) or MODE_LABEL.get(mode, mode)}", "config": mode,
-                         "profit": c["profit"], "stopped": c.get("trip_min") is not None, "stop_min": c.get("trip_min")})
-    return rows
+    return reference.rows(sid)
 
 
 class HumanTest:
-    """One human-test run on a PlantService. Created by ``start``; ``tick`` is called after every plant step."""
+    """One scored run of a benchmark scenario on a PlantService; ``tick`` is called after every plant step.
 
-    def __init__(self, service: "PlantService", sid: str, blind: bool, random_pick: bool):
+    ``who="human"``: a person operates (human test). ``who="agents"``: the session's agents operate, one
+    scenario of a pipeline benchmark (server/pipeline_bench.py); then nothing is broadcast or written per
+    scenario, the benchmark reports."""
+
+    def __init__(self, service: "PlantService", sid: str, blind: bool, random_pick: bool, who: str = "human"):
         from operaitor.server.campaigns import FAULT_LIBRARY
         self.service, self.sid, self.blind, self.random_pick = service, sid, blind, random_pick
+        self.who = who
         scn = BY_ID[sid]
         self.sched, self.window = schedule(sid)
         self.injections = []
@@ -136,7 +110,8 @@ class HumanTest:
                 and abs(since / SIF_RESET_EVERY_MIN - round(since / SIF_RESET_EVERY_MIN)) < 1e-6
                 and env.last_safety_result.latched_causes):
             svc._pending_reset_sif = True  # shift operator, as in the benchmark
-        await svc.broadcast({"type": "human_test", **self.status()})
+        if self.who == "human":
+            await svc.broadcast({"type": "human_test", **self.status()})
 
     @property
     def profit(self) -> float:
@@ -155,6 +130,8 @@ class HumanTest:
                        "penalty": -PRICES.trip_penalty_usd if self.stop_min is not None else 0.0,
                        "saving_vs_no_agents": None if passive is None else round(self.profit - passive, 2),
                        "benchmark": bench, "complete": reason == "complete"}
+        if self.who != "human":
+            return
         if svc.campaign_dir is not None:
             svc.campaign_dir.mkdir(parents=True, exist_ok=True)
             path = svc.campaign_dir / f"human_{self.sid}_{datetime.now():%Y%m%d_%H%M%S}.json"

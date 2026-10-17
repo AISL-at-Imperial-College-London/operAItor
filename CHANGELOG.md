@@ -25,6 +25,14 @@
   copy of the plant). A public server never runs code; a server on the network only with
   `PLANT_ALLOW_PLUGINS=1`.
 - The live pipeline diagram shows the validator that actually runs (a custom pipeline may change it).
+- Steps diagram in the pipeline editor: click a step to switch it (diagnosis, knowledge graph, planning,
+  validator, retries, fallback).
+- Your own wiring (own computer only): `BUILD_GRAPH(graph, nodes, routes)` reorders or skips the decision steps
+  and adds steps of your own, which show in the live pipeline diagram.
+- Benchmark the running pipeline from the console: quick (3), all 20 or one benchmark scenario, replayed with the
+  benchmark's schedule and score and compared with the published runs (no agents, the baseline with every
+  model). The published results ship with the package (`operaitor/data/benchmark_reference.json`), so the human
+  test now compares against them in the Windows app and Docker too.
 
 **Console**
 - New logo, process-generic: a control valve as drawn on a process diagram (`branding/`). It is used on the

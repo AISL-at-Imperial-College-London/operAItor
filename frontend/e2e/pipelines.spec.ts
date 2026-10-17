@@ -151,3 +151,68 @@ test("write Python agents, check them, and they run on the live plant", async ({
   await expect(detection).toContainText("bar/min");
   expect(errors).toEqual([]);
 });
+
+test("the step diagram switches steps and stays in sync with the settings", async ({ page }) => {
+  const { section } = await openPipelines(page);
+  await section.locator(".pl-list li", { hasText: "LLM + digital twin" }).getByRole("button", { name: "Customise" }).click();
+  const steps = section.locator(".pl-steps");
+  await steps.getByRole("listitem").filter({ hasText: "Knowledge graph" }).click();
+  await expect(steps.getByRole("listitem").filter({ hasText: "Knowledge graph" })).toContainText("skipped");
+  await expect(setting(page, "Use the knowledge graph")).toHaveClass(/changed/);
+  await steps.getByRole("listitem").filter({ hasText: "Planning" }).click();
+  await expect(setting(page, "Planner").locator("select")).toHaveValue("llm");
+  await steps.getByLabel("Check each action with").selectOption("judge");
+  await expect(setting(page, "Check each action with").locator("select")).toHaveValue("judge");
+  await section.getByRole("button", { name: "More retries" }).click();
+  await expect(setting(page, "Retries after a rejected proposal").locator("input")).toHaveValue("4");
+  await section.getByRole("button", { name: "apply the best safe candidate" }).click();
+  await expect(section.locator(".pl-steps-loop")).toContainText("give up");
+  await expect(section.locator(".pl-editor .pl-setting.changed")).toHaveCount(5);
+});
+
+test("your own wiring: a custom step runs in the live pipeline", async ({ page }) => {
+  const { section, errors } = await openPipelines(page);
+  await section.locator(".pl-list li", { hasText: "LLM, no validation" }).getByRole("button", { name: "Customise" }).click();
+  const editor = section.locator(".pl-editor");
+  await editor.getByLabel("Name").fill("wired pipeline");
+  await editor.getByRole("button", { name: "Start from the example" }).click();
+  await editor.getByRole("button", { name: "Add the wiring example" }).click();
+  await expect(editor.getByLabel("Python agents")).toHaveValue(/def BUILD_GRAPH\(graph, nodes, routes\)/);
+  await expect(editor).toContainText("wires the steps itself");
+  await expect(editor.getByRole("button", { name: "Add the wiring example" })).toHaveCount(0);
+  await editor.getByRole("button", { name: "Check the code" }).click();
+  await expect(editor.locator(".ok-text").last()).toContainText("own wiring with steps no_throughput_changes");
+  await editor.getByRole("button", { name: "Save and run" }).click();
+  await expect(section.locator(".pl-list li.on")).toContainText("wired pipeline");
+  await expect(page.locator(".pipeline-card")).toContainText("your wiring");
+  await expect(page.locator(".pipeline-card")).toContainText("no_throughput_changes");
+  expect(errors).toEqual([]);
+});
+
+test("benchmark the running pipeline on a scenario and compare with the published runs", async ({ page }) => {
+  test.setTimeout(240_000);
+  const { section, errors } = await openPipelines(page);
+  const bench = section.locator("#pipeline-bench");
+  await bench.getByLabel("Scenarios").selectOption("S01");
+  await expect(bench).toContainText("No LLM connected");
+  await bench.getByRole("button", { name: "Start the benchmark" }).click();
+  await expect(bench).toContainText(/Running · 0 of 1 scenarios/);
+  await expect(bench.getByRole("button", { name: "Stop" })).toBeVisible();
+  await expect(bench).toContainText("complete · 1 of 1 scenarios", { timeout: 200_000 });
+  const row = bench.locator(".bench-table tbody tr", { hasText: "S01" });
+  await expect(row).toContainText("$");
+  await expect(bench.locator(".bench-table thead")).toContainText("gpt-5-nano · baseline");
+  await expect(bench.locator(".bench-table tfoot")).toContainText("1 scored");
+  await expect(bench.getByRole("button", { name: "Start the benchmark" })).toBeEnabled();
+  expect(errors).toEqual([]);
+});
+
+test("a benchmark can be stopped", async ({ page }) => {
+  const { section } = await openPipelines(page);
+  const bench = section.locator("#pipeline-bench");
+  await bench.getByRole("button", { name: "Start the benchmark" }).click();   // quick: 3 scenarios
+  await expect(bench).toContainText(/Running · 0 of 3 scenarios/);
+  await bench.getByRole("button", { name: "Stop" }).click();
+  await expect(bench).toContainText("stopped early · 1 of 3 scenarios", { timeout: 60_000 });
+  await expect(bench.locator(".bench-table tbody tr")).toContainText("(stopped early)");
+});

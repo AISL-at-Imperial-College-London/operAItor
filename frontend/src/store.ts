@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { callLlm, checkConnection, listModels, type LlmConn, type LlmRequest } from "./browserLlm";
-import type { AgentEvent, AgentInfo, Brief, Campaign, ChatMessage, CustomPipeline, Hello, HumanTest, KgReport, LlmUsage, Message, Meta, MonitorEvent, Num, PipelineDefaults, SessionInfo, Snapshot, TrendPoint } from "./types";
+import type { AgentEvent, AgentInfo, BenchStatus, Brief, Campaign, ChatMessage, CustomPipeline, Hello, HumanTest, KgReport, LlmUsage, Message, Meta, MonitorEvent, Num, PipelineDefaults, SessionInfo, Snapshot, TrendPoint } from "./types";
 
 const MAX_POINTS = 1440;
 
@@ -48,6 +48,7 @@ export interface PlantState {
   pipelineDefaults: PipelineDefaults | null;   // reference pipelines, prompts and settings (pipeline editor)
   kgCheck: { ok: boolean; summary: string; report?: KgReport; at: number } | null;
   codeCheck: { ok: boolean; summary: string; at: number } | null;
+  bench: BenchStatus | null;   // pipeline benchmark (latest)
   pipelineBusy: boolean;
 }
 
@@ -84,6 +85,7 @@ function advance(p: Pipeline, ev: AgentEvent): Pipeline {
     case "twin_skipped": set("twin_evaluate", "skip"); break;
     case "admit": set("twin_evaluate", ev.admissible ? "ok" : "fail"); break;
     case "custom_validator": set("twin_evaluate", ev.accept ? "ok" : "fail"); break;
+    case "custom_step": if (ev.node) set(ev.node, ev.ok ? "ok" : "fail"); break;
     case "validation": set("validate", ev.accepted ? "ok" : "fail"); break;
     case "reprompt": set("reprompt", "running"); break;
     case "fallback": set("validate", "warn"); next.outcome = "mitigation"; break;
@@ -127,7 +129,7 @@ class PlantStore {
     monitor: emptyMonitor(), lastMonitor: null, agentLog: [], agent: null, pending: {},
     messages: [], toast: null, brief: null, campaign: null, humanTest: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
     pipeline: idlePipeline(), session: null, notice: null, keyBusy: false, nav: null, serverModels: [],
-    pipelineDefaults: null, kgCheck: null, codeCheck: null, pipelineBusy: false,
+    pipelineDefaults: null, kgCheck: null, codeCheck: null, pipelineBusy: false, bench: null,
   };
   // The visitor's LLM connection (incl. key) lives only in this page's memory (never in browser storage or on
   // the server): this tab makes the agents' LLM calls itself (browserLlm.ts). A new session (server restart or
@@ -184,7 +186,7 @@ class PlantStore {
       agent: h.agent ?? this.state.agent, pending, messages: h.messages, brief, pipeline,
       campaign: h.campaign ?? null, humanTest: h.human_test ?? null, chatMode: h.chat?.mode ?? this.state.chatMode,
       chatModel: h.chat?.model ?? null, llmUsage: h.agent?.llm_usage ?? this.state.llmUsage,
-      session: h.session ?? null, notice: null,
+      session: h.session ?? null, notice: null, bench: h.session?.bench ?? this.state.bench,
     });
     if (h.session) {
       const fresh = h.session.id !== storedSession();
@@ -291,6 +293,9 @@ class PlantStore {
       case "human_test":
         this.set({ humanTest: msg.human_test });
         break;
+      case "pipeline_bench":
+        this.set({ bench: msg.bench });
+        break;
       case "chat": {
         const chat = this.state.chat.map((m) =>
           m.pending && m.id === msg.id ? { role: "assistant" as const, text: msg.reply, tools: msg.tools, id: msg.id } : m);
@@ -317,7 +322,7 @@ class PlantStore {
           if (!msg.ok) this.llmConn = null;
           this.set({ keyBusy: false });
         }
-        if (!msg.ok || ["set_llm", "set_api_key", "clear_api_key", "set_agent_preset", "set_model", "set_pipeline"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop", "human_test_start", "human_test_stop"].includes(msg.request))
+        if (!msg.ok || ["set_llm", "set_api_key", "clear_api_key", "set_agent_preset", "set_model", "set_pipeline", "bench_start", "bench_stop"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop", "human_test_start", "human_test_stop"].includes(msg.request))
           this.set({ toast: { ok: msg.ok, text: msg.summary, at: Date.now() } });
         break;
     }
@@ -358,6 +363,8 @@ export function checkKg(text: string) {
   store.set({ kgCheck: null });
   store.send({ type: "check_kg", kg: text });
 }
+export const startBench = (scenarios: string) => store.send({ type: "bench_start", scenarios });
+export const stopBench = () => store.send({ type: "bench_stop" });
 export function checkCode(code: string) {
   store.set({ codeCheck: null });
   store.send({ type: "check_code", code });

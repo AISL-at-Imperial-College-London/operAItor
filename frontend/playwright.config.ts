@@ -26,6 +26,6 @@ export default defineConfig({
     url: `http://127.0.0.1:${PORT}/api/health`,
     timeout: 120_000,
     reuseExistingServer: false,
-    env: { PLANT_MAX_SESSIONS: "50", PLANT_HOSTED: "0", PYTHONIOENCODING: "utf-8" },
+    env: { PLANT_MAX_SESSIONS: "50", PLANT_HOSTED: "0", PLANT_CAMPAIGN_DIR: "", PYTHONIOENCODING: "utf-8" },
   },
 });

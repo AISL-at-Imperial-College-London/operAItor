@@ -67,7 +67,8 @@ class AsyncSupervisor:
                               on_decision_start=lambda: service.set_agent_hold(True),
                               on_decision_end=lambda: service.set_agent_hold(False), prompts=self.prompts,
                               validator=plugin.validator if plugin and custom_validator else None,
-                              validator_name=(plugin.validator_name or "") if plugin and custom_validator else "")
+                              validator_name=(plugin.validator_name or "") if plugin and custom_validator else "",
+                              build_graph=plugin.build_graph if plugin else None)
         self.graph = build_recovery_graph(self.ctx)
         self._task: asyncio.Task | None = None
         self.last_cycle_t: float | None = None     # sim time of the last finished monitoring cycle
@@ -288,7 +289,8 @@ class AsyncSupervisor:
                 "llm_model": self.cfg.llm_model if uses_llm else None, "llm_usage": self._usage.summary()["total"],
                 "actor": type(self.action_agent).__name__ if self.action_agent else None,
                 "validator": "custom" if self.ctx.validator is not None else validator_of(self.cfg),
-                "custom_prompts": sorted(self.prompts), "plugin": self.plugin.summary() if self.plugin else None,
+                "custom_prompts": sorted(self.prompts),
+                "plugin": {**self.plugin.summary(), "steps": list(self.ctx.custom_steps)} if self.plugin else None,
                 "twin": self.cfg.twin, "twin_horizon_min": self.cfg.twin_horizon_min,
                 "reprompt_max": self.cfg.reprompt_max, "kg": self.cfg.use_kg,
                 "acceptance": self.cfg.acceptance, "fallback_to_safe": self.cfg.fallback_to_safe,
