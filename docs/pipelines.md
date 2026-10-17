@@ -10,7 +10,8 @@ changes parts of it.
 
 ## In the console
 
-**Agents tab → Agent pipeline.**
+**Agents tab → Agent settings → Customise prompts, knowledge graph & agents** (it opens the *Customise the
+agents* section).
 
 1. **Customise** a baseline.
 2. Change what you want. **Steps** shows the decision as a chain: click a step to switch it (LLM diagnosis
@@ -137,7 +138,7 @@ def BUILD_GRAPH(graph, nodes, routes):
 
 ## Benchmark a pipeline
 
-**Agent pipeline → Benchmark the running pipeline** replays benchmark scenarios on your plant: the published
+**Customise the agents → Benchmark the running pipeline** replays benchmark scenarios on your plant: the published
 benchmark's faults, onset and lift times, shift operator and score (margin + change in liquid inventory − the
 plant-stop penalty over the scenario window). The agents act on their own with whichever pipeline is running,
 and the plant runs as fast as it can (it is held while the agents decide).

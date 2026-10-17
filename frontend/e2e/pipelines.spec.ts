@@ -11,8 +11,8 @@ async function openPipelines(page: Page) {
   await page.goto("/");
   await expect(page.locator(".tabs")).toBeVisible();
   await page.locator(".tabs button", { hasText: "Agents" }).click();
-  const section = page.locator("details.section", { has: page.locator("summary", { hasText: "Agent pipeline" }) });
-  await section.locator(":scope > summary").click();
+  const section = page.locator("details#customise");
+  await page.getByRole("button", { name: "Customise prompts, knowledge graph & agents" }).click();  // from Agent settings
   await expect(section.locator(".pl-list").first()).toBeVisible();
   return { section, errors };
 }
@@ -215,4 +215,15 @@ test("a benchmark can be stopped", async ({ page }) => {
   await bench.getByRole("button", { name: "Stop" }).click();
   await expect(bench).toContainText("stopped early · 1 of 3 scenarios", { timeout: 60_000 });
   await expect(bench.locator(".bench-table tbody tr")).toContainText("(stopped early)");
+});
+
+test("customising is one click away from the agent settings", async ({ page }) => {
+  await page.goto("/");
+  await page.locator(".tabs button", { hasText: "Agents" }).click();
+  const section = page.locator("details#customise");
+  await expect(section).not.toHaveAttribute("open", "");
+  await page.locator(".card.settings").getByRole("button", { name: "Customise prompts, knowledge graph & agents" }).click();
+  await expect(section).toHaveAttribute("open", "");
+  await expect(section.locator(".pl-list").first()).toBeInViewport();
+  await expect(section.locator(":scope > summary")).toContainText("Customise the agents");
 });

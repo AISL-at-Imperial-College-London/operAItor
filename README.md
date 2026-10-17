@@ -109,7 +109,7 @@ the same faults, timing and score as the agent benchmark. **Blind** hides what w
 At the end the console reveals the faults and ranks your score against the benchmark runs on that scenario,
 and writes a report to `campaign_results/human_<scenario>_<time>.json`.
 
-**Build your own pipeline.** The Agents tab's *Agent pipeline* section runs the five baseline pipelines (the
+**Build your own pipeline.** In the Agents tab, **Customise prompts, knowledge graph & agents** (in Agent settings) runs the five baseline pipelines (the
 published configurations, which never change) or your own: start from a baseline and change the validator,
 planner and other settings, each agent's prompt, or the knowledge graph (upload JSON-LD in the same format).
 See [docs/pipelines.md](docs/pipelines.md).
@@ -138,7 +138,7 @@ docker run -p 7860:7860 -e PLANT_HOSTED=0 -e OPENAI_API_KEY=sk-... operaitor   #
 
 Every pipeline answers the same 20 fault scenarios (single, coupled and triple faults, fixed onset and lift
 times) and gets one score: operating margin plus inventory, minus a penalty when the plant stops. In the console,
-**Agents → Agent pipeline** runs a baseline or your own (settings, prompts, knowledge graph, Python agents) and
+**Agents → Customise prompts, knowledge graph & agents** runs a baseline or your own (settings, prompts, knowledge graph, Python agents) and
 **Benchmark the running pipeline** scores it next to the reference runs below. See [docs/pipelines.md](docs/pipelines.md).
 
 ### Reference runs (original study)

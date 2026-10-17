@@ -47,10 +47,10 @@ export function describeEvent(e: AgentEvent): ReactNode {
 }
 
 /** Collapsible section with a consistent header. */
-function Section({ title, hint, open = false, children, aside }:
-  { title: string; hint?: string; open?: boolean; children: ReactNode; aside?: ReactNode }) {
+function Section({ title, hint, open = false, children, aside, id }:
+  { title: string; hint?: string; open?: boolean; children: ReactNode; aside?: ReactNode; id?: string }) {
   return (
-    <details className="section card" open={open}>
+    <details className="section card" open={open} id={id}>
       <summary><span className="section-name">{title}</span>{hint && <span className="dim small"> {hint}</span>}
         <span className="spacer" />{aside}</summary>
       <div className="section-body">{children}</div>
@@ -100,6 +100,14 @@ function ModeSwitch() {
   );
 }
 
+/** Open the pipeline section (baselines and your own pipelines) and bring it into view. */
+function openCustomise() {
+  const el = document.getElementById("customise") as HTMLDetailsElement | null;
+  if (!el) return;
+  el.open = true;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 /** Every agent setting in one place: what the agents may do, how actions are checked, the LLM behind them. */
 function AgentSettings() {
   const agent = usePlant((s) => s.agent);
@@ -113,7 +121,8 @@ function AgentSettings() {
         <span className="settings-label">The agents</span>
         <div><ModeSwitch /> <span className="dim small">{agent ? MODE_TEXT[agent.mode]?.[1] : ""}</span></div>
         <span className="settings-label">Pipeline</span>
-        <div><ConfigSelect /></div>
+        <div className="row"><ConfigSelect />
+          <button className="btn sm" onClick={openCustomise}>Customise prompts, knowledge graph &amp; agents</button></div>
         <span className="settings-label">While they decide</span>
         <label className="check"><input type="checkbox" checked={snap?.hold_for_agents ?? true}
           onChange={(e) => send({ type: "hold_for_agents", on: e.target.checked })} /> pause the plant</label>
@@ -318,6 +327,8 @@ export function AgentsTab() {
         <div className="fault-banner warn">The agents are off: you are the operator. What is shown below is from before
           the switch. Switch back to <b>Agents</b> in the header to hand over.</div>
       ) : <AgentSettings />}
+      <Section id="customise" title="Customise the agents"
+        hint="your own prompts, knowledge graph, Python agents and step order · benchmark them"><PipelineManager /></Section>
       <Pending />
       <PipelineCard />
       <CurrentDecision />
@@ -327,7 +338,6 @@ export function AgentsTab() {
       </Section>
       <Section title="LLM diagnosis" hint="ranked hypotheses from T², SPE, contributions and rule evidence"><LlmDiagnosis /></Section>
       <Section title="Planning brief" hint="target fault, objective, knowledge-graph levers"><PlanningBrief /></Section>
-      <Section title="Agent pipeline" hint="baselines, or your own settings, prompts and knowledge graph"><PipelineManager /></Section>
       {!admit && <AdmitCard />}
       <Section title="Agent timeline" hint="every step of every decision" open><Timeline /></Section>
     </div>
