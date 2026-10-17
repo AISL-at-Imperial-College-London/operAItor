@@ -29,6 +29,7 @@ export function describeEvent(e: AgentEvent): ReactNode {
         {bad.map((r) => ` · ${r.action}: ${r.violations.map((v) => v.code).join(", ")}`).join("")}</span>;
     }
     case "judge": return <span className={e.accept ? "" : "warn-text"}>LLM judge {e.accept ? "accepted" : "rejected"} <span className="dim">— {e.reason}</span></span>;
+    case "custom_step": return <span className={e.ok ? "" : "bad-text"}>your step {e.node} {e.ok ? "done" : `failed: ${e.error}`}</span>;
     case "custom_validator": return <span className={e.accept ? "" : "warn-text"}>your validator {e.name} {e.accept ? "accepted" : "rejected"} <span className="dim">— {e.reason}</span></span>;
     case "alarm_ack": return <span className="dim">acknowledged {(e.alarms ?? []).join(", ")}</span>;
     case "llm_error": return <span className="bad-text">LLM call failed, nothing applied: {e.error}</span>;

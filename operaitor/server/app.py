@@ -150,6 +150,8 @@ async def _set_key(session: Session, msg: dict) -> dict:  # older consoles: Open
 
 
 async def _set_preset(session: Session, msg: dict) -> dict:
+    if busy := _bench_busy(session):
+        return busy
     preset = str(msg.get("preset") or "")
     if preset not in VISITOR_PRESETS:
         return {"ok": False, "summary": f"unknown agent configuration {preset!r}"}
@@ -166,12 +168,12 @@ async def _set_preset(session: Session, msg: dict) -> dict:
 def _pipeline_defaults() -> dict:
     """What the console's pipeline editor starts from: the reference pipelines, prompts and settings."""
     from operaitor.agents import pipeline as pl
-    from operaitor.plugins import MAX_CODE_CHARS, TEMPLATE
+    from operaitor.plugins import GRAPH_TEMPLATE, MAX_CODE_CHARS, TEMPLATE
     return {"ok": True, "summary": "reference pipelines",
             "references": {k: {"label": label, "settings": pl.reference_settings(k)}
                            for k, label in pl.REFERENCE_PIPELINES.items()},
             "prompts": pl.reference_prompts(), "prompt_agents": pl.PROMPT_AGENTS, "settings": pl.SETTINGS,
-            "plugin_template": TEMPLATE,
+            "plugin_template": TEMPLATE, "graph_template": GRAPH_TEMPLATE,
             "limits": {"prompt_chars": pl.MAX_PROMPT_CHARS, "kg_bytes": pl.MAX_KG_BYTES, "code_chars": MAX_CODE_CHARS}}
 
 
@@ -197,12 +199,14 @@ async def _check_kg(msg: dict) -> dict:
 
 async def _load_code(code: str) -> tuple[object | None, str]:
     """Load a pipeline's Python agents, if this server runs code (own computer only); returns (plugin, error)."""
-    from operaitor.plugins import PluginError, load_plugin, plugins_allowed
+    from operaitor.plugins import PluginError, check_graph, load_plugin, plugins_allowed
     allowed, why = plugins_allowed(manager.settings.hosted)
     if not allowed:
         return None, f"Python agents not run: {why}"
     try:
-        return await asyncio.to_thread(load_plugin, code), ""
+        plugin = await asyncio.to_thread(load_plugin, code)
+        plugin.steps = await asyncio.to_thread(check_graph, plugin)  # wiring compiles (BUILD_GRAPH)
+        return plugin, ""
     except PluginError as exc:
         return None, f"Python agents not loaded: {exc}"
 
@@ -214,13 +218,48 @@ async def _check_code(msg: dict) -> dict:
         return {"ok": False, "summary": error}
     found = plugin.summary()
     parts = ([f"detectors: {', '.join(found['detectors'])}"] if found["detectors"] else []) + \
-        ([f"validator: {found['validator']}"] if found["validator"] else [])
-    return {"ok": True, "summary": "Python agents load; " + "; ".join(parts), "plugin": found}
+        ([f"validator: {found['validator']}"] if found["validator"] else []) + \
+        ([f"own wiring{' with steps ' + ', '.join(plugin.steps) if plugin.steps else ''}"] if found["graph"] else [])
+    return {"ok": True, "summary": "Python agents load; " + "; ".join(parts), "plugin": {**found, "steps": plugin.steps}}
+
+
+def _bench_busy(session: Session) -> dict | None:
+    if session.bench is not None and session.bench.state == "running":
+        return {"ok": False, "summary": "a pipeline benchmark is running: stop it before changing the agents"}
+    return None
+
+
+async def _bench_start(session: Session, msg: dict) -> dict:
+    from .pipeline_bench import PipelineBenchmark, scenario_ids
+    if session.bench is not None and session.bench.state == "running":
+        return {"ok": False, "summary": "a pipeline benchmark is already running"}
+    if session.service.operator_mode != "agents":
+        return {"ok": False, "summary": "switch the operator to the agents first (header)"}
+    if session.service.human_test is not None and session.service.human_test.state == "running":
+        return {"ok": False, "summary": "a human test is running; stop it first"}
+    try:
+        ids = scenario_ids(msg.get("scenarios", "quick"))
+    except ValueError as exc:
+        return {"ok": False, "summary": str(exc)}
+    session.bench = PipelineBenchmark(session, ids)
+    session.bench.start()
+    who = session.pipeline_info()["name"]
+    note = "" if session.bench.model else " (no LLM connected: the agents only monitor)"
+    return {"ok": True, "summary": f"benchmarking \"{who}\" on {len(ids)} scenario{'s' * (len(ids) > 1)}{note}"}
+
+
+async def _bench_stop(session: Session) -> dict:
+    if session.bench is None or session.bench.state != "running":
+        return {"ok": False, "summary": "no pipeline benchmark running"}
+    session.bench.stop()
+    return {"ok": True, "summary": "stopping the benchmark after this scenario's score"}
 
 
 async def _set_pipeline(session: Session, msg: dict) -> dict:
     """Run a custom pipeline (data only: settings, prompts, knowledge graph) in this session."""
     from operaitor.agents.pipeline import parse_pipeline
+    if busy := _bench_busy(session):
+        return busy
     spec, errors = parse_pipeline(msg.get("pipeline"))
     if errors:
         return {"ok": False, "summary": "pipeline not valid: " + "; ".join(errors[:4]), "errors": errors}
@@ -324,6 +363,10 @@ async def ws(websocket: WebSocket):
                 ack = await _check_kg(msg)
             elif kind == "check_code":
                 ack = await _check_code(msg)
+            elif kind == "bench_start":
+                ack = await _bench_start(session, msg)
+            elif kind == "bench_stop":
+                ack = await _bench_stop(session)
             elif kind == "set_pipeline":
                 ack = await _set_pipeline(session, msg)
             else:

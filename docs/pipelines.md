@@ -13,7 +13,9 @@ changes parts of it.
 **Agents tab → Agent pipeline.**
 
 1. **Customise** a baseline.
-2. Change what you want:
+2. Change what you want. **Steps** shows the decision as a chain: click a step to switch it (LLM diagnosis
+   or rules only, knowledge graph on or off, LLM or rule-based planning), pick what checks each action, and
+   set the retries and what happens when every retry fails. Below it:
    - **Settings**: what checks each action (digital twin, ADMIT gates with or without simulation, LLM judge, or
      nothing), the planner (knowledge-graph rules or the LLM planning agent), LLM or rule-based diagnosis, use of the
      knowledge graph, retries after a rejected proposal, the digital twin's acceptance criterion and look-ahead,
@@ -101,10 +103,52 @@ your own computer** (the Windows app, `operaitor serve`, or Docker with `PLANT_H
 On a public server you can still write a pipeline with Python agents, save and export it, and run it in
 OperAItor on your computer.
 
-## Not in this version
+### Your own wiring: `BUILD_GRAPH`
 
-- Changing the sequence of steps itself, and running the 20-scenario benchmark from the console with a
-  side-by-side comparison against the baselines.
+The step diagram chooses each standard step's variant; to change the **order** of the steps, skip some or add
+your own, define `BUILD_GRAPH` (**Add the wiring example** in the editor starts from the reference wiring):
 
-These follow in a later version. The baselines stay as they are: a test (`tests/test_pipeline.py`) fails if
-their settings or prompts change.
+```python
+from operaitor.plugins import END, START
+
+async def no_throughput_changes(state: dict) -> dict:   # a step of your own
+    if any(c.get("type") == "SET_THROUGHPUT" for c in state["plan"].get("commands", [])):
+        return {"errors": ["this pipeline does not change the throughput"]}   # sent back to the action agent
+    return {}
+
+def BUILD_GRAPH(graph, nodes, routes):
+    for name, step in nodes.items():
+        graph.add_node(name, step)
+    graph.add_node("no_throughput_changes", no_throughput_changes)
+    graph.add_edge(START, "monitoring")
+    graph.add_conditional_edges("monitoring", routes["after_monitoring"], {"act": "kg_retrieval", "end": END})
+    ...   # the rest of the reference wiring, with action_propose → no_throughput_changes → twin_evaluate
+```
+
+- `nodes`: the standard steps `monitoring`, `kg_retrieval`, `planning`, `action_propose`, `twin_evaluate`
+  (whichever validator the pipeline uses), `validate`, `reprompt`, `dispatch`, `reject`.
+- `routes`: the standard decisions `after_monitoring` (`act` / `end`), `after_validate` (`dispatch` /
+  `reprompt` / `reject`) and `after_reject` (`dispatch` / `end`).
+- A step of your own is `async def step(state) -> dict` and returns updates of the decision state (for example
+  `errors`, which rejects the proposal as not executable, or `plan`). Its progress shows in the live pipeline
+  diagram; if it fails, that decision ends and the plant is released.
+- **Check the code** builds the wiring once and reports a mistake (an edge to a step that does not exist, ...)
+  before it runs.
+
+## Benchmark a pipeline
+
+**Agent pipeline → Benchmark the running pipeline** replays benchmark scenarios on your plant: the published
+benchmark's faults, onset and lift times, shift operator and score (margin + change in liquid inventory − the
+plant-stop penalty over the scenario window). The agents act on their own with whichever pipeline is running,
+and the plant runs as fast as it can (it is held while the agents decide).
+
+Choose **Quick** (3 scenarios: a single fault, a coupled pair and a coupled triple), **All 20**, or one
+scenario. Each scored scenario is shown next to the published runs of the same scenario: no agents, and the
+baseline your pipeline starts from with every model that was benchmarked; the totals row adds them up over the
+scenarios you ran. A report is written to the campaign folder (`campaign_results/` by default).
+
+The published results ship with OperAItor (`operaitor/data/benchmark_reference.json`, from
+`benchmark_results/` with `python -m operaitor.benchmark.reference`), so the comparison works in the Windows
+app and Docker too.
+
+The baselines stay as they are: a test (`tests/test_pipeline.py`) fails if their settings or prompts change.

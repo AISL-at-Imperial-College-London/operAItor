@@ -19,7 +19,7 @@ from operaitor.agents import pipeline as pl  # noqa: E402
 
 def test_the_example_loads():
     plugin = P.load_plugin(P.TEMPLATE)
-    assert plugin.summary() == {"detectors": ["reactor_pressure_rise"], "validator": "simulate_then_check"}
+    assert plugin.summary() == {"detectors": ["reactor_pressure_rise"], "validator": "simulate_then_check", "graph": False}
 
 
 @pytest.mark.parametrize("code, why", [
@@ -33,6 +33,7 @@ def test_the_example_loads():
     ("class V:\n  def validate(self, p): return True\nVALIDATOR = V", "use an instance"),
     ("VALIDATOR = 3", "needs a validate(proposal) method"),
     ("x = 1", "define DETECTORS"),
+    ("BUILD_GRAPH = 1", "must be a function"),
 ])
 def test_unusable_code_is_refused_with_the_reason(code, why):
     with pytest.raises(P.PluginError, match=why.replace("(", r"\(").replace(")", r"\)").replace(".", r"\.")):

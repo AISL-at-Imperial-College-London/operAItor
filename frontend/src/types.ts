@@ -164,7 +164,7 @@ export interface AgentEvent {
   type: "agent";
   stage: "node" | "kg" | "plan" | "proposal" | "invalid" | "twin" | "twin_skipped" | "validation" | "llm_error" | "verification"
     | "reprompt" | "fallback" | "rejected" | "applied" | "pending" | "advisory" | "approved" | "dismissed"
-    | "alarm_ack" | "llm_diagnosis" | "judge" | "sif_reset" | "admit" | "custom_validator";
+    | "alarm_ack" | "llm_diagnosis" | "judge" | "sif_reset" | "admit" | "custom_validator" | "custom_step";
   name?: string;      // custom_validator: the Python validator's name
   alarms?: string[];
   // admit (ADMIT gate verdict)
@@ -239,7 +239,7 @@ export interface AgentInfo {
   kg?: boolean;
   validator?: string;
   custom_prompts?: string[];
-  plugin?: { detectors: string[]; validator: string | null } | null;
+  plugin?: { detectors: string[]; validator: string | null; graph?: boolean; steps?: string[] } | null;
   pca_loaded: boolean;
   pca_meta: null | { n_components: number; n_samples: number; explained_variance: number };
   actor: string | null;
@@ -288,6 +288,23 @@ export interface SessionInfo {
   pipeline?: PipelineInfo;
   /** May this server run Python agents? Only OperAItor on your own computer does. */
   plugins?: { allowed: boolean; reason: string };
+  bench?: BenchStatus | null;
+}
+
+/** A pipeline benchmark: benchmark scenarios replayed with the published scoring (server/pipeline_bench.py). */
+export interface BenchRow {
+  id: string; group: string; faults: string[]; complete: boolean; profit: number; stopped: boolean;
+  stop_min: number | null; stop_kind: string | null;
+  no_agents: { profit: number; stopped: boolean } | null;
+  baseline: Record<string, { profit: number; stopped: boolean }>;
+}
+export interface BenchStatus {
+  state: string; started: string; pipeline: PipelineInfo; model: string | null; config: string;
+  total: number; done: number;
+  current: { id: string; time_min: number; window_min: number; profit: number; stop_min: number | null } | null;
+  results: BenchRow[];
+  summary: { scenarios: number; stops: number; profit: number; reference: Record<string, { stops: number; profit: number }> };
+  report_path: string | null;
 }
 
 /** The agent pipeline a session runs (no prompt or knowledge-graph text is sent back). */
@@ -304,6 +321,7 @@ export interface PipelineDefaults {
   references: Record<string, { label: string; settings: Record<string, unknown> }>;
   prompts: Record<string, string>; prompt_agents: Record<string, string>; settings: Record<string, SettingSpec>;
   plugin_template: string;
+  graph_template: string;
   limits: { prompt_chars: number; kg_bytes: number; code_chars: number };
 }
 /** A custom pipeline as the browser keeps it (and exports / imports it). */

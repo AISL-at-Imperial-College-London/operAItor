@@ -22,7 +22,7 @@ def client():
     def make(max_sessions: int = 2) -> TestClient:
         A.manager = SessionManager(_settings(max_sessions))
         return TestClient(A.app)
-    with mock.patch.dict(os.environ, {"PLANT_HOSTED": "1"}):
+    with mock.patch.dict(os.environ, {"PLANT_HOSTED": "1", "PLANT_CAMPAIGN_DIR": ""}):  # nothing written to disk
         yield make
 
 
@@ -167,7 +167,7 @@ def test_python_agents_run_on_your_own_computer():
             assert "line 1" in _ack(ws, "check_code")["summary"]
             ws.send_json({"type": "check_code", "code": PLUGIN})
             ack = _ack(ws, "check_code")
-            assert ack["ok"] and ack["plugin"] == {"detectors": ["watch"], "validator": "always_yes"}
+            assert ack["ok"] and ack["plugin"] == {"detectors": ["watch"], "validator": "always_yes", "graph": False, "steps": []}
             ws.send_json({"type": "set_pipeline", "pipeline": {"base": "llm", "settings": {"validator": "custom"},
                                                                "code": "DETECTORS = []"}})
             assert "defines no VALIDATOR" in _ack(ws, "set_pipeline")["summary"]
@@ -176,8 +176,33 @@ def test_python_agents_run_on_your_own_computer():
                 "name": "py", "base": "llm", "settings": {"validator": "custom"}, "code": PLUGIN}})
             assert ack["ok"] is True, ack
             agent, p = reset["hello"]["agent"], reset["hello"]["session"]["pipeline"]
-            assert agent["validator"] == "custom" and agent["plugin"] == {"detectors": ["watch"], "validator": "always_yes"}
+            assert agent["validator"] == "custom" and agent["plugin"] == {"detectors": ["watch"], "validator": "always_yes",
+                                                               "graph": False, "steps": []}
             assert p["python"] is True and "Always" not in str(p)  # the code itself is not sent back
+
+
+def test_pipeline_benchmark_from_the_console(client):
+    """Start a benchmark of the running pipeline, watch it, and stop it; the agents can't change meanwhile."""
+    with client() as c, c.websocket_connect("/ws") as ws:
+        assert ws.receive_json()["session"]["bench"] is None
+        ws.send_json({"type": "bench_start", "scenarios": ["S01", "nope"]})
+        assert "unknown scenario" in _ack(ws, "bench_start")["summary"]
+        ws.send_json({"type": "bench_start", "scenarios": "quick"})
+        ack = _ack(ws, "bench_start")
+        assert ack["ok"] and "3 scenarios" in ack["summary"] and "only monitor" in ack["summary"]
+        progress = _until(ws, lambda m: m.get("type") == "pipeline_bench")["bench"]
+        assert progress["state"] == "running" and progress["total"] == 3 and progress["current"]["id"] == "S01"
+        assert progress["pipeline"]["reference"] is True and progress["config"]
+        ws.send_json({"type": "set_agent_preset", "preset": "llm"})
+        assert "benchmark is running" in _ack(ws, "set_agent_preset")["summary"]
+        ws.send_json({"type": "bench_start", "scenarios": "quick"})
+        assert "already running" in _ack(ws, "bench_start")["summary"]
+        ws.send_json({"type": "bench_stop"})
+        assert _ack(ws, "bench_stop")["ok"]
+        final = _until(ws, lambda m: m.get("type") == "pipeline_bench" and m["bench"]["state"] != "running", limit=4000)
+        assert final["bench"]["state"] == "stopped early" and final["bench"]["done"] == 1
+        ws.send_json({"type": "bench_stop"})
+        assert _ack(ws, "bench_stop")["ok"] is False
 
 
 def test_chat_runs_through_the_browser_with_tools(client):

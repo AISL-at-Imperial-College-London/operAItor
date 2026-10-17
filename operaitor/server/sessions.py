@@ -90,6 +90,7 @@ class Session:
         self.reference_kg = kg     # the shared reference graph (a custom pipeline may bring its own)
         self.pipeline = None       # custom pipeline (agents/pipeline.py PipelineSpec); None = the reference preset
         self.plugin = None         # its Python agents, loaded (operaitor/plugins.py); own computer only
+        self.bench = None          # pipeline benchmark (server/pipeline_bench.py)
         self.kg_report: dict | None = None
         self.pca = pca
         self.service = PlantService()
@@ -117,6 +118,9 @@ class Session:
 
     async def close(self, reason: str = "") -> None:
         self.closed = True
+        if self.bench is not None and self.bench.task is not None:
+            self.bench.stop()
+            self.bench.task.cancel()
         if reason:
             await self.service.broadcast({"type": "expired", "text": reason})
         if self.supervisor is not None:
@@ -232,6 +236,7 @@ class Session:
         allowed, why = plugins_allowed(self.settings.hosted)
         return {"session": {"id": self.id, "hosted": self.settings.hosted, "models": list(self.settings.models),
                             "plugins": {"allowed": allowed, "reason": why},
+                            "bench": self.bench.status() if self.bench is not None else None,
                             "llm": {"model": self.model, "key_source": self.key_source,
                                     "connection": self.connection(), "providers": provider_catalog(),
                                     "active": bool(self.chat is not None and self.chat.mode == "llm"),
