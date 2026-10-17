@@ -23,8 +23,10 @@ def _short(uri: str) -> str:
 
 
 class KnowledgeGraph:
-    def __init__(self, path: Path = KG_PATH):
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    def __init__(self, path: Path = KG_PATH, data: list | None = None):
+        """Load the JSON-LD file at ``path``, or already-parsed JSON-LD ``data`` (a custom pipeline's graph)."""
+        if data is None:
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
         self.nodes: dict[str, dict] = {}
         for graph in data:
             for n in graph.get("@graph", []):

@@ -1,0 +1,118 @@
+// Agent pipelines in the console: baselines, customising, knowledge-graph upload, running, export / import.
+import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const KG = fileURLToPath(new URL("../../operaitor/data/knowledge_graph/Integrated_CSTR_Distillation_Knowledge_Graph.jsonld", import.meta.url));
+
+async function openPipelines(page: Page) {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await expect(page.locator(".tabs")).toBeVisible();
+  await page.locator(".tabs button", { hasText: "Agents" }).click();
+  const section = page.locator("details.section", { has: page.locator("summary", { hasText: "Agent pipeline" }) });
+  await section.locator(":scope > summary").click();
+  await expect(section.locator(".pl-list").first()).toBeVisible();
+  return { section, errors };
+}
+
+const setting = (page: Page, label: string) => page.locator(".pl-setting", { hasText: label });
+
+test("the console loads with the OperAItor logo", async ({ page }) => {
+  await page.goto("/");
+  const logo = page.locator("img.logo").first();
+  await expect(logo).toBeVisible();
+  expect(await logo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  const icon = await page.request.get("/favicon.svg");
+  expect(icon.ok()).toBeTruthy();
+  expect(await icon.text()).toContain("control valve");
+});
+
+test("baselines are listed and one runs by default", async ({ page }) => {
+  const { section, errors } = await openPipelines(page);
+  const baselines = section.locator(".pl-list").first().locator("li");
+  await expect(baselines).toHaveCount(5);
+  await expect(baselines.locator(".pill", { hasText: "baseline" })).toHaveCount(5);
+  await expect(section.locator(".pl-list li.on .pill", { hasText: "running" })).toHaveCount(1);
+  await expect(section).toContainText("None yet");
+  expect(errors).toEqual([]);
+});
+
+test("customise a baseline, upload a knowledge graph, save and run it", async ({ page }) => {
+  const { section, errors } = await openPipelines(page);
+  await section.locator(".pl-list li", { hasText: "LLM + digital twin" }).getByRole("button", { name: "Customise" }).click();
+  const editor = section.locator(".pl-editor");
+  await expect(editor).toBeVisible();
+  await editor.getByLabel("Name").fill("e2e judge pipeline");
+
+  // settings: changed values are highlighted and can be reset to the baseline
+  await setting(page, "Check each action with").locator("select").selectOption("judge");
+  await setting(page, "Retries after a rejected proposal").locator("input").fill("1");
+  await expect(editor.locator(".pl-setting.changed")).toHaveCount(2);
+  await expect(setting(page, "Check each action with")).toContainText("baseline: Digital twin");
+  await setting(page, "Retries after a rejected proposal").getByRole("link", { name: "reset" }).click();
+  await expect(editor.locator(".pl-setting.changed")).toHaveCount(1);
+
+  // a prompt for the action agent; the baseline prompt is shown for reference
+  await editor.getByRole("tab", { name: /Action agent/ }).click();
+  await editor.locator("textarea.pl-prompt").fill("Prefer setpoint changes over switching pumps.");
+  await expect(editor.getByRole("tab", { name: /Action agent ●/ })).toBeVisible();
+  await editor.locator("summary", { hasText: "Baseline action agent prompt" }).click();
+  await expect(editor.locator(".pl-ref-prompt")).toContainText("JSON");
+
+  // the knowledge graph is checked on upload
+  await editor.locator("input[type=file]").setInputFiles(KG);
+  await expect(editor.locator(".kg-report")).toContainText("No problems found");
+  await expect(editor.locator(".kg-report")).toContainText("16 of 16 reference faults covered");
+
+  await editor.getByRole("button", { name: "Save and run" }).click();
+  const mine = section.locator(".pl-list").nth(1).locator("li");
+  await expect(mine).toHaveCount(1);
+  await expect(mine).toContainText("e2e judge pipeline");
+  await expect(mine).toContainText("1 setting · prompts: action · own knowledge graph");
+  await expect(mine.locator(".pill", { hasText: /running · [0-9a-f]{10}/ })).toBeVisible();   // the server runs it
+  await expect(section.locator(".pl-list").first().locator("li.on")).toHaveCount(0);
+  await expect(page.locator(".settings-grid")).toContainText('your pipeline "e2e judge pipeline"');
+
+  // kept in the browser and still running after a reload (same session)
+  await page.reload();
+  const again = await openPipelines(page);
+  await expect(again.section.locator(".pl-list").nth(1).locator("li")).toContainText("e2e judge pipeline");
+  await expect(again.section.locator(".pl-list li.on")).toContainText("e2e judge pipeline");
+
+  // back to a baseline
+  await again.section.locator(".pl-list li", { hasText: "LLM + LLM judge" }).getByRole("button", { name: "Run" }).click();
+  await expect(again.section.locator(".pl-list").first().locator("li.on")).toContainText("LLM + LLM judge");
+  await expect(again.section.locator(".pl-list").nth(1).locator("li.on")).toHaveCount(0);
+  expect([...errors, ...again.errors]).toEqual([]);
+});
+
+test("a broken knowledge graph is refused with a reason", async ({ page }) => {
+  const { section } = await openPipelines(page);
+  await section.locator(".pl-list li", { hasText: "LLM + ADMIT gates" }).getByRole("button", { name: "Customise" }).click();
+  await section.locator(".pl-editor input[type=file]").setInputFiles({ name: "broken.jsonld", mimeType: "application/json", buffer: Buffer.from("{not json") });
+  await expect(section.locator(".pl-editor")).toContainText("not valid JSON");
+});
+
+test("export a pipeline and import it again", async ({ page }) => {
+  const { section } = await openPipelines(page);
+  await section.locator(".pl-list li", { hasText: "LLM, no validation" }).getByRole("button", { name: "Customise" }).click();
+  await section.locator(".pl-editor").getByLabel("Name").fill("shared pipeline");
+  await setting(page, "Planner").locator("select").selectOption("llm");
+  await section.locator(".pl-editor").getByRole("button", { name: "Save", exact: true }).click();
+
+  const [download] = await Promise.all([page.waitForEvent("download"),
+    section.locator(".pl-list li", { hasText: "shared pipeline" }).getByRole("button", { name: "Export" }).click()]);
+  expect(download.suggestedFilename()).toBe("shared_pipeline.operaitor-pipeline.json");
+  const file = JSON.parse(readFileSync(await download.path(), "utf-8"));
+  expect(file).toMatchObject({ operaitor_pipeline: 1, name: "shared pipeline", base: "llm_lucky", settings: { planner: "llm" } });
+
+  await section.locator("input[type=file]").setInputFiles({ name: "x.json", mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ ...file, name: "imported pipeline" })) });
+  await expect(section.locator(".pl-list").nth(1).locator("li")).toHaveCount(2);
+  await expect(section.locator(".pl-list").nth(1)).toContainText("imported pipeline");
+
+  await section.locator("input[type=file]").setInputFiles({ name: "bad.json", mimeType: "application/json", buffer: Buffer.from('{"base": "nope"}') });
+  await expect(page.locator(".toast")).toContainText("not an OperAItor pipeline file");
+});

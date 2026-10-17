@@ -85,9 +85,12 @@ def fault_catalogue(kg: Any = None) -> list[dict]:
 
 
 class LLMDiagnoser:
-    def __init__(self, model: str = DEFAULT_MODEL, timeout: float = 120.0, llm: Any = None, kg: Any = None):
+    def __init__(self, model: str = DEFAULT_MODEL, timeout: float = 120.0, llm: Any = None, kg: Any = None,
+                 prompt: dict | None = None):
+        from .pipeline import resolve_prompt
         self.model = model
         self.llm = llm if llm is not None else make_llm(model, timeout, json_mode=True)
+        self.system_prompt = resolve_prompt(DIAGNOSIS_SYSTEM_PROMPT, prompt)
         self.catalogue = fault_catalogue(kg)
         self.names = {c["fault"] for c in self.catalogue}
         self.last_usage: dict = {}
@@ -116,7 +119,7 @@ class LLMDiagnoser:
     async def diagnose(self, detection: dict, heuristic: dict, observation: dict | None = None) -> dict:
         t0 = time.perf_counter()
         try:
-            msg = await ainvoke(self.llm, [("system", DIAGNOSIS_SYSTEM_PROMPT),
+            msg = await ainvoke(self.llm, [("system", self.system_prompt),
                                           ("human", json.dumps(self.payload(detection, heuristic, observation), default=str))])
             text = message_text(msg)
             self.last_usage = {**USAGE.record("diagnosis", self.model, msg), "latency_s": time.perf_counter() - t0}

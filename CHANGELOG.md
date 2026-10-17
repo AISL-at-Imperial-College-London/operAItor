@@ -8,9 +8,18 @@
 - Docker image on the GitHub Container Registry: `ghcr.io/aisl-at-imperial-college-london/operaitor`.
 - pip wheel with the web console bundled (`pip install "operaitor[llm]"`, then `operaitor serve`).
 - One release workflow builds, smoke-tests and publishes all three on a version tag; `vX.Y.Z-rc.N` tags make
-  pre-releases.
+  pre-releases, whose files carry the rc number (`OperAItor-Setup-1.1.0-rc.3.exe`).
 - ADMIT is bundled in the Windows app and the Docker image. It is no longer a pip extra, because PyPI rejects
   git dependencies.
+
+**Custom agent pipelines** ([docs/pipelines.md](docs/pipelines.md))
+- Agents tab → *Agent pipeline*: run a baseline, or customise one: validator (digital twin, ADMIT with or without
+  simulation, LLM judge, none), planner, diagnosis, knowledge-graph use, retries, twin acceptance and look-ahead,
+  fallback and decision trigger; append to or replace the diagnosis, planning, action and judge prompts; upload
+  your own knowledge graph (JSON-LD, checked on upload with a coverage report).
+- Pipelines are data only, kept in the visitor's browser, exportable and importable; the server runs the active
+  one for that session only. Each has a fingerprint shown with it.
+- The five baselines are locked: `tests/test_pipeline.py` fails if their settings or prompts change.
 
 **Console**
 - New logo, process-generic: a control valve as drawn on a process diagram (`branding/`). It is used on the

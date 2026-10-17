@@ -22,6 +22,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
+      label: ${{ steps.version.outputs.label }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,6 +37,8 @@ jobs:
         run: |
           v=$(python -c "import re;print(re.search(r'__version__ = \"(.+?)\"', open('operaitor/__init__.py').read()).group(1))")
           echo "version=$v" >> "$GITHUB_OUTPUT"
+          # file-name label: the tag without its "v" (1.1.0-rc.2), so each release candidate has its own installer name
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then echo "label=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"; else echo "label=$v" >> "$GITHUB_OUTPUT"; fi
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             case "${GITHUB_REF_NAME}" in
               "v$v") echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
@@ -62,6 +65,7 @@ jobs:
     runs-on: windows-latest
     env:
       VERSION: ${{ needs.dist.outputs.version }}
+      LABEL: ${{ needs.dist.outputs.label }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -92,15 +96,15 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force out | Out-Null
-          Compress-Archive -Path build-win\dist\OperAItor -DestinationPath "out\OperAItor-$env:VERSION-windows-portable.zip"
+          Compress-Archive -Path build-win\dist\OperAItor -DestinationPath "out\OperAItor-$env:LABEL-windows-portable.zip"
           choco install innosetup -y --no-progress
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:VERSION" "/DSourceDir=$PWD\build-win\dist\OperAItor" "/DOutputDir=$PWD\out" packaging\windows\installer.iss
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:LABEL" "/DSourceDir=$PWD\build-win\dist\OperAItor" "/DOutputDir=$PWD\out" packaging\windows\installer.iss
           # A copy with a fixed name, so .../releases/latest/download/OperAItor-Setup.exe always works (project page)
-          Copy-Item "out\OperAItor-Setup-$env:VERSION.exe" "out\OperAItor-Setup.exe"
+          Copy-Item "out\OperAItor-Setup-$env:LABEL.exe" "out\OperAItor-Setup.exe"
       - name: smoke test of the installer
         shell: pwsh
         run: |
-          Start-Process "out\OperAItor-Setup-$env:VERSION.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
+          Start-Process "out\OperAItor-Setup-$env:LABEL.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
           $exe = "$env:LOCALAPPDATA\Programs\OperAItor\OperAItor.exe"
           if (-not (Test-Path $exe)) { throw "installer did not install $exe" }
           $env:OPERAITOR_NO_BROWSER = "1"; $env:OPERAITOR_PORT = "8013"
@@ -172,7 +176,7 @@ jobs:
           generate_release_notes: true
           body: |
             ## Install
-            - **Windows:** download `OperAItor-Setup-${{ needs.dist.outputs.version }}.exe`, run it, then start OperAItor from the Start menu.
+            - **Windows:** download `OperAItor-Setup-${{ needs.dist.outputs.label }}.exe`, run it, then start OperAItor from the Start menu.
               The app is new and not code-signed, so your browser and Windows ask you to confirm:
               Edge: **…** → **Keep** → **Show more** → **Keep anyway**; Chrome: **Keep** (until then the file is `Unconfirmed ….crdownload`);
               Firefox: **Allow download**; "Windows protected your PC": **More info** → **Run anyway**.

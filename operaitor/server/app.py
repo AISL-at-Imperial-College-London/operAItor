@@ -163,6 +163,60 @@ async def _set_preset(session: Session, msg: dict) -> dict:
     return {"ok": not warning, "summary": warning or f"agents: {VISITOR_PRESETS[preset]}"}
 
 
+def _pipeline_defaults() -> dict:
+    """What the console's pipeline editor starts from: the reference pipelines, prompts and settings."""
+    from operaitor.agents import pipeline as pl
+    return {"ok": True, "summary": "reference pipelines",
+            "references": {k: {"label": label, "settings": pl.reference_settings(k)}
+                           for k, label in pl.REFERENCE_PIPELINES.items()},
+            "prompts": pl.reference_prompts(), "prompt_agents": pl.PROMPT_AGENTS, "settings": pl.SETTINGS,
+            "limits": {"prompt_chars": pl.MAX_PROMPT_CHARS, "kg_bytes": pl.MAX_KG_BYTES}}
+
+
+async def _parse_kg(text: str) -> tuple[object | None, dict | None, str]:
+    """Parse a custom knowledge graph off the event loop; returns (kg, report, error)."""
+    from operaitor.agents.pipeline import MAX_KG_BYTES, kg_report, load_kg
+    if len(text.encode()) > MAX_KG_BYTES:
+        return None, None, f"the knowledge graph is larger than {MAX_KG_BYTES // 1_000_000} MB"
+    try:
+        kg = await asyncio.to_thread(load_kg, text)
+        return kg, await asyncio.to_thread(kg_report, kg, manager.kg), ""
+    except ValueError as exc:
+        return None, None, f"knowledge graph not loaded: {exc}"
+
+
+async def _check_kg(msg: dict) -> dict:
+    """Check an uploaded knowledge graph without running it."""
+    _, report, error = await _parse_kg(str(msg.get("kg") or ""))
+    if error:
+        return {"ok": False, "summary": error}
+    return {"ok": True, "summary": f"{report['nodes']} nodes, {len(report['warnings'])} warnings", "report": report}
+
+
+async def _set_pipeline(session: Session, msg: dict) -> dict:
+    """Run a custom pipeline (data only: settings, prompts, knowledge graph) in this session."""
+    from operaitor.agents.pipeline import parse_pipeline
+    spec, errors = parse_pipeline(msg.get("pipeline"))
+    if errors:
+        return {"ok": False, "summary": "pipeline not valid: " + "; ".join(errors[:4]), "errors": errors}
+    validator = spec.settings.get("validator") or ("admit" if spec.base.startswith("llm_admit") else "")
+    if validator.startswith("admit"):
+        from operaitor.admit import available
+        ok, reason = available()
+        if not ok:
+            return {"ok": False, "summary": reason}
+    kg = report = None
+    if spec.kg:
+        kg, report, error = await _parse_kg(spec.kg)
+        if error:
+            return {"ok": False, "summary": error}
+    warning = await session.configure_agents(pipeline=spec, kg=kg, kg_report=report)
+    await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
+    label = "reference pipeline" if spec.reference else "custom pipeline"
+    return {"ok": not warning, "summary": warning or f"agents: {label} \"{spec.name}\" ({spec.fingerprint()})",
+            **({"report": report} if report else {})}
+
+
 async def _clear_key(session: Session) -> dict:
     warning = await session.configure_agents(clear=True)
     await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
@@ -232,6 +286,12 @@ async def ws(websocket: WebSocket):
                 ack = await _list_models(session)
             elif kind == "set_model":
                 ack = await _set_model(session, msg)
+            elif kind == "pipeline_defaults":
+                ack = _pipeline_defaults()
+            elif kind == "check_kg":
+                ack = await _check_kg(msg)
+            elif kind == "set_pipeline":
+                ack = await _set_pipeline(session, msg)
             else:
                 ack = await service.handle_command(msg)
             push({"type": "ack", "request": kind, **ack})

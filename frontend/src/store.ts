@@ -1,13 +1,13 @@
 import { useSyncExternalStore } from "react";
 import { callLlm, checkConnection, listModels, type LlmConn, type LlmRequest } from "./browserLlm";
-import type { AgentEvent, AgentInfo, Brief, Campaign, ChatMessage, Hello, HumanTest, LlmUsage, Message, Meta, MonitorEvent, Num, SessionInfo, Snapshot, TrendPoint } from "./types";
+import type { AgentEvent, AgentInfo, Brief, Campaign, ChatMessage, CustomPipeline, Hello, HumanTest, KgReport, LlmUsage, Message, Meta, MonitorEvent, Num, PipelineDefaults, SessionInfo, Snapshot, TrendPoint } from "./types";
 
 const MAX_POINTS = 1440;
 
 export type Columns = Record<string, Num[]>;
 
 // Must match API_VERSION in server/plant_service.py.
-export const API_VERSION = 8;
+export const API_VERSION = 9;
 
 const SESSION_KEY = "plant-session";
 function storedSession(): string {
@@ -45,6 +45,9 @@ export interface PlantState {
   /** A request from one panel to show another (e.g. a control-loop row opens Operate on that loop). */
   nav: NavRequest | null;
   serverModels: string[];   // models of the server's own Ollama (desktop / private server)
+  pipelineDefaults: PipelineDefaults | null;   // reference pipelines, prompts and settings (pipeline editor)
+  kgCheck: { ok: boolean; summary: string; report?: KgReport; at: number } | null;
+  pipelineBusy: boolean;
 }
 
 export interface NavRequest { tab?: "plant" | "trends" | "agents" | "alarms"; drawer?: "operate" | "assistant" | "faults"; loop?: string; at: number }
@@ -122,6 +125,7 @@ class PlantStore {
     monitor: emptyMonitor(), lastMonitor: null, agentLog: [], agent: null, pending: {},
     messages: [], toast: null, brief: null, campaign: null, humanTest: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
     pipeline: idlePipeline(), session: null, notice: null, keyBusy: false, nav: null, serverModels: [],
+    pipelineDefaults: null, kgCheck: null, pipelineBusy: false,
   };
   // The visitor's LLM connection (incl. key) lives only in this page's memory (never in browser storage or on
   // the server): this tab makes the agents' LLM calls itself (browserLlm.ts). A new session (server restart or
@@ -302,12 +306,15 @@ class PlantStore {
         break;
       case "ack":
         if (msg.request === "list_models") { this.set({ serverModels: msg.models ?? [] }); break; }
+        if (msg.request === "pipeline_defaults") { if (msg.ok) this.set({ pipelineDefaults: msg as PipelineDefaults }); break; }
+        if (msg.request === "check_kg") { this.set({ kgCheck: { ok: msg.ok, summary: msg.summary, report: msg.report, at: Date.now() } }); break; }
+        if (msg.request === "set_pipeline" || msg.request === "set_agent_preset") this.set({ pipelineBusy: false });
         if (msg.request === "set_model") this.set({ keyBusy: false });
         if (msg.request === "set_llm" || msg.request === "set_api_key") {
           if (!msg.ok) this.llmConn = null;
           this.set({ keyBusy: false });
         }
-        if (!msg.ok || ["set_llm", "set_api_key", "clear_api_key", "set_agent_preset", "set_model"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop", "human_test_start", "human_test_stop"].includes(msg.request))
+        if (!msg.ok || ["set_llm", "set_api_key", "clear_api_key", "set_agent_preset", "set_model", "set_pipeline"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop", "human_test_start", "human_test_stop"].includes(msg.request))
           this.set({ toast: { ok: msg.ok, text: msg.summary, at: Date.now() } });
         break;
     }
@@ -333,3 +340,19 @@ export const changeModel = (model: string) => store.changeModel(model);
 export const availableModels = () => store.availableModels();
 export const forgetKey = () => store.forgetKey();
 export const navigate = (r: Omit<NavRequest, "at">) => store.set({ nav: { ...r, at: Date.now() } });
+
+/** Run a custom pipeline in this session (settings, prompts and knowledge graph travel as data). */
+export function runPipeline(p: CustomPipeline) {
+  store.set({ pipelineBusy: true });
+  store.send({ type: "set_pipeline", pipeline: { id: p.id, name: p.name, base: p.base, settings: p.settings, prompts: p.prompts, kg: p.kg ?? null } });
+}
+/** Back to a reference (baseline) pipeline. */
+export function runReference(preset: string) {
+  store.set({ pipelineBusy: true });
+  store.send({ type: "set_agent_preset", preset });
+}
+export function checkKg(text: string) {
+  store.set({ kgCheck: null });
+  store.send({ type: "check_kg", kg: text });
+}
+export const loadPipelineDefaults = () => { if (!store.state.pipelineDefaults) store.send({ type: "pipeline_defaults" }); };

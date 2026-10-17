@@ -234,6 +234,8 @@ export interface AgentInfo {
   acceptance?: string;
   fallback_to_safe?: boolean;
   kg?: boolean;
+  validator?: string;
+  custom_prompts?: string[];
   pca_loaded: boolean;
   pca_meta: null | { n_components: number; n_samples: number; explained_variance: number };
   actor: string | null;
@@ -279,6 +281,29 @@ export interface SessionInfo {
          preset: string; presets: Record<string, string>;
          connection: { provider: string; label: string; model: string; free: boolean; url: string | null; in_browser?: boolean } | null;
          providers: Record<string, LlmProvider> };
+  pipeline?: PipelineInfo;
+}
+
+/** The agent pipeline a session runs (no prompt or knowledge-graph text is sent back). */
+export interface PipelineInfo {
+  name: string; base: string; reference: boolean; fingerprint: string;
+  settings: Record<string, unknown>; prompts: string[]; custom_kg: boolean; kg_report?: KgReport; client_id?: string | null;
+}
+export interface KgReport {
+  nodes: number; relations: number; families: Record<string, number>; acts_on: number; mapped_to_plant: number;
+  faults_covered: number; reference_faults: number; reference_nodes: number; warnings: string[];
+}
+export interface SettingSpec { label: string; choices?: Record<string, string>; type?: "bool" | "int" | "float"; min?: number; max?: number }
+export interface PipelineDefaults {
+  references: Record<string, { label: string; settings: Record<string, unknown> }>;
+  prompts: Record<string, string>; prompt_agents: Record<string, string>; settings: Record<string, SettingSpec>;
+  limits: { prompt_chars: number; kg_bytes: number };
+}
+/** A custom pipeline as the browser keeps it (and exports / imports it). */
+export interface CustomPipeline {
+  id: string; name: string; base: string; settings: Record<string, unknown>;
+  prompts: Record<string, { mode: "append" | "replace"; text: string }>;
+  kg?: string | null; kgName?: string | null;
 }
 
 export interface LlmProvider { label: string; models: string[]; free: boolean; key: boolean; signup: string; url: boolean }

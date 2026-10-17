@@ -10,4 +10,5 @@ Modules (import them directly; nothing heavy is imported at package level, so
     agents.recovery_graph  the LangGraph (monitor → KG → plan → act → validate → twin → dispatch)
     agents.supervisor      AsyncSupervisor: runs the graph next to the live plant service
     agents.chat            ChatAgent: LangGraph tool loop over live data + KG (offline fallback)
+    agents.pipeline        reference pipelines and custom ones (settings, prompts, knowledge graph)
 """

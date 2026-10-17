@@ -31,6 +31,7 @@ from operaitor.server.plant_service import PlantService
 from .kg import KnowledgeGraph
 from .llm import USAGE
 from .monitoring import MonitoringAgent
+from .pipeline import validator_of
 from .recovery_graph import (AgentConfig, RunContext, build_recovery_graph, clone_env, make_action_agent,
                              make_config, make_planner)
 
@@ -41,7 +42,7 @@ _STAGE = {"reject": "rejected"}
 class AsyncSupervisor:
     def __init__(self, service: PlantService, cfg: AgentConfig | None = None, mode: str = "autonomous",
                  kg: KnowledgeGraph | None = None, pca: PCAMonitor | None = None,
-                 action_agent=None, planner=None):
+                 action_agent=None, planner=None, prompts: dict | None = None):
         # Live sessions can run many faults (campaigns), so do not cap the action count.
         self.cfg = replace(cfg or make_config("passive"), max_actions=10**9)
         self.service = service
@@ -51,8 +52,9 @@ class AsyncSupervisor:
             pca = PCAMonitor.load(DEFAULT_MODEL_PATH)
         self.monitor = MonitoringAgent(pca if self.cfg.use_pca else None, persistence=self.cfg.persistence,
                                        cooldown_min=self.cfg.cooldown_min, rules_trigger=self.cfg.rules_trigger, quality_needs_pca=self.cfg.quality_needs_pca, trigger=self.cfg.trigger, episode_clear_min=self.cfg.episode_clear_min)
-        self.action_agent = action_agent or make_action_agent(self.cfg)
-        self.planner = planner or make_planner(self.cfg)
+        self.prompts = dict(prompts or {})  # custom pipeline prompts (agents/pipeline.py)
+        self.action_agent = action_agent or make_action_agent(self.cfg, self.prompts)
+        self.planner = planner or make_planner(self.cfg, self.prompts)
         self.pending: dict[int, dict] = {}
         self._ids = itertools.count(1)
         self._usage = USAGE._meter()
@@ -60,7 +62,7 @@ class AsyncSupervisor:
         self.ctx = RunContext(self.cfg, self.monitor, self.kg if self.cfg.use_kg else None, self.planner,
                               self.action_agent, self._snapshot_env, self._dispatch, self._emit,
                               on_decision_start=lambda: service.set_agent_hold(True),
-                              on_decision_end=lambda: service.set_agent_hold(False))
+                              on_decision_end=lambda: service.set_agent_hold(False), prompts=self.prompts)
         self.graph = build_recovery_graph(self.ctx)
         self._task: asyncio.Task | None = None
         self.last_cycle_t: float | None = None     # sim time of the last finished monitoring cycle
@@ -240,7 +242,8 @@ class AsyncSupervisor:
         if self._diagnoser is None:
             try:
                 from .diagnosis_llm import LLMDiagnoser
-                self._diagnoser = LLMDiagnoser(self.cfg.llm_model, self.cfg.llm_timeout_s, kg=self.kg)
+                self._diagnoser = LLMDiagnoser(self.cfg.llm_model, self.cfg.llm_timeout_s, kg=self.kg,
+                                               prompt=self.prompts.get("diagnosis"))
             except Exception as exc:  # no LLM configured
                 return {"ok": False, "summary": f"LLM diagnosis unavailable: {exc}"}
         det, diag = self._last_monitor["detection"], self._last_monitor["diagnosis"]
@@ -279,6 +282,7 @@ class AsyncSupervisor:
         return {"mode": self.mode, "preset": self.cfg.name, "planner": type(self.planner).__name__,
                 "llm_model": self.cfg.llm_model if uses_llm else None, "llm_usage": self._usage.summary()["total"],
                 "actor": type(self.action_agent).__name__ if self.action_agent else None,
+                "validator": validator_of(self.cfg), "custom_prompts": sorted(self.prompts),
                 "twin": self.cfg.twin, "twin_horizon_min": self.cfg.twin_horizon_min,
                 "reprompt_max": self.cfg.reprompt_max, "kg": self.cfg.use_kg,
                 "acceptance": self.cfg.acceptance, "fallback_to_safe": self.cfg.fallback_to_safe,

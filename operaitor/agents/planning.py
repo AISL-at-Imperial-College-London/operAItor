@@ -105,9 +105,11 @@ fault, say so in constraints.
 
 
 class LLMPlanner:
-    def __init__(self, model: str = DEFAULT_MODEL, timeout: float = 120.0, llm=None):
+    def __init__(self, model: str = DEFAULT_MODEL, timeout: float = 120.0, llm=None, prompt: dict | None = None):
+        from .pipeline import resolve_prompt
         self.model = model
         self.llm = llm if llm is not None else make_llm(model, timeout, json_mode=True)
+        self.system_prompt = resolve_prompt(PLANNER_PROMPT, prompt)
 
     async def plan(self, context: dict) -> dict:
         payload = {"hypotheses": context["diagnosis"]["hypotheses"],
@@ -115,6 +117,6 @@ class LLMPlanner:
                    "rules": context["detection"]["rules"],
                    "kg_evidence": context.get("knowledge") or [],
                    "snapshot": context.get("snapshot")}
-        msg = await ainvoke(self.llm, [("system", PLANNER_PROMPT), ("human", json.dumps(payload, default=str))])
+        msg = await ainvoke(self.llm, [("system", self.system_prompt),("human", json.dumps(payload, default=str))])
         self.last_usage = USAGE.record("planning", self.model, msg)
         return parse_json_object(message_text(msg))

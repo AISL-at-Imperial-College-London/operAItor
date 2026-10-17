@@ -102,6 +102,11 @@ the same faults, timing and score as the agent benchmark. **Blind** hides what w
 At the end the console reveals the faults and ranks your score against the benchmark runs on that scenario,
 and writes a report to `campaign_results/human_<scenario>_<time>.json`.
 
+**Build your own pipeline.** The Agents tab's *Agent pipeline* section runs the five baseline pipelines (the
+published configurations, which never change) or your own: start from a baseline and change the validator,
+planner and other settings, each agent's prompt, or the knowledge graph (upload JSON-LD in the same format).
+See [docs/pipelines.md](docs/pipelines.md).
+
 Or with Docker:
 
 ```bash
@@ -153,6 +158,7 @@ benchmark_results/   campaign results and logs
 
 **Documentation:**
 - [docs/architecture.md](docs/architecture.md): agents, console and campaigns.
+- [docs/pipelines.md](docs/pipelines.md): baseline and custom agent pipelines (settings, prompts, knowledge graph).
 - [docs/plant-model.md](docs/plant-model.md): equations, control, SIFs and faults.
 - [docs/admit.md](docs/admit.md): ADMIT integration.
 - [docs/deployment.md](docs/deployment.md): hosting.
@@ -164,6 +170,7 @@ benchmark_results/   campaign results and logs
 pip install -e ".[dev]" "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"
 pytest                            # ~3 min
 cd frontend && npm run dev        # console with hot reload on http://localhost:5173 (proxy to :8001)
+cd frontend && npm run build && npx playwright install chromium && npm run test:e2e   # console end-to-end tests
 ```
 
 ## License
