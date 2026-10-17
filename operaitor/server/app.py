@@ -166,11 +166,13 @@ async def _set_preset(session: Session, msg: dict) -> dict:
 def _pipeline_defaults() -> dict:
     """What the console's pipeline editor starts from: the reference pipelines, prompts and settings."""
     from operaitor.agents import pipeline as pl
+    from operaitor.plugins import MAX_CODE_CHARS, TEMPLATE
     return {"ok": True, "summary": "reference pipelines",
             "references": {k: {"label": label, "settings": pl.reference_settings(k)}
                            for k, label in pl.REFERENCE_PIPELINES.items()},
             "prompts": pl.reference_prompts(), "prompt_agents": pl.PROMPT_AGENTS, "settings": pl.SETTINGS,
-            "limits": {"prompt_chars": pl.MAX_PROMPT_CHARS, "kg_bytes": pl.MAX_KG_BYTES}}
+            "plugin_template": TEMPLATE,
+            "limits": {"prompt_chars": pl.MAX_PROMPT_CHARS, "kg_bytes": pl.MAX_KG_BYTES, "code_chars": MAX_CODE_CHARS}}
 
 
 async def _parse_kg(text: str) -> tuple[object | None, dict | None, str]:
@@ -193,6 +195,29 @@ async def _check_kg(msg: dict) -> dict:
     return {"ok": True, "summary": f"{report['nodes']} nodes, {len(report['warnings'])} warnings", "report": report}
 
 
+async def _load_code(code: str) -> tuple[object | None, str]:
+    """Load a pipeline's Python agents, if this server runs code (own computer only); returns (plugin, error)."""
+    from operaitor.plugins import PluginError, load_plugin, plugins_allowed
+    allowed, why = plugins_allowed(manager.settings.hosted)
+    if not allowed:
+        return None, f"Python agents not run: {why}"
+    try:
+        return await asyncio.to_thread(load_plugin, code), ""
+    except PluginError as exc:
+        return None, f"Python agents not loaded: {exc}"
+
+
+async def _check_code(msg: dict) -> dict:
+    """Load Python agents without running them in the pipeline: what they define, or why they fail."""
+    plugin, error = await _load_code(str(msg.get("code") or ""))
+    if error:
+        return {"ok": False, "summary": error}
+    found = plugin.summary()
+    parts = ([f"detectors: {', '.join(found['detectors'])}"] if found["detectors"] else []) + \
+        ([f"validator: {found['validator']}"] if found["validator"] else [])
+    return {"ok": True, "summary": "Python agents load; " + "; ".join(parts), "plugin": found}
+
+
 async def _set_pipeline(session: Session, msg: dict) -> dict:
     """Run a custom pipeline (data only: settings, prompts, knowledge graph) in this session."""
     from operaitor.agents.pipeline import parse_pipeline
@@ -205,12 +230,19 @@ async def _set_pipeline(session: Session, msg: dict) -> dict:
         ok, reason = available()
         if not ok:
             return {"ok": False, "summary": reason}
+    plugin = None
+    if spec.code:
+        plugin, error = await _load_code(spec.code)
+        if error:
+            return {"ok": False, "summary": error}
+        if spec.settings.get("validator") == "custom" and plugin.validator is None:
+            return {"ok": False, "summary": "\"Your Python validator\" is chosen, but the code defines no VALIDATOR"}
     kg = report = None
     if spec.kg:
         kg, report, error = await _parse_kg(spec.kg)
         if error:
             return {"ok": False, "summary": error}
-    warning = await session.configure_agents(pipeline=spec, kg=kg, kg_report=report)
+    warning = await session.configure_agents(pipeline=spec, kg=kg, kg_report=report, plugin=plugin)
     await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
     label = "reference pipeline" if spec.reference else "custom pipeline"
     return {"ok": not warning, "summary": warning or f"agents: {label} \"{spec.name}\" ({spec.fingerprint()})",
@@ -290,6 +322,8 @@ async def ws(websocket: WebSocket):
                 ack = _pipeline_defaults()
             elif kind == "check_kg":
                 ack = await _check_kg(msg)
+            elif kind == "check_code":
+                ack = await _check_code(msg)
             elif kind == "set_pipeline":
                 ack = await _set_pipeline(session, msg)
             else:

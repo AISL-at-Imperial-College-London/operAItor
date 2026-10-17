@@ -89,6 +89,7 @@ class Session:
         self.kg = kg               # the knowledge graph this session's agents use
         self.reference_kg = kg     # the shared reference graph (a custom pipeline may bring its own)
         self.pipeline = None       # custom pipeline (agents/pipeline.py PipelineSpec); None = the reference preset
+        self.plugin = None         # its Python agents, loaded (operaitor/plugins.py); own computer only
         self.kg_report: dict | None = None
         self.pca = pca
         self.service = PlantService()
@@ -145,7 +146,7 @@ class Session:
 
     async def configure_agents(self, endpoint: Endpoint | None = None, clear: bool = False,
                                model: str | None = None, preset: str | None = None,
-                               pipeline=None, kg=None, kg_report: dict | None = None) -> str:
+                               pipeline=None, kg=None, kg_report: dict | None = None, plugin=None) -> str:
         """(Re)build supervisor + chat with this session's LLM connection; returns a warning or ''.
 
         ``preset``: run that reference pipeline. ``pipeline``: run a custom pipeline (with ``kg``, its
@@ -157,10 +158,11 @@ class Session:
         if model:
             self.model = model
         if preset is not None:
-            self.preset, self.pipeline = preset, None
+            self.preset, self.pipeline, self.plugin = preset, None, None
             self.kg, self.kg_report = self.reference_kg, None
         if pipeline is not None:
             self.preset, self.pipeline = pipeline.base, (None if pipeline.reference else pipeline)
+            self.plugin = plugin if pipeline.code else None
             self.kg, self.kg_report = (kg, kg_report) if kg is not None else (self.reference_kg, None)
         if self.supervisor is not None:
             await self.supervisor.stop()
@@ -188,13 +190,18 @@ class Session:
         diag = s.diagnoser or ("llm" if use_llm else "heuristic")
         warning = "" if use_llm else f"no LLM ({reason}); agents monitor only (no actions), chat is offline"
         try:
+            plugin, custom_validator = None, False
             if use_llm and self.pipeline is not None:
                 from operaitor.agents.pipeline import config_for
                 cfg = config_for(self.pipeline, llm_model=self.model, diagnoser=diag)
                 prompts = self.pipeline.prompts
+                plugin, custom_validator = self.plugin, self.pipeline.settings.get("validator") == "custom"
             else:
                 cfg, prompts = make_config(preset, llm_model=self.model, diagnoser=diag), {}
-            self.supervisor = AsyncSupervisor(self.service, cfg, kg=self.kg, pca=self.pca, prompts=prompts)
+                if self.pipeline is not None:  # monitor only (no LLM): the pipeline's own detectors still watch
+                    plugin = self.plugin
+            self.supervisor = AsyncSupervisor(self.service, cfg, kg=self.kg, pca=self.pca, prompts=prompts,
+                                              plugin=plugin, custom_validator=custom_validator)
         except Exception as exc:  # e.g. preset needs a package that is missing
             warning = f"agent preset {preset!r} failed ({exc}); agents monitor only"
             self.supervisor = AsyncSupervisor(self.service, make_config("passive"), kg=self.kg, pca=self.pca)
@@ -221,7 +228,10 @@ class Session:
         return reference_spec(self.preset or default_preset()).public()
 
     def _hello(self) -> dict:
+        from operaitor.plugins import plugins_allowed
+        allowed, why = plugins_allowed(self.settings.hosted)
         return {"session": {"id": self.id, "hosted": self.settings.hosted, "models": list(self.settings.models),
+                            "plugins": {"allowed": allowed, "reason": why},
                             "llm": {"model": self.model, "key_source": self.key_source,
                                     "connection": self.connection(), "providers": provider_catalog(),
                                     "active": bool(self.chat is not None and self.chat.mode == "llm"),

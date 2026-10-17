@@ -148,7 +148,7 @@ def is_repeat(state: dict, cfg: AgentConfig) -> bool:
 
 
 FAILURE_TYPES = ("malformed_reply", "no_commands", "not_executable", "repeat", "judge_rejected",
-                 "twin_trip", "twin_not_restored", "admit_rejected")
+                 "twin_trip", "twin_not_restored", "admit_rejected", "custom_rejected")
 
 
 def failure_type(state: dict, m: dict) -> str:
@@ -165,6 +165,8 @@ def failure_type(state: dict, m: dict) -> str:
         return "judge_rejected"
     if r == "admit":
         return "admit_rejected"
+    if r == "custom":
+        return "custom_rejected"
     ts = m.get("terminal_status")
     return "twin_trip" if ts and ts not in ("RUNNING", "OK") else "twin_not_restored"
 
@@ -188,6 +190,8 @@ def plain_verdict(state: dict, cfg: AgentConfig) -> str:
         why = f"The reviewing engineer rejected it: {m.get('reason', '')}"[:500]
         if m.get("suggestion"):
             why += f" Suggestion: {m['suggestion']}"[:300]
+    elif m.get("rollout") == "custom":
+        why = f"The validator {m.get('name', '')} rejected it: {m.get('reason', '')}"[:600]
     elif m.get("rollout") == "admit":
         viol = [v for r in m.get("records", []) if not r["admissible"] for v in r["violations"]]
         bad = "; ".join(f"{v['code']} ({v['message'][:160]})" for v in viol[:4])
@@ -514,6 +518,9 @@ class RunContext:
     cycle: int = 0
     # Custom pipeline prompts, per agent: {"diagnosis" | "judge": {"mode", "text"}} (agents/pipeline.py)
     prompts: dict = field(default_factory=dict)
+    # Custom pipeline's Python validator (operaitor/plugins.py): replaces twin / judge / ADMIT when set
+    validator: Any = None
+    validator_name: str = ""
 
 
 def build_recovery_graph(ctx: RunContext):
@@ -633,6 +640,15 @@ def build_recovery_graph(ctx: RunContext):
             reason = "plan not executable: " + "; ".join(state["errors"])
             await emit({"event": "twin_skipped", "t": state["detection"]["time_min"], "reason": reason})
             return {"twin": {"rollout": "invalid_plan", "reason": reason}}
+        if ctx.validator is not None:
+            from operaitor.plugins import proposal_for, run_validator
+            await node("twin_evaluate", state, validator="custom", validator_name=ctx.validator_name)
+            w0 = time.perf_counter()
+            verdict = await run_validator(ctx.validator, ctx.validator_name, proposal_for(state, ctx, cfg))
+            verdict["wall_s"] = round(time.perf_counter() - w0, 3)
+            await emit({"event": "custom_validator", "t": state["detection"]["time_min"], "plan": state["plan"],
+                        "name": ctx.validator_name, **verdict})
+            return {"twin": {"rollout": "custom", "name": ctx.validator_name, **verdict}}
         if judge is not None:
             await node("judge", state)
             context = {k: state.get(k) for k in ("observation", "detection", "diagnosis", "brief", "knowledge")}
@@ -685,6 +701,12 @@ def build_recovery_graph(ctx: RunContext):
             v = {"accepted": bool(m.get("accept")), "fail_reason": "" if m.get("accept") else "LLM judge rejected",
                  "criterion": "llm_judge", "safe_ok": bool(m.get("accept")),
                  "checks": [{"check": "LLM judge", "ok": bool(m.get("accept")), "detail": detail[:900]}]}
+        elif m.get("rollout") == "custom":
+            checks = m.get("checks") or [{"check": m.get("name") or "your validator", "ok": bool(m.get("accept")),
+                                          "detail": m.get("reason", "")}]
+            v = {"accepted": bool(m.get("accept")), "fail_reason": "" if m.get("accept") else
+                 f"{m.get('name') or 'your validator'} rejected: {m.get('reason', '')}"[:300],
+                 "criterion": "custom", "safe_ok": bool(m.get("accept")), "checks": checks}
         elif m.get("rollout") == "admit":
             checks = [{"check": f"ADMIT {r['action']}", "ok": r["admissible"],
                        "detail": "; ".join(f"{v['code']}: {v['message']}" for v in r["violations"])[:900] or "all hard gates pass"}

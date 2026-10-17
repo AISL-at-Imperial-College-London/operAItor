@@ -202,7 +202,7 @@ class MonitoringAgent:
         if self.trigger == "event":
             mem.consecutive_spe = mem.consecutive_spe + 1 if score is not None and score.spe > score.spe_limit else 0
             alarms = set(rules["active_alarms"])
-            triggered = bool(alarms) or mem.consecutive_spe >= self.persistence
+            triggered = bool(alarms) or mem.consecutive_spe >= self.persistence or extra_alarm
             if triggered:
                 mem.quiet_since_min = None
             elif mem.episode_active:
@@ -214,7 +214,7 @@ class MonitoringAgent:
             # alarm or a newly failed pump; further alarms of the same cascade do not
             new_event = (not mem.episode_active or bool(p1 - mem.handled_p1)
                          or bool(set(rules["failed_trains"]) - mem.handled_trains))
-            fault = triggered
+            fault = triggered or extra_alarm
             should_act = triggered and new_event and not rules["plant_trip"]
             mem.pending_alarms = alarms
 
@@ -229,6 +229,9 @@ class MonitoringAgent:
             "rules": rules,
             "detectors": {n: bool(r["alarm"]) for n, r in by_name.items()},
         }
+        custom = {n: {k: r.get(k) for k in ("alarm", "detail", "error")} for n, r in by_name.items() if r.get("custom")}
+        if custom:  # a custom pipeline's Python detectors (operaitor/plugins.py)
+            detection["custom_detectors"] = custom
         return {"detection": detection, "diagnosis": diagnosis}
 
     def mark_acted(self, time_min: float, signature: str, wait_min: float | None = None) -> None:

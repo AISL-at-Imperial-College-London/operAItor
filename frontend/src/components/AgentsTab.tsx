@@ -29,6 +29,7 @@ export function describeEvent(e: AgentEvent): ReactNode {
         {bad.map((r) => ` · ${r.action}: ${r.violations.map((v) => v.code).join(", ")}`).join("")}</span>;
     }
     case "judge": return <span className={e.accept ? "" : "warn-text"}>LLM judge {e.accept ? "accepted" : "rejected"} <span className="dim">— {e.reason}</span></span>;
+    case "custom_validator": return <span className={e.accept ? "" : "warn-text"}>your validator {e.name} {e.accept ? "accepted" : "rejected"} <span className="dim">— {e.reason}</span></span>;
     case "alarm_ack": return <span className="dim">acknowledged {(e.alarms ?? []).join(", ")}</span>;
     case "llm_error": return <span className="bad-text">LLM call failed, nothing applied: {e.error}</span>;
     case "validation": {
@@ -140,7 +141,7 @@ function CurrentDecision() {
   const diag = find("llm_diagnosis");
   const plan = find("plan");
   const proposal = find("proposal");
-  const verdict = [...inCycle].reverse().find((e) => ["admit", "judge", "twin", "twin_skipped"].includes(e.stage));
+  const verdict = [...inCycle].reverse().find((e) => ["admit", "judge", "custom_validator", "twin", "twin_skipped"].includes(e.stage));
   const llm = agent?.llm_model;
   return (
     <section className="card decision">
@@ -225,6 +226,12 @@ function FaultDetection() {
             <ol className="hyps">{last.diagnosis.hypotheses.map((h) => (
               <li key={h.fault}><b>{h.fault}</b> <span className="dim">({h.score.toFixed(2)}) {h.evidence.join(" · ")}</span></li>))}</ol>
           ) : <p className="dim">None</p>}
+          {last?.custom_detectors && <>
+            <h4>Your detectors</h4>
+            <ul className="hyps">{Object.entries(last.custom_detectors).map(([n, d]) => (
+              <li key={n}><b className={d.alarm ? "bad-text" : ""}>{n}</b> <span className="dim">{d.alarm ? "fault" : "normal"}
+                {d.detail ? ` · ${d.detail}` : ""}</span>{d.error && <span className="warn-text small"> · error: {d.error}</span>}</li>))}</ul>
+          </>}
           {agent?.pca_meta && <p className="dim small">PCA model: {agent.pca_meta.n_components} components,
             {" "}{(100 * agent.pca_meta.explained_variance).toFixed(1)}% variance</p>}
         </div>

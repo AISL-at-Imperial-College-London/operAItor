@@ -23,7 +23,7 @@ test("the console loads with the OperAItor logo", async ({ page }) => {
   await page.goto("/");
   const logo = page.locator("img.logo").first();
   await expect(logo).toBeVisible();
-  expect(await logo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  await expect.poll(() => logo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBeGreaterThan(0);
   const icon = await page.request.get("/favicon.svg");
   expect(icon.ok()).toBeTruthy();
   expect(await icon.text()).toContain("control valve");
@@ -115,4 +115,39 @@ test("export a pipeline and import it again", async ({ page }) => {
 
   await section.locator("input[type=file]").setInputFiles({ name: "bad.json", mimeType: "application/json", buffer: Buffer.from('{"base": "nope"}') });
   await expect(page.locator(".toast")).toContainText("not an OperAItor pipeline file");
+});
+
+test("write Python agents, check them, and they run on the live plant", async ({ page }) => {
+  const { section, errors } = await openPipelines(page);
+  await section.locator(".pl-list li", { hasText: "LLM + digital twin" }).getByRole("button", { name: "Customise" }).click();
+  const editor = section.locator(".pl-editor");
+  await editor.getByLabel("Name").fill("python pipeline");
+  await setting(page, "Check each action with").locator("select").selectOption("custom");
+  await expect(setting(page, "Check each action with")).toContainText("needs a VALIDATOR");
+
+  await editor.getByRole("button", { name: "Start from the example" }).click();
+  const code = editor.getByLabel("Python agents");
+  await expect(code).toHaveValue(/DETECTORS = \[PressureRiseDetector\(\)\]/);
+  await expect(setting(page, "Check each action with")).not.toContainText("needs a VALIDATOR");
+  const example = await code.inputValue();
+
+  await code.fill("def broken(:\n    pass\n");
+  await editor.getByRole("button", { name: "Check the code" }).click();
+  await expect(editor.locator(".bad-text")).toContainText("line 1");
+  await code.fill(example);
+  await editor.getByRole("button", { name: "Check the code" }).click();
+  await expect(editor.locator(".ok-text").last()).toContainText("detectors: reactor_pressure_rise; validator: simulate_then_check");
+
+  await editor.getByRole("button", { name: "Save and run" }).click();
+  const mine = section.locator(".pl-list").nth(1).locator("li", { hasText: "python pipeline" });
+  await expect(mine).toContainText("Python agents");
+  await expect(mine.locator(".pill", { hasText: /running · [0-9a-f]{10}/ })).toBeVisible();
+
+  // the detector runs on every observation of the live plant
+  await page.locator(".transport button", { hasText: "+1 min" }).click();
+  const detection = page.locator("details.section", { has: page.locator(":scope > summary", { hasText: "Fault detection" }) });
+  await expect(detection).toContainText("Your detectors");
+  await expect(detection).toContainText("reactor_pressure_rise");
+  await expect(detection).toContainText("bar/min");
+  expect(errors).toEqual([]);
 });

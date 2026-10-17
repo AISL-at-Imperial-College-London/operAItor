@@ -52,11 +52,59 @@ The report after upload counts these families, how many nodes map to plant varia
 of the baseline's fault modes are covered, with a warning for anything the agents will miss. Limits: 5 MB per
 graph and 20,000 characters per prompt.
 
+## Python agents (on your own computer)
+
+A pipeline can carry Python code, written in the editor's **Python agents** box (**Start from the example**,
+then **Check the code**). The code is a module that defines either or both of:
+
+```python
+from operaitor.plugins import Proposal
+
+class MyDetector:
+    name = "my_detector"
+    async def detect(self, observation: dict) -> dict:     # every observation (every 0.5 min)
+        p = observation["measurements"]["cstr_pressure_bar"]
+        return {"alarm": p > 3.4, "detail": f"{p:.2f} bar"}  # an alarm triggers the agents, like PCA
+
+class MyValidator:
+    name = "my_validator"
+    async def validate(self, proposal: Proposal) -> dict:   # each proposed action
+        result = await proposal.simulate(minutes=20)        # the action on a copy of the plant
+        ok = result["terminal_status"] == "RUNNING" and result["restored"]
+        return {"accept": ok, "reason": "...", "checks": proposal.standard_checks(result)}
+
+DETECTORS = [MyDetector()]
+VALIDATOR = MyValidator()   # runs when "Check each action with" is "Your Python validator"
+```
+
+- **Detectors** get the same observation as the agents: `time_min`, `measurements` (tag → value),
+  `controllers`, `pump_trains`, `alarm_states`, `sif_latched`. They return `{"alarm": bool, "detail": str}` or a
+  bool. Their results appear under *Fault detection → Your detectors*.
+- **The validator** gets a `Proposal`: `commands`, `reasoning`, `attempt`, `observation`, `detection`,
+  `diagnosis`, `brief`, `knowledge`, `limits` (alarm and trip limits), `await simulate(minutes)` (the digital
+  twin's result: `terminal_status`, `restored`, `time_to_safe_min`, `unsafe_fraction`, `final`, ...) and
+  `standard_checks(result)` (the digital-twin validator's checks). A rejection's reason goes back to the action
+  agent, which proposes again.
+- Errors never reach the plant: a detector that fails or takes more than 5 s reports the error and raises no
+  alarm; a validator that fails or returns something else rejects the action, with the reason.
+
+Python code runs inside the OperAItor server with your permissions, so it only runs when OperAItor runs **on
+your own computer** (the Windows app, `operaitor serve`, or Docker with `PLANT_HOSTED=0`):
+
+| Server | Python agents |
+|---|---|
+| Public (`PLANT_HOSTED=1`, e.g. the website's live demo) | never |
+| Your computer, listening on `127.0.0.1` (default) | yes |
+| Listening on the network (`--host 0.0.0.0`, Docker) | only with `PLANT_ALLOW_PLUGINS=1` |
+| `PLANT_ALLOW_PLUGINS=0` | never |
+
+On a public server you can still write a pipeline with Python agents, save and export it, and run it in
+OperAItor on your computer.
+
 ## Not in this version
 
-- Your own Python agents (monitoring detectors, validators) on your own computer.
 - Changing the sequence of steps itself, and running the 20-scenario benchmark from the console with a
   side-by-side comparison against the baselines.
 
-These follow in later versions. The baselines stay as they are: a test (`tests/test_pipeline.py`) fails if
+These follow in a later version. The baselines stay as they are: a test (`tests/test_pipeline.py`) fails if
 their settings or prompts change.

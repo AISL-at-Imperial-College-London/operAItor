@@ -136,6 +136,8 @@ export interface MonitorEvent {
   verifying_until?: number | null;
   rules: { failed_trains: string[]; active_alarms: string[]; saturated_loops: string[]; sif_latched: string[]; plant_trip: boolean };
   detectors: Record<string, boolean>;
+  /** A custom pipeline's Python detectors (operaitor/plugins.py). */
+  custom_detectors?: Record<string, { alarm: boolean; detail?: string | null; error?: string | null }>;
   diagnosis: {
     hypotheses: { fault: string; score: number; evidence: string[] }[];
     sections: { section: string; share: number }[];
@@ -162,7 +164,8 @@ export interface AgentEvent {
   type: "agent";
   stage: "node" | "kg" | "plan" | "proposal" | "invalid" | "twin" | "twin_skipped" | "validation" | "llm_error" | "verification"
     | "reprompt" | "fallback" | "rejected" | "applied" | "pending" | "advisory" | "approved" | "dismissed"
-    | "alarm_ack" | "llm_diagnosis" | "judge" | "sif_reset" | "admit";
+    | "alarm_ack" | "llm_diagnosis" | "judge" | "sif_reset" | "admit" | "custom_validator";
+  name?: string;      // custom_validator: the Python validator's name
   alarms?: string[];
   // admit (ADMIT gate verdict)
   admissible?: boolean;
@@ -236,6 +239,7 @@ export interface AgentInfo {
   kg?: boolean;
   validator?: string;
   custom_prompts?: string[];
+  plugin?: { detectors: string[]; validator: string | null } | null;
   pca_loaded: boolean;
   pca_meta: null | { n_components: number; n_samples: number; explained_variance: number };
   actor: string | null;
@@ -282,12 +286,14 @@ export interface SessionInfo {
          connection: { provider: string; label: string; model: string; free: boolean; url: string | null; in_browser?: boolean } | null;
          providers: Record<string, LlmProvider> };
   pipeline?: PipelineInfo;
+  /** May this server run Python agents? Only OperAItor on your own computer does. */
+  plugins?: { allowed: boolean; reason: string };
 }
 
 /** The agent pipeline a session runs (no prompt or knowledge-graph text is sent back). */
 export interface PipelineInfo {
   name: string; base: string; reference: boolean; fingerprint: string;
-  settings: Record<string, unknown>; prompts: string[]; custom_kg: boolean; kg_report?: KgReport; client_id?: string | null;
+  settings: Record<string, unknown>; prompts: string[]; custom_kg: boolean; kg_report?: KgReport; client_id?: string | null; python?: boolean;
 }
 export interface KgReport {
   nodes: number; relations: number; families: Record<string, number>; acts_on: number; mapped_to_plant: number;
@@ -297,13 +303,15 @@ export interface SettingSpec { label: string; choices?: Record<string, string>; 
 export interface PipelineDefaults {
   references: Record<string, { label: string; settings: Record<string, unknown> }>;
   prompts: Record<string, string>; prompt_agents: Record<string, string>; settings: Record<string, SettingSpec>;
-  limits: { prompt_chars: number; kg_bytes: number };
+  plugin_template: string;
+  limits: { prompt_chars: number; kg_bytes: number; code_chars: number };
 }
 /** A custom pipeline as the browser keeps it (and exports / imports it). */
 export interface CustomPipeline {
   id: string; name: string; base: string; settings: Record<string, unknown>;
   prompts: Record<string, { mode: "append" | "replace"; text: string }>;
   kg?: string | null; kgName?: string | null;
+  code?: string | null;   // Python agents (own computer only)
 }
 
 export interface LlmProvider { label: string; models: string[]; free: boolean; key: boolean; signup: string; url: boolean }

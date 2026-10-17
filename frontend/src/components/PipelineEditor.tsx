@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { checkKg, loadPipelineDefaults, runPipeline, runReference, store, usePlant } from "../store";
+import { checkCode, checkKg, loadPipelineDefaults, runPipeline, runReference, store, usePlant } from "../store";
 import type { CustomPipeline, KgReport, PipelineDefaults, SettingSpec } from "../types";
 
 // The visitor's own pipelines live in this browser (like the LLM key, nothing is stored on the server).
@@ -26,6 +26,7 @@ function changes(p: CustomPipeline): string[] {
   const prompts = Object.keys(p.prompts);
   if (prompts.length) out.push(`prompts: ${prompts.join(", ")}`);
   if (p.kg) out.push(`own knowledge graph${p.kgName ? ` (${p.kgName})` : ""}`);
+  if (p.code) out.push("Python agents");
   return out.length ? out : ["no changes yet"];
 }
 
@@ -68,6 +69,8 @@ function Editor({ draft, defaults, onSave, onCancel }: {
   const [p, setP] = useState<CustomPipeline>(draft);
   const [agent, setAgent] = useState("action");
   const kgCheck = usePlant((s) => s.kgCheck);
+  const codeCheck = usePlant((s) => s.codeCheck);
+  const plugins = usePlant((s) => s.session?.plugins);
   const fileRef = useRef<HTMLInputElement>(null);
   const ref = defaults.references[p.base];
   const base = ref?.settings ?? {};
@@ -84,7 +87,8 @@ function Editor({ draft, defaults, onSave, onCancel }: {
   };
   const mode = prompt?.mode ?? "append";
   const text = prompt?.text ?? "";
-  const tooLong = Object.values(p.prompts).some((x) => x.text.length > defaults.limits.prompt_chars);
+  const tooLong = Object.values(p.prompts).some((x) => x.text.length > defaults.limits.prompt_chars)
+    || (p.code?.length ?? 0) > defaults.limits.code_chars;
   const onKgFile = async (f: File | undefined) => {
     if (!f) return;
     if (f.size > defaults.limits.kg_bytes) { toast(false, `${f.name} is larger than ${defaults.limits.kg_bytes / 1e6} MB`); return; }
@@ -110,6 +114,7 @@ function Editor({ draft, defaults, onSave, onCancel }: {
               <span>{spec.label}</span>
               <SettingInput spec={spec} value={value} onChange={(v) => setSetting(k, v)} />
               <small className="dim">{changed ? <>baseline: {show(spec, base[k])} · <a href="#" onClick={(e) => { e.preventDefault(); setSetting(k, base[k]); }}>reset</a></> : "baseline"}</small>
+              {k === "validator" && value === "custom" && !p.code && <small className="warn-text">needs a VALIDATOR in your Python agents (below)</small>}
             </label>
           );
         })}
@@ -150,6 +155,24 @@ function Editor({ draft, defaults, onSave, onCancel }: {
         {p.kg && <button className="btn ghost sm" onClick={() => checkKg(p.kg!)}>Check</button>}
       </div>
       {p.kg && kgCheck && (kgCheck.report ? <KgReportView report={kgCheck.report} /> : <p className="bad-text small">{kgCheck.summary}</p>)}
+
+      <h4>Python agents <span className="dim small">· your own fault detectors and validator</span></h4>
+      {!plugins?.allowed && <p className="small warn-text">Not on this server: {plugins?.reason || "Python agents need OperAItor on your own computer"}.
+        You can still write and save them here, export the pipeline and run it in OperAItor on your computer.</p>}
+      <p className="small dim">A Python module that defines <code>DETECTORS</code> (run next to PCA on every observation; an alarm triggers
+        the agents) and/or <code>VALIDATOR</code> (checks each proposed action when <i>Check each action with</i> is
+        <i> Your Python validator</i>; it can simulate the action on a copy of the plant). See docs/pipelines.md.</p>
+      <div className="row">
+        {p.code == null
+          ? <button className="btn sm" onClick={() => setP({ ...p, code: defaults.plugin_template })}>Start from the example</button>
+          : <>
+            <button className="btn sm" disabled={!plugins?.allowed} onClick={() => checkCode(p.code ?? "")}>Check the code</button>
+            <button className="btn ghost sm" onClick={() => setP({ ...p, code: null })}>Remove the Python agents</button>
+          </>}
+      </div>
+      {p.code != null && <textarea className="pl-prompt pl-code" rows={18} spellCheck={false} value={p.code} aria-label="Python agents"
+        onChange={(e) => setP({ ...p, code: e.target.value })} />}
+      {p.code != null && codeCheck && <p className={`small ${codeCheck.ok ? "ok-text" : "bad-text"}`}>{codeCheck.summary}</p>}
 
       <div className="row pl-actions">
         <button className="btn primary sm" disabled={!p.name.trim() || tooLong} onClick={() => onSave(p, true)}>Save and run</button>
@@ -200,6 +223,7 @@ export function PipelineManager() {
     } catch (e) { toast(false, `Could not import ${f.name}: ${(e as Error).message}`); }
   };
   const isActive = (p: CustomPipeline) => !!active && !active.reference && active.client_id === p.id;
+  const codeBlocked = (p: CustomPipeline) => !!p.code && !session?.plugins?.allowed;
 
   return (
     <div className="pl-manager">
@@ -229,7 +253,9 @@ export function PipelineManager() {
               <span className="pl-name"><span>{p.name}{isActive(p) && <span className="pill pill-ok" title="fingerprint of what runs">running · {active?.fingerprint}</span>}</span>
                 <small className="dim">from {labels[p.base]?.label ?? p.base} · {changes(p).join(" · ")}</small></span>
               <span className="pl-buttons">
-                <button className="btn sm primary" disabled={busy || !!isActive(p)} onClick={() => runPipeline(p)}>Run</button>
+                <button className="btn sm primary" disabled={busy || !!isActive(p) || codeBlocked(p)}
+                  title={codeBlocked(p) ? "Has Python agents: run it in OperAItor on your own computer" : undefined}
+                  onClick={() => runPipeline(p)}>Run</button>
                 <button className="btn sm" onClick={() => setEditing(p)}>Edit</button>
                 <button className="btn sm" onClick={() => setEditing({ ...p, id: newId(), name: `${p.name} (copy)` })}>Duplicate</button>
                 <button className="btn sm" onClick={() => download(p)}>Export</button>

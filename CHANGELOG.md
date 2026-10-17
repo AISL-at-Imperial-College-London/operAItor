@@ -20,6 +20,11 @@
 - Pipelines are data only, kept in the visitor's browser, exportable and importable; the server runs the active
   one for that session only. Each has a fingerprint shown with it.
 - The five baselines are locked: `tests/test_pipeline.py` fails if their settings or prompts change.
+- Python agents (own computer only): a pipeline's Python code can add fault detectors (`DETECTORS`, run next to
+  PCA, an alarm triggers the agents) and a validator (`VALIDATOR`, which can simulate each proposed action on a
+  copy of the plant). A public server never runs code; a server on the network only with
+  `PLANT_ALLOW_PLUGINS=1`.
+- The live pipeline diagram shows the validator that actually runs (a custom pipeline may change it).
 
 **Console**
 - New logo, process-generic: a control valve as drawn on a process diagram (`branding/`). It is used on the

@@ -39,7 +39,8 @@ MAX_NAME_CHARS = 60
 SETTINGS: dict[str, dict[str, Any]] = {
     "validator": {"label": "Check each action with", "choices": {
         "twin": "Digital twin (simulate the action)", "admit": "ADMIT gates (T0-T4)",
-        "admit_nosim": "ADMIT gates, no simulation (T0-T3)", "judge": "LLM judge", "none": "Nothing (apply as proposed)"}},
+        "admit_nosim": "ADMIT gates, no simulation (T0-T3)", "judge": "LLM judge", "none": "Nothing (apply as proposed)",
+        "custom": "Your Python validator (VALIDATOR)"}},
     "planner": {"label": "Planner", "choices": {"kg": "Knowledge-graph rules", "llm": "LLM planning agent"}},
     "diagnoser": {"label": "Diagnosis", "choices": {"llm": "LLM diagnosis agent", "heuristic": "Rules only"}},
     "use_kg": {"label": "Use the knowledge graph", "type": "bool"},
@@ -100,22 +101,25 @@ class PipelineSpec:
     prompts: dict = field(default_factory=dict)   # agent -> {"mode": "append"|"replace", "text": str}
     kg: str | None = None                         # JSON-LD text; None = the reference knowledge graph
     client_id: str | None = None                  # the console's id for it (shows which saved pipeline runs)
+    code: str | None = None                       # Python agents (operaitor/plugins.py); own computer only
 
     @property
     def reference(self) -> bool:
-        return not (self.settings or self.prompts or self.kg)
+        return not (self.settings or self.prompts or self.kg or self.code)
 
     def fingerprint(self) -> str:
         """Short hash of everything that changes behaviour (logged with every decision)."""
         blob = json.dumps({"base": self.base, "settings": self.settings, "prompts": self.prompts,
-                           "kg": hashlib.sha256(self.kg.encode()).hexdigest() if self.kg else None}, sort_keys=True)
+                           "kg": hashlib.sha256(self.kg.encode()).hexdigest() if self.kg else None,
+                           **({"code": hashlib.sha256(self.code.encode()).hexdigest()} if self.code else {})},
+                          sort_keys=True)
         return hashlib.sha256(blob.encode()).hexdigest()[:10]
 
     def public(self, kg_report: dict | None = None) -> dict:
         """What the console shows about the active pipeline (no prompt or KG text)."""
         return {"name": self.name, "base": self.base, "reference": self.reference, "fingerprint": self.fingerprint(),
                 "settings": self.settings, "prompts": sorted(self.prompts), "custom_kg": self.kg is not None,
-                "client_id": self.client_id,
+                "client_id": self.client_id, "python": self.code is not None,
                 **({"kg_report": kg_report} if kg_report else {})}
 
 
@@ -177,10 +181,21 @@ def parse_pipeline(raw: Any) -> tuple[PipelineSpec | None, list[str]]:
         kg = None
     if kg is not None and len(kg.encode()) > MAX_KG_BYTES:
         errors.append(f"kg: at most {MAX_KG_BYTES // 1_000_000} MB")
+    code = raw.get("code")
+    if code is not None and not isinstance(code, str):
+        errors.append("code: give the Python code as text")
+        code = None
+    code = code if code and code.strip() else None
+    from operaitor.plugins import MAX_CODE_CHARS
+    if code is not None and len(code) > MAX_CODE_CHARS:
+        errors.append(f"code: at most {MAX_CODE_CHARS:,} characters")
+    if settings.get("validator") == "custom" and code is None:
+        errors.append('settings.validator: "Your Python validator" needs Python code that defines VALIDATOR')
     if errors:
         return None, errors
     client_id = str(raw.get("id") or "")[:40] or None
-    return PipelineSpec(name=name, base=base, settings=settings, prompts=prompts, kg=kg or None, client_id=client_id), []
+    return PipelineSpec(name=name, base=base, settings=settings, prompts=prompts, kg=kg or None, client_id=client_id,
+                        code=code), []
 
 
 def config_for(spec: PipelineSpec, **overrides):
@@ -190,6 +205,7 @@ def config_for(spec: PipelineSpec, **overrides):
     s = dict(spec.settings)
     validator = s.pop("validator", None)
     if validator is not None:
+        # "custom": none of the built-in validators; the session hands the Python validator to the graph
         cfg = replace(cfg, twin=validator == "twin", judge=validator == "judge",
                       admit=validator.startswith("admit"), admit_sim=validator == "admit")
     return replace(cfg, **s)
