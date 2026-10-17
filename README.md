@@ -170,6 +170,7 @@ benchmark_results/   campaign results and logs
 pip install -e ".[dev]" "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"
 pytest                            # ~3 min
 cd frontend && npm run dev        # console with hot reload on http://localhost:5173 (proxy to :8001)
+cd frontend && npm run build && npx playwright install chromium && npm run test:e2e   # console end-to-end tests
 ```
 
 ## License
