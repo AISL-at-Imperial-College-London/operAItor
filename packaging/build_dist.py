@@ -4,8 +4,8 @@
 
 Steps: build the console (frontend/, npm), copy it into operaitor/server/web (where the server looks
 for a bundled console), then build with `python -m build`. Needs Node 20+ and the `build` package
-(pip install build). The Docker image and the Windows app are built from the same sources
-(Dockerfile, packaging/windows/); .github/workflows/release.yml runs all three on a version tag.
+(pip install build). The Docker image and the desktop apps are built from the same sources
+(Dockerfile, packaging/desktop/); .github/workflows/release.yml builds them all on a version tag.
 """
 from __future__ import annotations
 

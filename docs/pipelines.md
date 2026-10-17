@@ -91,7 +91,7 @@ VALIDATOR = MyValidator()   # runs when "Check each action with" is "Your Python
   alarm; a validator that fails or returns something else rejects the action, with the reason.
 
 Python code runs inside the OperAItor server with your permissions, so it only runs when OperAItor runs **on
-your own computer** (the Windows app, `operaitor serve`, or Docker with `PLANT_HOSTED=0`):
+your own computer** (the desktop app, `operaitor serve`, or Docker with `PLANT_HOSTED=0`):
 
 | Server | Python agents |
 |---|---|

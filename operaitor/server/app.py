@@ -67,6 +67,22 @@ app = FastAPI(title="OperAItor", version=__version__, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allow_methods=["*"], allow_headers=["*"])
 
 
+DEV_ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173"}  # npm run dev (vite proxies /ws)
+
+
+def origin_allowed(origin: str | None, host: str | None, hosted: bool) -> bool:
+    """May a browser page from ``origin`` use this server's WebSocket?
+
+    A server on your own computer accepts only its own console (same host and port) and the Vite dev server:
+    otherwise any web page you open could connect to 127.0.0.1 and drive the plant, or run Python agents.
+    Clients without an Origin header are not browsers (tests, scripts) and are allowed. A public server
+    accepts every page: visitors only ever reach their own session there, and it runs no code."""
+    if hosted or not origin:
+        return True
+    from urllib.parse import urlsplit
+    return origin in DEV_ORIGINS or (host is not None and urlsplit(origin).netloc.lower() == host.lower())
+
+
 @app.get("/api/health")
 async def health():
     return {"ok": True, "version": __version__, **manager.stats()}
@@ -223,6 +239,15 @@ async def _check_code(msg: dict) -> dict:
     return {"ok": True, "summary": "Python agents load; " + "; ".join(parts), "plugin": {**found, "steps": plugin.steps}}
 
 
+def _quit_app() -> dict:
+    """Quit OperAItor in the console: stop the desktop app (packaging/desktop/launcher.py) on this computer."""
+    quit_fn = getattr(app.state, "quit", None)
+    if os.environ.get("OPERAITOR_DESKTOP") != "1" or quit_fn is None:
+        return {"ok": False, "summary": "only the desktop app can be quit from the console"}
+    asyncio.get_running_loop().call_later(0.5, quit_fn)  # let the acknowledgement reach the console first
+    return {"ok": True, "summary": "OperAItor is stopping; you can close this tab"}
+
+
 def _bench_busy(session: Session) -> dict | None:
     if session.bench is not None and session.bench.state == "running":
         return {"ok": False, "summary": "a pipeline benchmark is running: stop it before changing the agents"}
@@ -296,6 +321,9 @@ async def _clear_key(session: Session) -> dict:
 
 @app.websocket("/ws")
 async def ws(websocket: WebSocket):
+    if not origin_allowed(websocket.headers.get("origin"), websocket.headers.get("host"), manager.settings.hosted):
+        await websocket.close(code=1008)  # policy violation: another website's page
+        return
     await websocket.accept()
     session = await manager.attach(websocket.query_params.get("session"))
     if session is None:
@@ -363,6 +391,8 @@ async def ws(websocket: WebSocket):
                 ack = await _check_kg(msg)
             elif kind == "check_code":
                 ack = await _check_code(msg)
+            elif kind == "quit_app":
+                ack = _quit_app()
             elif kind == "bench_start":
                 ack = await _bench_start(session, msg)
             elif kind == "bench_stop":
