@@ -1,0 +1,36 @@
+name: Bug in the app or the workflow
+description: Something does not work: installing, the console, the agents, pipelines, the benchmark, the website.
+title: "[bug] "
+labels: ["bug", "beta"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead (with any error message).
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How you run OperAItor
+      options: [Windows app, macOS app, Linux app, Docker, pip (operaitor serve), From source, The website]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: OperAItor version and system
+      placeholder: "1.1.0 on macOS 15 (M2)"
+    validations:
+      required: true
+  - type: input
+    id: llm
+    attributes:
+      label: LLM provider and model (if the agents are involved)
+      placeholder: "Groq, llama-3.3-70b-versatile"
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `operaitor doctor` (pip / source installs)
+      render: text

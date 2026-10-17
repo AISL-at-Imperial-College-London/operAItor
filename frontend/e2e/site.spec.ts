@@ -71,3 +71,17 @@ test.describe("without the GitHub API", () => {
     await expect(page.locator("#dl-macos")).toHaveAttribute("href", /releases\/latest\/download\/OperAItor-macOS\.dmg$/);
   });
 });
+
+test("the page presents a beta benchmark to run, with the original runs as references", async ({ page }) => {
+  await openSite(page, [RC3]);
+  await expect(page.locator(".hero .pill")).toContainText("Beta");
+  await expect(page.locator(".numbers")).not.toContainText("18 → 5");        // no headline result claims
+  await expect(page.locator(".numbers")).toContainText("benchmark fault scenarios");
+  await expect(page.locator("#benchmark")).toContainText("Bring your own agents");
+  await expect(page.locator("#benchmark")).toContainText("Reference runs");
+  await expect(page.locator("#benchmark .chart")).toContainText("LLM + digital twin");  // the original study's runs, kept
+  await expect(page.locator("#benchmark")).not.toContainText("matched the digital twin");
+  const report = page.locator(".beta a", { hasText: "Report it" });
+  await expect(report).toHaveAttribute("href", /issues\/new\/choose$/);
+  await expect(page.locator(".beta a", { hasText: "model scope" })).toHaveAttribute("href", /plant-model\.md#model-scope/);
+});

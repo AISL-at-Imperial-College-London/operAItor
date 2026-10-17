@@ -15,14 +15,19 @@
 [![ollama](https://img.shields.io/badge/LLM-Ollama%20(free)-000000.svg?logo=ollama&logoColor=white)](https://ollama.com)
 [![ADMIT](https://img.shields.io/badge/validation-ADMIT-b31b1b.svg)](https://arxiv.org/abs/2608.03866)
 
-**AI operators for a chemical plant, checked before they act.**
+**AI operators for a chemical plant, checked before they act.** *(beta)*
+
+> **Beta.** The plant is a process surrogate: its physics are checked in CI (conservation, numerics,
+> thermodynamics, fault responses) and its simplifications are listed in the
+> [model scope](docs/plant-model.md#model-scope-and-known-simplifications-beta). Something odd in the physics or
+> the workflow? [Report it](https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new/choose).
 
 A simulated chemical plant you can run in the browser, break on purpose, and watch AI agents try
 to recover. It has fault detection, safety functions, and LLM agents whose actions are checked
 before they reach the plant.
 
-- **The plant.** Isopropanol is dehydrogenated to acetone in a CSTR (R-101) that feeds a 10-tray
-  distillation column (T-201). It is a dynamic DAE model with 8 PI loops, 5 duty/standby pump
+- **The plant.** An endothermic liquid-phase reaction, modelled on isopropanol dehydrogenation to acetone, in a
+  CSTR (R-101) that feeds a 10-tray distillation column (T-201). It is a dynamic DAE model with 8 PI loops, 5 duty/standby pump
   trains, ISA-18.2 alarms and 11 independent safety instrumented functions (SIFs).
 - **Fault detection.** PCA (Hotelling T² and SPE) confirms faults. The diagnosis comes from rules
   or from an LLM diagnosis agent.
@@ -129,10 +134,18 @@ docker run -p 7860:7860 -e PLANT_HOSTED=0 -e OPENAI_API_KEY=sk-... operaitor   #
 | `operaitor train-pca` | Retrain the PCA fault-detection model |
 | `operaitor admit build\|validate\|run` | The plant as an ADMIT cartridge ([docs/admit.md](docs/admit.md)) |
 
-## Results
+## Benchmark your own pipeline
 
-The 20-scenario campaign (run with gpt-5-nano, with the column dry-out SIF) is in
-[benchmark_results/LLM_CAMPAIGN_LOG.md](benchmark_results/LLM_CAMPAIGN_LOG.md):
+Every pipeline answers the same 20 fault scenarios (single, coupled and triple faults, fixed onset and lift
+times) and gets one score: operating margin plus inventory, minus a penalty when the plant stops. In the console,
+**Agents → Agent pipeline** runs a baseline or your own (settings, prompts, knowledge graph, Python agents) and
+**Benchmark the running pipeline** scores it next to the reference runs below. See [docs/pipelines.md](docs/pipelines.md).
+
+### Reference runs (original study)
+
+One run per configuration with gpt-5-nano, on the plant before version 1.1 (setpoint limits and the steam valve
+changed since), as reported in our paper. Differences of 2–3 stops are within run-to-run noise. The full log
+is [benchmark_results/LLM_CAMPAIGN_LOG.md](benchmark_results/LLM_CAMPAIGN_LOG.md):
 
 | Configuration | Plant stops / 20 | Saving vs no agents |
 |---|---:|---:|

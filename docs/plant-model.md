@@ -5,6 +5,40 @@ faults and episode outcomes. The SIF table below is checked by `tests/test_physi
 
 The design goal is **causal realism rather than high-fidelity equipment modelling**: faults should produce believable process signatures, the BPCS should react, independent SIFs should be able to override commands, final-element faults should still be able to defeat those commands, and an external actor should receive discrete decision opportunities.
 
+## Model scope and known simplifications (beta)
+
+OperAItor is a **process surrogate** for testing operators and AI agents, not a validated design model of an
+acetone plant. The process is modelled on isopropanol (IPA) dehydrogenation to acetone: the physical properties
+are acetone's and IPA's, while the reactor is best read as a generic **endothermic liquid-phase reaction
+A → B + gas** feeding a distillation column.
+
+**Checked** (`tests/test_physics_audit.py`, `tests/test_plant_model.py`, run in CI):
+
+- Total material (acetone + IPA) is conserved through transients to round-off: feed steps, leaks, reflux cuts.
+- Acetone, IPA and H₂ balances close at the design point, and the column's reboiler and condenser duties match.
+- Results do not depend on the time step: a 4× smaller step changes temperatures by about 0.001 K.
+- Boiling points are within 1 K of the real compounds, and vapour pressures are consistent with the heats of
+  vaporisation (Clausius–Clapeyron). The acetone/IPA relative volatility is 2.2–2.9.
+- Faults move the plant the physical way. For example, a reflux pump trip raises the top temperature, lowers the
+  distillate purity, and trips the plant on tray dry-out; a catalyst activity loss lowers the conversion.
+
+**Known simplifications**:
+
+- **The reaction is irreversible (no chemical equilibrium).** Real IPA dehydrogenation is equilibrium-limited:
+  at the reactor's 336 K and 3 bar of H₂, equilibrium allows far less conversion than the model's 70 %.
+  Industrial processes run in the gas phase at about 300 °C. The kinetics are a calibrated surrogate that gives
+  realistic dynamics, not the chemistry of a real acetone reactor.
+- **The condenser vapour has no composition state.** The lumped condenser pressure (20 kmol/bar) carries the top
+  vapour's current composition. During column transients the acetone balance is therefore off by
+  20 · P · Δy₁: under 1 % of the acetone held, and reversed when the top composition returns.
+- Vapour hold-up on the trays is neglected, the trays are ideal equilibrium stages, the property models are
+  two-parameter surrogates (Antoine, Margules, constant heat capacities), and vapour flows follow the pressure
+  drop through a single coefficient.
+
+This is a **beta**: please report anything in the physics or the workflow that looks wrong
+([issues](https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new/choose)). Changes to the model
+change the benchmark numbers, so they are made in a new version and the reference runs are repeated.
+
 ## Stateful episode environment
 
 `EpisodeRunner` provides a turn-based interface:
