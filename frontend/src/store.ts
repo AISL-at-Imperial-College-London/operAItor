@@ -40,7 +40,7 @@ export interface PlantState {
   llmUsage: LlmUsage | null;
   pipeline: Pipeline;
   session: SessionInfo | null;
-  notice: { kind: "busy" | "expired"; text: string } | null;
+  notice: { kind: "busy" | "expired" | "stopped"; text: string } | null;
   keyBusy: boolean;
   /** A request from one panel to show another (e.g. a control-loop row opens Operate on that loop). */
   nav: NavRequest | null;
@@ -158,6 +158,7 @@ class PlantStore {
     ws.onopen = () => { this.retry = 500; this.set({ connected: true }); };
     ws.onclose = () => {
       this.set({ connected: false });
+      if (this.state.notice?.kind === "stopped") return;  // the desktop app was quit: nothing to reconnect to
       const wait = this.state.notice?.kind === "busy" ? 30000 : this.retry;
       setTimeout(() => this.connect(), wait);
       this.retry = Math.min(this.retry * 2, 8000);
@@ -318,6 +319,10 @@ class PlantStore {
         if (msg.request === "check_code") { this.set({ codeCheck: { ok: msg.ok, summary: msg.summary, at: Date.now() } }); break; }
         if (msg.request === "set_pipeline" || msg.request === "set_agent_preset") this.set({ pipelineBusy: false });
         if (msg.request === "set_model") this.set({ keyBusy: false });
+        if (msg.request === "quit_app" && msg.ok) {
+          this.set({ notice: { kind: "stopped", text: "OperAItor has stopped. You can close this tab; open the app again to restart it." } });
+          break;
+        }
         if (msg.request === "set_llm" || msg.request === "set_api_key") {
           if (!msg.ok) this.llmConn = null;
           this.set({ keyBusy: false });
@@ -362,6 +367,9 @@ export function runReference(preset: string) {
 export function checkKg(text: string) {
   store.set({ kgCheck: null });
   store.send({ type: "check_kg", kg: text });
+}
+export function quitApp() {
+  if (confirm("Quit OperAItor? The plant and the agents stop; reports are kept.")) store.send({ type: "quit_app" });
 }
 export const startBench = (scenarios: string) => store.send({ type: "bench_start", scenarios });
 export const stopBench = () => store.send({ type: "bench_stop" });

@@ -1,10 +1,14 @@
-; Inno Setup script: OperAItor-Setup-<version>.exe from the PyInstaller folder (packaging/windows/operaitor.spec).
-;   iscc /DAppVersion=1.0.0 /DSourceDir=<path to the OperAItor folder> /DOutputDir=<folder> packaging\windows\installer.iss
+; Inno Setup script: OperAItor-Setup-<version>.exe from the PyInstaller folder (packaging/desktop/operaitor.spec).
+;   iscc /DAppVersion=1.1.0-rc.3 /DNumVersion=1.1.0 /DSourceDir=<path to the OperAItor folder> /DOutputDir=<folder> packaging\windows\installer.iss
+; AppVersion names the files and the uninstall entry; NumVersion (numbers only) is the version of the .exe file.
 ; Installs for the current user only (no administrator rights), adds Start-menu and optional desktop
 ; shortcuts, and an uninstaller. Reports and settings in %LOCALAPPDATA%\OperAItor are kept on uninstall.
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
+#endif
+#ifndef NumVersion
+  #define NumVersion "0.0.0"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\..\dist\OperAItor"
@@ -18,6 +22,8 @@ AppId={{BA1A659D-6F28-4E53-A775-DF30EEFA56E0}
 AppName=OperAItor
 AppVersion={#AppVersion}
 AppVerName=OperAItor {#AppVersion}
+VersionInfoVersion={#NumVersion}
+VersionInfoTextVersion={#AppVersion}
 AppPublisher=AISL, Imperial College London
 AppPublisherURL=https://github.com/AISL-at-Imperial-College-London/operAItor
 AppSupportURL=https://github.com/AISL-at-Imperial-College-London/operAItor/issues

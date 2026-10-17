@@ -9,7 +9,14 @@
 - pip wheel with the web console bundled (`pip install "operaitor[llm]"`, then `operaitor serve`).
 - One release workflow builds, smoke-tests and publishes all three on a version tag; `vX.Y.Z-rc.N` tags make
   pre-releases, whose files carry the rc number (`OperAItor-Setup-1.1.0-rc.3.exe`).
-- ADMIT is bundled in the Windows app and the Docker image. It is no longer a pip extra, because PyPI rejects
+- Desktop apps for macOS (Apple silicon, `.dmg`) and Linux (x86-64, `.tar.gz`) next to Windows, from one
+  launcher and build spec (`packaging/desktop/`). Each is built, started and checked on its own system in CI
+  (`.github/workflows/desktop.yml`) on every pull request that changes the packaging, and for every release. A
+  second start opens the running app; **Quit OperAItor** in the console stops it. The project page offers the
+  download for the visitor's system.
+- Security: a server on your own computer only accepts WebSocket connections from its own console page (and the
+  Vite dev server), so another website you open cannot drive the plant or run Python agents.
+- ADMIT is bundled in the desktop apps and the Docker image. It is no longer a pip extra, because PyPI rejects
   git dependencies.
 
 **Custom agent pipelines** ([docs/pipelines.md](docs/pipelines.md))

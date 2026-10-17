@@ -236,6 +236,7 @@ class Session:
         allowed, why = plugins_allowed(self.settings.hosted)
         return {"session": {"id": self.id, "hosted": self.settings.hosted, "models": list(self.settings.models),
                             "plugins": {"allowed": allowed, "reason": why},
+                            "desktop": os.environ.get("OPERAITOR_DESKTOP") == "1",  # the desktop app: Quit offered
                             "bench": self.bench.status() if self.bench is not None else None,
                             "llm": {"model": self.model, "key_source": self.key_source,
                                     "connection": self.connection(), "providers": provider_catalog(),

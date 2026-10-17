@@ -1,0 +1,129 @@
+name: desktop apps
+
+# Builds the desktop app on Windows, macOS (Apple silicon) and Linux, smoke-tests it on that system
+# (packaging/desktop/smoke_test.py: start, console page, second start, origin check, Quit) and packages it:
+#   Windows  OperAItor-Setup-<label>.exe (installer, also as OperAItor-Setup.exe) + OperAItor-<label>-windows-portable.zip
+#   macOS    OperAItor-<label>-macos-arm64.dmg (also as OperAItor-macOS.dmg)
+#   Linux    OperAItor-<label>-linux-x86_64.tar.gz (also as OperAItor-Linux.tar.gz)
+# Runs on pull requests that change the packaging, by hand, and from release.yml for every release.
+on:
+  pull_request:
+    paths: ["packaging/**", "branding/**", ".github/workflows/desktop.yml", ".github/workflows/release.yml", "pyproject.toml"]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      label:
+        description: "version label in the file names (the tag without its v, e.g. 1.1.0-rc.3)"
+        type: string
+        required: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, name: windows }
+          - { os: macos-14, name: macos }       # Apple silicon (arm64)
+          - { os: ubuntu-22.04, name: linux }   # glibc 2.35: runs on Ubuntu 22.04+, Debian 12+, Fedora 36+
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      LABEL: ${{ inputs.label || 'ci' }}
+      SMOKE_PORT: "8012"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: version
+        run: echo "VERSION=$(python -c "import re;print(re.search(r'__version__ = \"(.+?)\"', open('operaitor/__init__.py').read()).group(1))")" >> "$GITHUB_ENV"
+      - name: wheel with the console inside
+        run: |
+          python -m pip install build==1.2.2.post1
+          python packaging/build_dist.py
+      - name: install the wheel and the build tools
+        run: |
+          python -m pip install "$(ls dist/*.whl)[llm]" "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git" \
+            pyinstaller==6.22.3 pyinstaller-hooks-contrib==2026.8
+      - name: build the app
+        run: pyinstaller packaging/desktop/operaitor.spec --noconfirm --distpath build-app/dist --workpath build-app/work
+
+      # ------------------------------------------------------------------ Windows
+      - name: smoke test (Windows app)
+        if: matrix.name == 'windows'
+        run: python packaging/desktop/smoke_test.py build-app/dist/OperAItor/OperAItor.exe
+      - name: portable zip and installer
+        if: matrix.name == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Compress-Archive -Path build-app\dist\OperAItor -DestinationPath "out\OperAItor-$env:LABEL-windows-portable.zip"
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:LABEL" "/DNumVersion=$env:VERSION" "/DSourceDir=$PWD\build-app\dist\OperAItor" "/DOutputDir=$PWD\out" packaging\windows\installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
+          # A copy with a fixed name, so .../releases/latest/download/OperAItor-Setup.exe always works (project page)
+          Copy-Item "out\OperAItor-Setup-$env:LABEL.exe" "out\OperAItor-Setup.exe"
+      - name: smoke test (installed)
+        if: matrix.name == 'windows'
+        shell: pwsh
+        run: |
+          Start-Process "out\OperAItor-Setup-$env:LABEL.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
+          $exe = "$env:LOCALAPPDATA\Programs\OperAItor\OperAItor.exe"
+          if (-not (Test-Path $exe)) { throw "the installer did not install $exe" }
+          $env:SMOKE_PORT = "8013"
+          python packaging/desktop/smoke_test.py $exe
+          if ($LASTEXITCODE -ne 0) { throw "the installed OperAItor failed its smoke test" }
+
+      # ------------------------------------------------------------------ macOS
+      - name: smoke test (macOS app)
+        if: matrix.name == 'macos'
+        run: |
+          ls build-app/dist/OperAItor.app/Contents/Resources/*.icns   # the app icon is in the bundle
+          codesign --verify --deep build-app/dist/OperAItor.app   # PyInstaller's ad-hoc signature (Apple silicon needs one)
+          python packaging/desktop/smoke_test.py build-app/dist/OperAItor.app/Contents/MacOS/OperAItor
+      - name: disk image
+        if: matrix.name == 'macos'
+        run: |
+          mkdir -p out dmg
+          cp -R build-app/dist/OperAItor.app dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname "OperAItor" -srcfolder dmg -ov -format UDZO "out/OperAItor-$LABEL-macos-arm64.dmg"
+          cp "out/OperAItor-$LABEL-macos-arm64.dmg" out/OperAItor-macOS.dmg
+      - name: smoke test (from the disk image)
+        if: matrix.name == 'macos'
+        run: |
+          hdiutil attach "out/OperAItor-$LABEL-macos-arm64.dmg" -mountpoint /tmp/operaitor-dmg -nobrowse
+          test -L /tmp/operaitor-dmg/Applications
+          SMOKE_PORT=8013 python packaging/desktop/smoke_test.py /tmp/operaitor-dmg/OperAItor.app/Contents/MacOS/OperAItor
+          hdiutil detach /tmp/operaitor-dmg
+
+      # ------------------------------------------------------------------ Linux
+      - name: smoke test (Linux app)
+        if: matrix.name == 'linux'
+        run: python packaging/desktop/smoke_test.py build-app/dist/OperAItor/OperAItor
+      - name: archive
+        if: matrix.name == 'linux'
+        run: |
+          mkdir -p out
+          tar -C build-app/dist -czf "out/OperAItor-$LABEL-linux-x86_64.tar.gz" OperAItor
+          cp "out/OperAItor-$LABEL-linux-x86_64.tar.gz" out/OperAItor-Linux.tar.gz
+      - name: smoke test (unpacked from the archive)
+        if: matrix.name == 'linux'
+        run: |
+          mkdir -p /tmp/unpacked && tar -C /tmp/unpacked -xzf "out/OperAItor-$LABEL-linux-x86_64.tar.gz"
+          SMOKE_PORT=8013 python packaging/desktop/smoke_test.py /tmp/unpacked/OperAItor/OperAItor
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.name }}
+          path: out/
+          retention-days: ${{ inputs.label && 30 || 7 }}

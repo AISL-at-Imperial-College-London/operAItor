@@ -289,6 +289,8 @@ export interface SessionInfo {
   /** May this server run Python agents? Only OperAItor on your own computer does. */
   plugins?: { allowed: boolean; reason: string };
   bench?: BenchStatus | null;
+  /** The desktop app (Windows / macOS / Linux): the console can quit it. */
+  desktop?: boolean;
 }
 
 /** A pipeline benchmark: benchmark scenarios replayed with the published scoring (server/pipeline_bench.py). */

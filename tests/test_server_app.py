@@ -205,6 +205,63 @@ def test_pipeline_benchmark_from_the_console(client):
         assert _ack(ws, "bench_stop")["ok"] is False
 
 
+@pytest.mark.parametrize("origin, host, hosted, allowed", [
+    (None, "127.0.0.1:8001", False, True),                              # not a browser (scripts, tests)
+    ("http://127.0.0.1:8001", "127.0.0.1:8001", False, True),           # the console's own page
+    ("http://LOCALHOST:8001", "localhost:8001", False, True),
+    ("http://localhost:5173", "127.0.0.1:8001", False, True),           # npm run dev
+    ("http://127.0.0.1:9999", "127.0.0.1:8001", False, False),          # another local page
+    ("https://example.com", "127.0.0.1:8001", False, False),            # any website you happen to open
+    ("https://example.com", "operaitor.example.org", True, True),       # a public server: visitors' own sessions
+])
+def test_which_pages_may_open_the_websocket(origin, host, hosted, allowed):
+    assert A.origin_allowed(origin, host, hosted) is allowed
+
+
+def _local_client():
+    settings = Settings(hosted=False, llm_mode="off", preset="", model="gpt-5-nano", chat_model="", diagnoser="",
+                        max_sessions=2, idle_min=15, max_age_min=180, models=("gpt-5-nano",))
+    A.manager = SessionManager(settings)
+    return TestClient(A.app)
+
+
+def test_another_website_cannot_drive_a_local_server():
+    from starlette.websockets import WebSocketDisconnect
+    with mock.patch.dict(os.environ, {"PLANT_HOSTED": "0", "PLANT_CAMPAIGN_DIR": ""}), _local_client() as c:
+        with pytest.raises(WebSocketDisconnect) as refused:
+            with c.websocket_connect("/ws", headers={"origin": "https://example.com"}) as ws:
+                ws.receive_json()
+        assert refused.value.code == 1008
+        with c.websocket_connect("/ws", headers={"origin": "http://testserver"}) as ws:
+            assert ws.receive_json()["type"] == "hello"
+
+
+def test_quit_only_stops_the_desktop_app():
+    quits = []
+    with mock.patch.dict(os.environ, {"PLANT_HOSTED": "0", "PLANT_CAMPAIGN_DIR": "", "OPERAITOR_DESKTOP": ""}), \
+            _local_client() as c, c.websocket_connect("/ws") as ws:
+        assert ws.receive_json()["session"]["desktop"] is False
+        ws.send_json({"type": "quit_app"})
+        assert "only the desktop app" in _ack(ws, "quit_app")["summary"]
+    A.app.state.quit = lambda: quits.append(True)
+    try:
+        with mock.patch.dict(os.environ, {"PLANT_HOSTED": "0", "PLANT_CAMPAIGN_DIR": "", "OPERAITOR_DESKTOP": "1"}), \
+                _local_client() as c, c.websocket_connect("/ws") as ws:
+            assert ws.receive_json()["session"]["desktop"] is True
+            ws.send_json({"type": "quit_app"})
+            assert _ack(ws, "quit_app")["ok"] is True
+            for _ in range(40):
+                if quits:
+                    break
+                ws.send_json({"type": "no_such_command"})  # keep the loop turning until the delayed quit runs
+                _ack(ws, "no_such_command")
+                import time
+                time.sleep(0.05)
+        assert quits == [True]
+    finally:
+        del A.app.state.quit
+
+
 def test_chat_runs_through_the_browser_with_tools(client):
     """The chat assistant's model calls (including a tool call) go to the browser and back; no key travels."""
     with client() as c, c.websocket_connect("/ws") as ws:

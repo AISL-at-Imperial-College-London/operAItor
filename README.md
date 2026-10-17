@@ -49,11 +49,13 @@ Download from the [Releases page](https://github.com/AISL-at-Imperial-College-Lo
 | You have | Do this |
 |---|---|
 | **Windows** | Run `OperAItor-Setup-<version>.exe`, then start **OperAItor** from the Start menu. The console opens in your browser; closing the OperAItor window stops it. The app is new and not code-signed, so your browser and Windows ask you to confirm: in Edge choose **… → Keep → Show more → Keep anyway**, in Chrome **Keep** (until then the file is `Unconfirmed ….crdownload`), in Firefox **Allow download**; if Windows says "Windows protected your PC", choose **More info → Run anyway**. Prefer no installer? Unzip `OperAItor-<version>-windows-portable.zip` and run `OperAItor.exe`. |
+| **Mac** (Apple silicon: M1 or later, macOS 12+) | Open `OperAItor-<version>-macos-arm64.dmg`, drag **OperAItor** to Applications and open it; the console opens in your browser and **Quit OperAItor** (console header) stops it. The app is not notarised by Apple, so the first time macOS says it cannot verify it: choose **Done**, then **System Settings → Privacy & Security → Open Anyway**. |
+| **Linux** (x86-64: Ubuntu 22.04+, Debian 12+, Fedora 36+) | `tar -xzf OperAItor-<version>-linux-x86_64.tar.gz`, then `./OperAItor/OperAItor`; the console opens in your browser and Ctrl+C (or **Quit OperAItor**) stops it. |
 | **Docker** (Windows, Mac, Linux) | `docker run -p 7860:7860 ghcr.io/aisl-at-imperial-college-london/operaitor`, then open http://localhost:7860 |
 | **Python 3.11+** | `pip install "operaitor[llm]"` (or the `.whl` from the release), then `operaitor serve` and open http://localhost:8001 |
 
 Everything runs on your computer. For the AI agents, connect a free provider in **Agents → Agent
-settings**, or run [Ollama](https://ollama.com) on the same computer. The Windows app and the Docker image
+settings**, or run [Ollama](https://ollama.com) on the same computer. The desktop apps and the Docker image
 include the ADMIT validator; with pip, add it with `pip install "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"`.
 
 ### In the browser (hosted)

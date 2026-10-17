@@ -218,6 +218,9 @@ td.num, th.num { text-align: right; font-family: var(--mono); white-space: nowra
 .icon { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; background: rgba(79,125,255,.14); border: 1px solid rgba(79,125,255,.35); color: #c3d0ff; }
 .icon svg { width: 24px; height: 24px; }
 .dl .tile .btn { align-self: flex-start; margin-top: 8px; }
+.os-links { margin: 0; color: var(--dim); }
+.os-links a { color: var(--muted); }
+.os-links a.current { color: var(--ink); font-weight: 600; }
 details.warn { margin: 0; font-size: 13.5px; border-top: 1px solid var(--line); padding-top: 12px; }
 details.warn summary { font-size: 13.5px; color: var(--muted); }
 details.warn p, details.warn ul { margin: 10px 0 0; color: var(--muted); }
@@ -459,22 +462,30 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
       <div class="dl">
         <div class="tile main reveal">
           <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
-          <h3>Windows app</h3>
-          <p>Install, open it from the Start menu, and the console opens in your browser. No admin rights needed.</p>
-          <a class="btn primary" id="win-download" download
+          <h3>Desktop app</h3>
+          <p>Windows, macOS and Linux. It runs on your computer and opens the console in your browser. No admin rights needed.</p>
+          <a class="btn primary" id="app-download" download
              href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases/latest/download/OperAItor-Setup.exe">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
-            <span id="win-download-label">Download for Windows</span></a>
-          <p class="small" id="win-download-note">Portable zip and wheel on the <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases">releases page</a>.</p>
+            <span id="app-download-label">Download for Windows</span></a>
+          <p class="small os-links">Also for
+            <a id="dl-windows" href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases/latest/download/OperAItor-Setup.exe">Windows</a> ·
+            <a id="dl-macos" href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases/latest/download/OperAItor-macOS.dmg">macOS</a> ·
+            <a id="dl-linux" href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases/latest/download/OperAItor-Linux.tar.gz">Linux</a></p>
+          <p class="small" id="app-download-note">macOS: Apple silicon (M1 or later). Linux: x86-64. Portable zip and wheel on the
+            <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/releases">releases page</a>.</p>
           <details class="warn">
-            <summary>Browser or Windows asks if you trust it?</summary>
-            <p>The installer is new and not code-signed, so browsers and Windows ask you to confirm. It is safe to keep.</p>
+            <summary>Your computer asks if you trust it?</summary>
+            <p>The app is new and not code-signed, so browsers and your system ask you to confirm once. It is safe to keep.</p>
             <ul>
               <li><b>Edge:</b> on the download, choose <b>…</b> → <b>Keep</b> → <b>Show more</b> → <b>Keep anyway</b>.</li>
               <li><b>Chrome:</b> choose <b>Keep</b> in the downloads bubble or on <code>chrome://downloads</code>. Until then the file
                 is named <code>Unconfirmed ….crdownload</code>.</li>
               <li><b>Firefox:</b> in the downloads list, choose <b>Allow download</b>.</li>
               <li><b>Windows</b> (“Windows protected your PC”): choose <b>More info</b> → <b>Run anyway</b>.</li>
+              <li><b>macOS</b> (“Apple could not verify…”): open the disk image, drag OperAItor to Applications and open it; choose
+                <b>Done</b>, then <b>System Settings → Privacy &amp; Security → Open Anyway</b>. Stop it with <b>Quit OperAItor</b> in the console.</li>
+              <li><b>Linux:</b> <code>tar -xzf OperAItor-*-linux-x86_64.tar.gz</code>, then run <code>./OperAItor/OperAItor</code>.</li>
             </ul>
           </details>
         </div>
@@ -543,30 +554,56 @@ operaitor serve</pre>
     reveal.forEach((el) => io.observe(el));
   } else reveal.forEach((el) => el.classList.add("in"));
 
-  // "Download for Windows" downloads the installer itself: the newest release that has one (a release
-  // candidate too, while there is no full release yet). Falls back to the fixed-name file of the latest release.
+  // The download button gets the app for the visitor's system, straight from the newest release that has it
+  // (a release candidate too, while there is no full release yet); "Also for" links the other systems. Without
+  // the GitHub API (offline, rate-limited) the links keep the fixed-name files of the latest release.
+  const RELEASES = "https://github.com/AISL-at-Imperial-College-London/operAItor/releases";
+  const APPS = {
+    windows: { name: "Windows", fixed: "OperAItor-Setup.exe", match: (n) => /^OperAItor-Setup-[\d.]+.*\.exe$/.test(n) },
+    macos: { name: "macOS", fixed: "OperAItor-macOS.dmg", match: (n) => /^OperAItor-.+-macos-arm64\.dmg$/.test(n) },
+    linux: { name: "Linux", fixed: "OperAItor-Linux.tar.gz", match: (n) => /^OperAItor-.+-linux-x86_64\.tar\.gz$/.test(n) },
+  };
+  const ua = navigator.userAgent;
+  const system = /Macintosh|Mac OS X/.test(ua) ? "macos" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : "windows";
+  const btn = document.getElementById("app-download");
+  const label = document.getElementById("app-download-label");
+  btn.href = document.getElementById(`dl-${system}`).href;
+  label.textContent = `Download for ${APPS[system].name}`;
+  document.getElementById(`dl-${system}`).classList.add("current");
   (async () => {
-    const btn = document.getElementById("win-download");
     try {
       const r = await fetch("https://api.github.com/repos/AISL-at-Imperial-College-London/operAItor/releases?per_page=10");
       if (!r.ok) return;
       const releases = (await r.json()).filter((x) => !x.draft);
-      const pick = (list) => {
+      const pick = (list, app) => {
         for (const rel of list) {
-          const exe = rel.assets.find((a) => /^OperAItor-Setup-[\d.]+.*\.exe$/.test(a.name))
-            || rel.assets.find((a) => a.name === "OperAItor-Setup.exe");
-          if (exe) return { rel, exe };
+          const asset = rel.assets.find((a) => app.match(a.name)) || rel.assets.find((a) => a.name === app.fixed);
+          if (asset) return { rel, asset };
         }
       };
-      const found = pick(releases.filter((x) => !x.prerelease)) || pick(releases);
-      if (!found) return;
-      btn.href = found.exe.browser_download_url;
-      const mb = Math.round(found.exe.size / 1e6);
-      document.getElementById("win-download-label").textContent = `Download for Windows · ${mb} MB`;
-      const version = found.rel.tag_name.replace(/^v/, "");
-      document.getElementById("win-download-note").insertAdjacentText("afterbegin",
-        `Version ${version}${found.rel.prerelease ? " (release candidate)" : ""}. `);
-    } catch { /* offline or rate-limited: keep the fixed link */ }
+      for (const [key, app] of Object.entries(APPS)) {
+        const link = document.getElementById(`dl-${key}`);
+        const found = pick(releases.filter((x) => !x.prerelease), app) || pick(releases, app);
+        if (!found) {  // not released for this system yet
+          link.href = RELEASES;
+          link.removeAttribute("download");
+          link.title = `${app.name}: in the next release`;
+          if (key === system) {
+            btn.href = RELEASES;
+            btn.removeAttribute("download");
+            label.textContent = `${app.name}: coming in the next release`;
+          }
+          continue;
+        }
+        link.href = found.asset.browser_download_url;
+        if (key !== system) continue;
+        btn.href = found.asset.browser_download_url;
+        label.textContent = `Download for ${app.name} · ${Math.round(found.asset.size / 1e6)} MB`;
+        const version = found.rel.tag_name.replace(/^v/, "");
+        document.getElementById("app-download-note").insertAdjacentText("afterbegin",
+          `Version ${version}${found.rel.prerelease ? " (release candidate)" : ""}. `);
+      }
+    } catch { /* offline or rate-limited: keep the fixed links */ }
   })();
 
   // The live-demo link is filled in at build time from the repository variable DEMO_URL. Without one,

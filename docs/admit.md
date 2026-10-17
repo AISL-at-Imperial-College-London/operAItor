@@ -6,7 +6,7 @@ deterministic hard gates (T0–T4) before any scoring: an action that fails a ga
 The paper is ADMITBench (arXiv 2608.03866).
 
 This repository uses ADMIT in two ways. Install it with `pip install "admit-bench @ git+https://github.com/Refiant-Inc/admit-bench.git"` (the Docker image and the
-Windows app already include it).
+desktop apps already include it).
 
 ## 1. ADMIT as the agents' validator (`llm_admit`)
 
