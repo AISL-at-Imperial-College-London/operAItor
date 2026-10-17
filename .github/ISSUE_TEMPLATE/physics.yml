@@ -1,0 +1,38 @@
+name: Physics or process behaviour
+description: The plant does something a real process would not (a balance, a response, a trip, a limit).
+title: "[physics] "
+labels: ["physics", "beta"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you! The plant is a process surrogate; its known simplifications are listed in the
+        [model scope](https://github.com/AISL-at-Imperial-College-London/operAItor/blob/main/docs/plant-model.md#model-scope-and-known-simplifications-beta).
+        Reports of anything else that looks physically wrong help us most.
+  - type: textarea
+    id: what
+    attributes:
+      label: What looks wrong
+      description: The variable(s), what they did, and what you expected a real process to do (and why).
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How to see it
+      description: Starting state, faults injected (and when), actions taken, simulated time. A console screenshot or the run's report file helps.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: OperAItor version
+      description: Shown when it starts, or `operaitor --version`.
+      placeholder: "1.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Part of the plant
+      options: [Reactor R-101, Column T-201, Control loops, Pumps, Alarms, Safety functions (SIFs), Fault injection, Fault detection (PCA), Not sure]

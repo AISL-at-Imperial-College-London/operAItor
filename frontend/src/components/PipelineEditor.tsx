@@ -252,9 +252,10 @@ function BenchPanel() {
   return (
     <div className="pl-bench" id="pipeline-bench">
       <h4>Benchmark the running pipeline</h4>
-      <p className="small dim">Replays benchmark scenarios on this plant with the published benchmark's faults, timing and score,
-        the agents acting on their own, and compares each scenario with the published runs: no agents, and
-        {" "}{active?.reference ? "this baseline" : "the baseline it starts from"} with every model benchmarked.</p>
+      <p className="small dim">Replays benchmark scenarios on this plant with the benchmark's faults, timing and score, the
+        agents acting on their own, and compares each scenario with the reference runs of the original study: no agents, and
+        {" "}{active?.reference ? "this baseline" : "the baseline it starts from"} with every model run there (one run each, on
+        the plant before version 1.1).</p>
       <div className="row">
         <select aria-label="Scenarios" value={choice} disabled={running} onChange={(e) => setChoice(e.target.value)}>
           <option value="quick">Quick: 3 scenarios (single, coupled pair, coupled triple)</option>
@@ -292,7 +293,7 @@ function BenchResults({ bench }: { bench: BenchStatus }) {
       {bench.results.length > 0 && (
         <div className="tw"><table className="bench-table">
           <thead><tr><th>Scenario</th><th>Faults</th><th className="num">This pipeline</th><th className="num">No agents</th>
-            {models.map((m) => <th key={m} className="num">{m} · baseline</th>)}</tr></thead>
+            {models.map((m) => <th key={m} className="num" title="Reference run of the original study">{m} · reference</th>)}</tr></thead>
           <tbody>
             {bench.results.map((r) => (
               <tr key={r.id} className={r.complete ? "" : "dim"}>

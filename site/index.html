@@ -176,6 +176,19 @@ h2.sm { font-size: clamp(27px, 3.3vw, 40px); }
 .gates li code { font: 600 13px var(--mono); color: var(--cyan); background: rgba(90, 209, 255, .1); border: 1px solid rgba(90, 209, 255, .3); border-radius: 8px; padding: 3px 8px; flex: none; }
 .shot { margin: 0; border-radius: 18px; overflow: hidden; border: 1px solid var(--line-2); box-shadow: 0 30px 80px -30px rgba(0,0,0,.9); }
 
+/* benchmark */
+.bench-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: s; }
+.bench-steps li { position: relative; padding: 24px 22px 22px 22px; border-radius: 18px; border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)); counter-increment: s; }
+.bench-steps li::before { content: counter(s); position: absolute; top: 18px; right: 20px; font: 600 13px var(--mono); color: var(--cyan); }
+.bench-steps b { display: block; font-size: 18px; margin-bottom: 6px; }
+.bench-steps span { color: var(--muted); font-size: 15px; }
+@media (max-width: 860px) { .bench-steps { grid-template-columns: 1fr; } }
+.beta { display: flex; gap: 14px; align-items: flex-start; margin-top: 96px; padding: 20px 22px; border-radius: 18px;
+  border: 1px solid rgba(255, 200, 97, .35); background: linear-gradient(90deg, rgba(255, 200, 97, .08), transparent); }
+.beta p { margin: 0; color: var(--muted); font-size: 15px; }
+.beta p b { color: var(--ink); }
+.beta a { color: var(--ink); }
 /* results */
 .chart { border: 1px solid var(--line); border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015)); padding: 30px; }
 @media (max-width: 520px) { .chart { padding: 20px; } }
@@ -264,7 +277,7 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
     <nav aria-label="Site">
       <a class="opt" href="#inside">Inside</a>
       <a class="opt" href="#how">How it works</a>
-      <a class="opt" href="#results">Results</a>
+      <a class="opt" href="#benchmark">Benchmark</a>
       <a class="opt" href="https://github.com/AISL-at-Imperial-College-London/operAItor">GitHub</a>
       <a class="cta" href="#run">Download</a>
     </nav>
@@ -288,7 +301,7 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
       </g>
     </svg>
     <div class="wrap">
-      <span class="pill"><b>Open source</b>AISL · Imperial College London</span>
+      <span class="pill"><b>Beta</b>Open source · AISL · Imperial College London</span>
       <h1>AI operators for <span style="white-space:nowrap">process plants</span><em>checked before they act.</em></h1>
       <p class="sub">Break a simulated plant on purpose. AI agents detect the fault, diagnose it and fix it, and every
         action is validated before it touches the process.</p>
@@ -296,7 +309,7 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
         <a class="btn primary" id="demo" href="__DEMO_URL__">Open the live demo</a>
         <a class="btn" id="download" href="#run">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
-          Download <small>Windows · Docker · Python</small></a>
+          Download <small>Windows · macOS · Linux</small></a>
       </div>
       <ul class="trust">
         <li>Free and open source</li>
@@ -317,12 +330,13 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
           <span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
           <span><b>Action admitted</b><small>Start the spare pump · T0–T4 passed</small></span></div>
       </div>
-      <p class="cap">The example process: an acetone plant, a reactor feeding a distillation column.</p>
+      <p class="cap">The example process: an endothermic reactor, modelled on isopropanol → acetone, feeding a
+        distillation column.</p>
 
       <div class="numbers reveal">
-        <div><b>18 → 5</b><span>plant stops in 20 fault scenarios, without agents vs. with validated agents</span></div>
-        <div><b>$260k</b><span>saved over the 20 scenarios compared with no agents</span></div>
-        <div><b>42 s</b><span>per decision with ADMIT record checks, a quarter of the digital twin's time</span></div>
+        <div><b>20</b><span>benchmark fault scenarios: single, coupled and triple faults, with one score</span></div>
+        <div><b>5</b><span>baseline agent pipelines to run as they are, or to start your own from</span></div>
+        <div><b>Yours</b><span>model, prompts, knowledge graph and Python agents, compared on the same faults</span></div>
       </div>
     </div>
   </div>
@@ -331,7 +345,7 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
     <div class="wrap">
       <div class="head reveal">
         <span class="eyebrow">What's inside</span>
-        <h2>A real plant, real safety layers, <em>and agents that have to earn trust.</em></h2>
+        <h2>A realistic process, real safety layers, <em>and agents that have to earn trust.</em></h2>
       </div>
       <div class="bento">
         <div class="tile t-plant reveal">
@@ -413,12 +427,28 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
     </div>
   </section>
 
-  <section id="results">
+  <section id="benchmark">
     <div class="wrap">
       <div class="head reveal">
-        <span class="eyebrow">Results</span>
-        <h2>Same 20 faults. <em>Far fewer plant stops.</em></h2>
-        <p>Single, coupled and triple faults, with identical timing and economics for every configuration.</p>
+        <span class="eyebrow">Benchmark</span>
+        <h2>Bring your own agents. <em>Same faults, same score.</em></h2>
+        <p>20 fault scenarios with fixed onset and lift times, and one score: operating margin plus inventory, minus a
+          penalty when the plant stops. Every pipeline answers the same faults.</p>
+      </div>
+      <ol class="bench-steps reveal">
+        <li><b>Pick a baseline</b><span>Run one of the five as it is, or customise it: settings, prompts, your own
+          knowledge graph, Python detectors and validators, even the order of the steps.</span></li>
+        <li><b>Connect your model</b><span>A free Groq, Gemini or OpenRouter key, your own Ollama, or OpenAI. The key
+          stays in your browser.</span></li>
+        <li><b>Run the benchmark</b><span>Agents → Agent pipeline → Benchmark: 3 scenarios for a quick look or all 20,
+          each scored next to the reference runs below.</span></li>
+      </ol>
+
+      <div class="head reveal" style="margin:72px 0 26px">
+        <span class="eyebrow">Reference runs</span>
+        <h2 class="sm">The original study. <em>A starting point, not a leaderboard.</em></h2>
+        <p>One run per configuration with gpt-5-nano, on an earlier version of the plant. These are the runs we report
+          in our paper; your runs are compared with them scenario by scenario.</p>
       </div>
       <div class="chart reveal">
         <div class="cols chart-head"><span>Configuration</span><span>Plant stops (of 20)</span><span>Stops</span><span>Saving</span></div>
@@ -431,7 +461,8 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
           <div class="cols row best"><span class="lab">LLM + ADMIT, T0–T3</span><span class="track"><span class="fill" style="--v:5"></span></span><span class="n">5</span><span class="s">$259k</span></div>
         </div>
         <div class="finding"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0012 3z"/></svg>
-          <span>ADMIT's record checks alone (no simulation) matched the digital twin, at a quarter of the decision time.</span></div>
+          <span>One run each, on designed (not sampled) scenarios: differences of 2–3 stops are within run-to-run noise.
+            Run them again with your model, and tell us what you find.</span></div>
         <details>
           <summary>Full table and notes</summary>
           <div class="tw"><table>
@@ -445,9 +476,10 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
               <tr><td>LLM + ADMIT, no simulation (T0–T3)</td><td class="num">5</td><td class="num">$259k</td><td class="num">42 s</td></tr>
             </tbody>
           </table></div>
-          <p class="small" style="margin-top:12px">Agents run with gpt-5-nano, one run per configuration, so differences of 2–3 stops are within
-            run-to-run noise. The consequence gate (T4) blocks actions that would only delay an unavoidable trip, an open design
-            question for admissibility gating. Every run and record is in the <a href="./dashboard/">benchmark dashboard</a>.</p>
+          <p class="small" style="margin-top:12px">gpt-5-nano, one run per configuration, on the plant before version 1.1
+            (setpoint limits and the steam valve changed since). The consequence gate (T4) blocks actions that would only delay
+            an unavoidable trip, an open design question for admissibility gating. Every run and record is in the
+            <a href="./dashboard/">benchmark dashboard</a>.</p>
         </details>
       </div>
     </div>
@@ -522,6 +554,14 @@ operaitor serve</pre>
         <span>Your browser calls the provider directly. Your key never reaches the OperAItor server.
           Without a model, the plant, fault detection and safety functions all still work.</span></p>
 
+      <div class="beta reveal">
+        <span class="pill"><b>Beta</b></span>
+        <p><b>OperAItor is in beta.</b> The plant is a process surrogate: its physics are checked (conservation, numerics,
+          thermodynamics, fault responses) and its simplifications are documented in the
+          <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/blob/main/docs/plant-model.md#model-scope-and-known-simplifications-beta">model scope</a>.
+          Something odd in the physics or the workflow? <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new/choose">Report it</a>; we'd like to fix it.</p>
+      </div>
+
       <div class="closing reveal">
         <img src="assets/logo.svg" alt="" width="68" height="68">
         <h2 class="sm">Break the plant. <em>Watch it recover.</em></h2>
@@ -537,6 +577,7 @@ operaitor serve</pre>
       · ADMIT gates from <a href="https://github.com/Refiant-Inc/admit-bench">ADMIT Bench</a></span>
     <nav aria-label="Footer">
       <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/tree/main/docs">Documentation</a>
+      <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new/choose">Report a bug</a>
       <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/blob/main/CHANGELOG.md">Changelog</a>
       <a href="./dashboard/">Dashboard</a>
       <a href="https://github.com/AISL-at-Imperial-College-London/operAItor">Source</a>

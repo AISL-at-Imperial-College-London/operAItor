@@ -201,7 +201,7 @@ test("benchmark the running pipeline on a scenario and compare with the publishe
   await expect(bench).toContainText("complete · 1 of 1 scenarios", { timeout: 200_000 });
   const row = bench.locator(".bench-table tbody tr", { hasText: "S01" });
   await expect(row).toContainText("$");
-  await expect(bench.locator(".bench-table thead")).toContainText("gpt-5-nano · baseline");
+  await expect(bench.locator(".bench-table thead")).toContainText("gpt-5-nano · reference");
   await expect(bench.locator(".bench-table tfoot")).toContainText("1 scored");
   await expect(bench.getByRole("button", { name: "Start the benchmark" })).toBeEnabled();
   expect(errors).toEqual([]);

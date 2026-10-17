@@ -2,6 +2,18 @@
 
 ## 1.1.0 (unreleased)
 
+**Beta release**
+- OperAItor is published as a beta: the project page and README present it as a benchmark to run with your own
+  models, prompts and agents. The original study's runs are kept as reference runs (labelled with their model,
+  one run each and the earlier plant version), not as headline results; the console's comparison uses the same
+  label.
+- Physics audit in CI (`tests/test_physics_audit.py`): conservation through transients, time-step convergence,
+  thermodynamics against the real compounds, and the direction of fault responses on the closed-loop plant.
+- Model scope in `docs/plant-model.md`: what is checked, and the known simplifications (irreversible reaction
+  without chemical equilibrium; the condenser vapour has no composition state). The plant model itself is
+  unchanged, so the reference runs stay reproducible.
+- Issue forms for physics and app bugs, and `CONTRIBUTING.md`.
+
 **Run it on your own computer**
 - Windows app: per-user installer (`OperAItor-Setup-<version>.exe`, no administrator rights) and a portable zip.
   It starts the console on this computer and opens it in the browser.

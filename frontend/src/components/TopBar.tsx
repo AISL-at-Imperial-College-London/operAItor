@@ -113,7 +113,7 @@ export function Header({ tab, onTab, drawer, onDrawer }:
 
   return (
     <header className="header">
-      <div className="brand"><img className="logo" src="/favicon.svg" alt="" width={22} height={22} /><span className="brand-name">Oper<b className="ai">AI</b>tor <span className="dim brand-sub">acetone plant</span></span></div>
+      <div className="brand"><img className="logo" src="/favicon.svg" alt="" width={22} height={22} /><span className="brand-name">Oper<b className="ai">AI</b>tor <span className="dim brand-sub">beta</span></span></div>
       <nav className="tabs" role="tablist">
         {TABS.map((t) => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => onTab(t.id)}>
