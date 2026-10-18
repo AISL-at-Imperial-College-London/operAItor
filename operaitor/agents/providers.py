@@ -8,11 +8,8 @@ are suggestions (providers rename models over time); any model name the provider
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-import ipaddress
 import os
-import socket
 from typing import Any
-from urllib.parse import urlparse
 
 PROVIDERS: dict[str, dict] = {
     "groq": {"label": "Groq (free tier)", "base_url": "https://api.groq.com/openai/v1", "free": True,
@@ -66,56 +63,10 @@ def _ollama_root(url: str) -> str:
     return u[:-3] if u.endswith("/v1") else u
 
 
-def check_public_url(url: str) -> str | None:
-    """Reasons a visitor-supplied URL may not be used from a public server (SSRF guard), or None."""
-    u = urlparse(url)
-    if u.scheme != "https":
-        return "use an https:// address (e.g. an Ollama exposed through a tunnel)"
-    if not u.hostname:
-        return "not a valid URL"
-    try:
-        addrs = {ai[4][0] for ai in socket.getaddrinfo(u.hostname, u.port or 443)}
-    except OSError:
-        return f"cannot resolve {u.hostname}"
-    for a in addrs:
-        ip = ipaddress.ip_address(a.split("%")[0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved or ip.is_unspecified:
-            return "that address is on a private network; the public server cannot reach it"
-    return None
-
-
 def endpoint_for(provider: str, model: str, api_key: str = "", url: str = "") -> Endpoint:
     p = PROVIDERS[provider]
     base = p["base_url"] if provider != "ollama" else _ollama_root(url or OLLAMA_LOCAL) + "/v1"
     return Endpoint(provider, base, api_key or ("ollama" if provider == "ollama" else ""), model, p["json_mode"])
-
-
-async def check_endpoint(ep: Endpoint, public: bool) -> tuple[bool, str]:
-    """Cheap reachability / key check (no tokens spent)."""
-    import httpx
-    p = PROVIDERS[ep.provider]
-    if public and ep.provider == "ollama":
-        why = check_public_url(ep.base_url)
-        if why:
-            return False, why
-    if p["key"] and not ep.api_key:
-        return False, f"{p['label']} needs an API key ({p['signup']})"
-    url = (_ollama_root(ep.base_url) if ep.provider == "ollama" else ep.base_url) + p["check"]
-    headers = {"Authorization": f"Bearer {ep.api_key}"} if p["key"] else {}
-    try:
-        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
-            r = await client.get(url, headers=headers)
-    except httpx.HTTPError as exc:
-        return False, f"could not reach {p['label']} ({type(exc).__name__})"
-    if r.status_code == 200:
-        if ep.provider == "ollama":
-            names = {m.get("name", "") for m in r.json().get("models", [])}
-            if names and ep.model not in names and f"{ep.model}:latest" not in names:
-                return False, f"this Ollama has no model {ep.model!r}; available: {', '.join(sorted(names)[:8])}"
-        return True, "connected"
-    if r.status_code in (401, 403):
-        return False, f"{p['label']} rejected this key ({r.status_code})"
-    return False, f"{p['label']} answered {r.status_code}"
 
 
 def local_ollama_models() -> list[str]:

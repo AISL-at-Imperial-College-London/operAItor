@@ -34,7 +34,7 @@ class EventTriggerTests(unittest.TestCase):
                 out = asyncio.run(agent({"observation": {"time_min": t, "measurements": {}}}))
                 if out["detection"]["should_act"]:
                     acted.append(t)
-                    agent.mark_acted(t, "x")
+                    agent.mark_acted(t)
         return acted
 
     def test_once_per_fault_safety_alarm_and_new_episode(self):

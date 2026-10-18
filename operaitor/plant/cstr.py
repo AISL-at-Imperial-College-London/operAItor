@@ -276,13 +276,6 @@ class CSTRDAE:
             ftol=1e-12, xtol=1e-12, gtol=1e-12,
         )
 
-    def outlet_stream(self, state: np.ndarray, inputs: CSTRInputs) -> dict:
-        return {
-            "flow_kmol_h": float(inputs.liquid_outflow),
-            "x_acetone": float(state[self.XB]),
-            "temperature_K": float(state[self.T]),
-        }
-
     def operating_summary(self, y: np.ndarray, inputs: Optional[CSTRInputs] = None) -> dict:
         u = self.default_inputs() if inputs is None else inputs
         c = self.cfg

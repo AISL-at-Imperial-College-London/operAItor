@@ -439,33 +439,6 @@ class FaultDetectionCampaign:
     def duration_h(self) -> float:
         return len(self.blocks) * self.block_duration_h
 
-    def event_table(self) -> list[dict[str, object]]:
-        rows: list[dict[str, object]] = []
-        for block in self.blocks:
-            for f in block.reaction_faults:
-                rows.append({
-                    "fault_name": f.name,
-                    "fault_type": "reaction_rate_loss",
-                    "target": "catalyst_activity",
-                    "block_id": block.block_id,
-                    "start_min": round(60.0 * (block.global_offset_h + f.start_h), 9),
-                    "end_min": round(60.0 * (block.global_offset_h + f.end_h), 9),
-                    "magnitude": f.final_loss_fraction,
-                    "mode": "10min_ramp_to_one_third_then_step_to_full_10min_hold",
-                })
-            for f in block.actuator_faults.faults:
-                rows.append({
-                    "fault_name": f.name,
-                    "fault_type": "actuator",
-                    "target": f.target,
-                    "block_id": block.block_id,
-                    "start_min": round(60.0 * (block.global_offset_h + f.start_h), 9),
-                    "end_min": None if f.end_h is None else round(60.0 * (block.global_offset_h + f.end_h), 9),
-                    "magnitude": f.capacity_fraction if f.mode == "capacity" else f.fixed_value,
-                    "mode": f.mode,
-                })
-        return sorted(rows, key=lambda r: float(r["start_min"]))
-
 def production_step_trajectory(
     segment_duration_min: float = 120.0,
     levels: Sequence[float] = (1.00, 0.85, 0.70, 0.85, 1.00),

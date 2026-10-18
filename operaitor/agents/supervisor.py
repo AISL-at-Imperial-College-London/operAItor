@@ -44,7 +44,7 @@ class AsyncSupervisor:
                  kg: KnowledgeGraph | None = None, pca: PCAMonitor | None = None,
                  action_agent=None, planner=None, prompts: dict | None = None, plugin=None,
                  custom_validator: bool = False):
-        # Live sessions can run many faults (campaigns), so do not cap the action count.
+        # Live sessions can run many faults (benchmarks, human tests), so do not cap the action count.
         self.cfg = replace(cfg or make_config("passive"), max_actions=10**9)
         self.service = service
         self.mode = mode

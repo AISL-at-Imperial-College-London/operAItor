@@ -9,21 +9,17 @@ the agent supervisor and scripts all go through it:
   and fault injections;
 * every tick is broadcast to subscribers (WebSocket clients) and the latest
   observation is offered to the agents with "latest wins" semantics;
-* a fault campaign (server/campaigns.py) can fire timed injections in sim time
-  and writes a per-fault report to campaign_results/ when it finishes;
 * in operator mode "human" the agents stand down and a human test (server/human_test.py)
   replays a benchmark scenario for a person to answer, scored like the benchmark.
 
-No FastAPI imports here: ``fault_campaign.py --headless`` uses it without a server.
+No FastAPI imports here: the benchmark and the tests use it without a server.
 """
 from __future__ import annotations
 
 import asyncio
 from collections import deque
 from dataclasses import asdict, is_dataclass, replace
-from datetime import datetime
 from enum import Enum
-import json
 import math
 import os
 from pathlib import Path
@@ -38,6 +34,9 @@ from operaitor.plant import (
 from operaitor.plant.scenario import disturbance_step
 
 SCENARIOS = ["nominal", "variability", "surprise", *CURATED_EPISODES]
+# What the console's New episode offers: faults are injected from the Faults drawer, the benchmark scenarios
+# run as a human test or a pipeline benchmark. The single-fault episodes above stay loadable (tests, scripts).
+CONSOLE_SCENARIOS = ["nominal", "variability", "surprise"]
 DISTURBANCES = {
     "fresh_feed_temperature_K": "Feed temperature",
     "cooling_water_temperature_K": "Cooling-water temperature",
@@ -102,11 +101,10 @@ class PlantService:
         self.trend: deque = deque(maxlen=history_len)
         self.history: deque = deque(maxlen=history_len)   # measurements + loop OP/SP (chat agent trends)
         self.monitor: deque = deque(maxlen=history_len)
-        self.campaign: dict | None = None
         # "agents": the agent supervisor runs; "human": agents off, a person operates the plant.
         self.operator_mode = "agents"
         self.human_test = None  # HumanTest while one is set up (human_test.py)
-        # Campaign reports are written here (None: not written, e.g. on the hosted app).
+        # Reports (human tests, pipeline benchmarks) are written here (None: not written, e.g. on the hosted app).
         _dir = os.environ.get("PLANT_CAMPAIGN_DIR", "campaign_results")
         self.campaign_dir: Path | None = Path(_dir) if _dir else None
         self.agent_log: deque = deque(maxlen=600)
@@ -162,8 +160,7 @@ class PlantService:
             self.monitor.clear()
             self.agent_log.clear()
             self._pending_reset_sif = False
-            self.campaign = None  # a new episode cancels a running campaign
-            self.human_test = None  # ... and a human test
+            self.human_test = None  # a new episode cancels a human test
             snap = self.snapshot()
             self.trend.append(snap["trend"])
             self.history.append(self._history_row(snap))
@@ -234,7 +231,6 @@ class PlantService:
         self._offer_observation()
         if env.done:
             await self.notify(f"Episode ended: {env.outcomes.state.status.value} ({env.outcomes.state.reason})", "warn")
-        await self._campaign_due()
         if self.human_test is not None:
             await self.human_test.tick()
 
@@ -355,10 +351,6 @@ class PlantService:
                 return await self.stop_human_test()
             elif kind in ("agent_mode", "agent_approve", "diagnose_now") and self.operator_mode == "human":
                 return {"ok": False, "summary": "agents are off in human-operator mode; switch to Agents first"}
-            elif kind == "campaign_start":
-                return await self.start_campaign(msg)
-            elif kind == "campaign_stop":
-                return await self.stop_campaign("stopped by operator")
             elif kind in self.command_handlers:
                 return await self.command_handlers[kind](msg)
             else:
@@ -405,7 +397,7 @@ class PlantService:
                     end if end is not None else t + 0.25, mode, value))
                 text = f"{DISTURBANCES[target]} {label}"
             elif kind == "actuator":
-                # The console sends severity_pct; campaigns may give absolute values instead.
+                # The console sends severity_pct; the fault library gives absolute values instead.
                 target, mode, frac = m["target"], m.get("mode", "freeze"), float(m.get("severity_pct", 50)) / 100
                 kw: dict = dict(name=f"manual_{target}_{mode}_{stamp}", target=target, start_h=t, end_h=end, mode=mode)
                 if mode in ("capacity", "capacity_ramp"):
@@ -513,148 +505,6 @@ class PlantService:
             return {"human_test": None}
         return self.human_test.status()
 
-    # ------------------------------------------------------------ fault campaigns
-    async def start_campaign(self, msg: dict) -> dict:
-        from .campaigns import build_campaign
-        random_kw = {k: msg[k] for k in ("seed", "n", "gap_min", "duration_min") if k in msg}
-        name, items = build_campaign(msg.get("campaign", "demo"), **random_kw)
-        tail = float(msg.get("tail_min", 30))
-        last = max(it["at_min"] + (it.get("duration_min") or 20) for it in items)
-        if msg.get("load", True):
-            waits = float(msg.get("max_wait_min", 45.0)) * len(items) if msg.get("wait_for_normal", True) else 0.0
-            horizon = max(float(msg.get("horizon_min", 0)), last + tail + waits + 5)
-            await self.load({"scenario": msg.get("scenario", "nominal"), "horizon_min": horizon})
-        t0 = self.status()["time_min"]
-        obs = self.env.observation()
-        baseline = {"throughput_target": obs["throughput_target_kmol_h"],
-                    "setpoints": {k: v["setpoint"] for k, v in obs["controllers"].items()},
-                    "modes": {k: v["mode"] for k, v in obs["controllers"].items()},
-                    "auxiliary_commands": dict(obs["auxiliaries"])}
-        self.campaign = {"name": name, "t0": t0, "tail_min": tail, "state": "running",
-                         "restore": bool(msg.get("restore", True)), "baseline": baseline,
-                         "wait_for_normal": bool(msg.get("wait_for_normal", True)),
-                         "settle_min": float(msg.get("settle_min", 3.0)), "max_wait_min": float(msg.get("max_wait_min", 45.0)),
-                         "started": datetime.now().isoformat(timespec="seconds"),
-                         "items": [{**it, "due_min": t0 + it["at_min"], "status": "pending"} for it in items]}
-        await self.broadcast({"type": "campaign", **self.campaign_status()})
-        await self.notify(f"[campaign] {name}: {len(items)} injections scheduled from t={t0:.1f} min", "warn")
-        if msg.get("run", True):
-            self.set_running(True)
-        return {"ok": True, "summary": f"campaign {name} started ({len(items)} injections)"}
-
-    async def _campaign_due(self) -> None:
-        c = self.campaign
-        if not c or c["state"] != "running" or self.env is None:
-            return
-        now = 60.0 * self.env.t_h
-        first_pending = next((it for it in c["items"] if it["status"] == "pending"), None)
-        if (first_pending is not None and c["wait_for_normal"] and now + 1e-9 >= first_pending["due_min"]
-                and now < first_pending["due_min"] + c["max_wait_min"] and not self._plant_settled(now, c["settle_min"])):
-            # Hold the next injection until the plant is back to normal, so faults do not overlap.
-            if not first_pending.get("waiting"):
-                first_pending["waiting"] = True
-                await self.notify(f"[campaign] holding {first_pending['label']} until the plant settles", "info")
-                if c["restore"]:  # undo anything the agents changed during the recovery gap
-                    await self.apply_action(SupervisoryAction(**c["baseline"], note="campaign_restore"),
-                                            source="campaign restore")
-                await self.broadcast({"type": "campaign", **self.campaign_status()})
-            first_pending = None
-        for it in c["items"]:
-            if it["status"] == "pending" and it is first_pending and now + 1e-9 >= it["due_min"] and not self.env.done:
-                late = now - it["due_min"]
-                if late > 0.25:  # shift the rest of the schedule by the time spent waiting
-                    for later in c["items"]:
-                        if later is not it and later["status"] == "pending":
-                            later["due_min"] += late
-                it["waiting"] = False
-                params = {k: v for k, v in it.items() if k not in ("at_min", "due_min", "status", "label", "name")}
-                try:
-                    await self._inject(params)
-                    it.update(status="active", injected_min=now,
-                              end_min=None if not it.get("duration_min") else now + float(it["duration_min"]))
-                except Exception as exc:
-                    it.update(status="failed", error=str(exc))
-                await self.broadcast({"type": "campaign", **self.campaign_status()})
-            elif it["status"] == "active" and it.get("end_min") is not None and now + 1e-9 >= it["end_min"]:
-                it["status"] = "cleared"
-                await self.notify(f"[campaign] {it['label']} cleared", "info")
-                if c["restore"]:
-                    # Like a shift operator after an incident: put back the settings the campaign
-                    # started with and reset SIF latches, so each fault starts from the same point.
-                    await self.apply_action(SupervisoryAction(**c["baseline"], note="campaign_restore"),
-                                            source="campaign restore")
-                    nxt = [x["due_min"] for x in c["items"] if x["status"] == "pending"]
-                    c["recover_until"] = min(nxt, default=now + c["tail_min"])
-                await self.broadcast({"type": "campaign", **self.campaign_status()})
-        if (c["restore"] and now < c.get("recover_until", -1.0)
-                and self.env.last_safety_result.latched_causes and not self._pending_reset_sif):
-            # SIFs only clear once their variable is back inside the reset band, so keep asking.
-            self._pending_reset_sif = True
-        pending = [it for it in c["items"] if it["status"] == "pending"]
-        ends = [it.get("end_min") or it.get("injected_min", 0.0) for it in c["items"]]
-        if self.env.done or (not pending and now >= max(ends, default=now) + c["tail_min"]):
-            await self.stop_campaign("episode ended" if self.env.done else "complete")
-
-    def _plant_settled(self, now: float, settle_min: float) -> bool:
-        """Monitoring agent reported normal for the last ``settle_min`` (True if agents are off)."""
-        if not self.monitor:
-            return True
-        recent = [m for m in self.monitor if m["time_min"] >= now - settle_min - 1e-9]
-        span_ok = self.monitor[0]["time_min"] <= now - settle_min + 1e-9
-        return span_ok and bool(recent) and not any(m["fault"] for m in recent)
-
-    async def stop_campaign(self, reason: str) -> dict:
-        c = self.campaign
-        if not c or c["state"] != "running":
-            return {"ok": False, "summary": "no campaign running"}
-        c["state"] = reason
-        report = self.campaign_report()
-        saved = ""
-        if self.campaign_dir is not None:
-            self.campaign_dir.mkdir(parents=True, exist_ok=True)
-            path = self.campaign_dir / f"{c['name']}_{datetime.now():%Y%m%d_%H%M%S}.json"
-            path.write_text(json.dumps(jsonable({"campaign": c, "report": report, "agent_log": list(self.agent_log),
-                                                 "messages": list(self.messages)}), indent=1), encoding="utf-8")
-            c["report_path"] = str(path)
-            saved = f"; report saved to {path.name}"
-        if reason == "complete":
-            self.set_running(False)
-        await self.broadcast({"type": "campaign", **self.campaign_status()})
-        await self.notify(f"[campaign] {c['name']} {reason}{saved}", "warn")
-        return {"ok": True, "summary": f"campaign {reason}", "report": report}
-
-    def campaign_report(self) -> list[dict]:
-        """Per injection: detection delay, first hypotheses, plan target, first agent action."""
-        c = self.campaign or {"items": []}
-        injected = [it for it in c["items"] if "injected_min" in it]
-        rows = []
-        for i, it in enumerate(injected):
-            t0 = it["injected_min"]
-            t1 = injected[i + 1]["injected_min"] if i + 1 < len(injected) else math.inf
-            window = lambda e: t0 <= e.get("time_min", -1.0) < t1
-            before = [m for m in self.monitor if m["time_min"] < t0]
-            carry_over = bool(before) and before[-1]["fault"]  # plant already abnormal at injection
-            mon = [m for m in self.monitor if window(m) and m["fault"]] if not carry_over else []
-            acts = [a for a in self.agent_log if window(a) and a.get("stage") in ("applied", "pending")]
-            plans = [a for a in self.agent_log if window(a) and a.get("stage") == "plan"]
-            hyps = [h["fault"] for h in mon[0]["diagnosis"]["hypotheses"]] if mon else []
-            rows.append({"fault": it["name"], "kind": it["kind"], "injected_min": t0, "carry_over": carry_over,
-                         "detected": bool(mon), "detection_delay_min": mon[0]["time_min"] - t0 if mon else None,
-                         "first_hypotheses": hyps[:3], "top1_correct": bool(hyps) and hyps[0] == it["name"],
-                         "top3_correct": it["name"] in hyps[:3],
-                         "plan_target": plans[0]["brief"].get("target_fault") if plans else None,
-                         "first_action": (acts[0].get("plan") or {}).get("commands") if acts else None,
-                         "action_delay_min": acts[0]["time_min"] - t0 if acts else None})
-        return rows
-
-    def campaign_status(self) -> dict:
-        c = self.campaign
-        if not c:
-            return {"campaign": None}
-        keys = ("label", "name", "kind", "due_min", "duration_min", "status", "injected_min", "end_min", "error", "waiting")
-        return {"campaign": {"name": c["name"], "t0": c["t0"], "state": c["state"], "started": c["started"],
-                             "report_path": c.get("report_path"),
-                             "items": [{k: it.get(k) for k in keys} for it in c["items"]]}}
 
     # ------------------------------------------------------------ views
     def status(self) -> dict:
@@ -734,7 +584,7 @@ class PlantService:
         }
 
     def meta(self) -> dict:
-        return {"scenarios": SCENARIOS,
+        return {"scenarios": CONSOLE_SCENARIOS,
                 "loops": {k: {"sp_min": v.sp_min, "sp_max": v.sp_max, "sp_unit": v.sp_unit,
                               "mv_unit": v.mv_unit, "pv_tag": v.pv_tag}
                           for k, v in self.env.controllers.LOOP_SPECS.items()},
@@ -751,12 +601,11 @@ class PlantService:
                                "sensor_targets": SENSOR_TARGETS, "process_faults": PROCESS_FAULTS}}
 
     def hello(self) -> dict:
-        from .campaigns import CAMPAIGNS, FAULT_LIBRARY
+        from .fault_library import FAULT_LIBRARY
         from .human_test import scenario_list
         out = {"api_version": API_VERSION,
-               "meta": {**self.meta(), "campaigns": {k: v["description"] for k, v in CAMPAIGNS.items()},
-                        "fault_library": sorted(FAULT_LIBRARY), "human_scenarios": scenario_list()},
-               **self.campaign_status(), **self.human_test_status(), "snapshot": self.snapshot(), "trend": list(self.trend),
+               "meta": {**self.meta(), "fault_library": sorted(FAULT_LIBRARY), "human_scenarios": scenario_list()},
+               **self.human_test_status(), "snapshot": self.snapshot(), "trend": list(self.trend),
                "monitor": list(self.monitor), "agent_log": list(self.agent_log),
                "messages": list(self.messages)}
         for extra in self.hello_extras:

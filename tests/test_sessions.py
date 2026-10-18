@@ -7,7 +7,6 @@ import os
 import unittest
 from unittest import mock
 
-from operaitor.server import sessions as S
 from operaitor.server.sessions import SessionManager, Settings
 
 
@@ -60,31 +59,6 @@ class SessionTests(unittest.TestCase):
                 self.assertIsNone(s.service.hello()["session"]["llm"]["key_source"])
                 await m.stop()
         asyncio.run(run())
-
-    def test_endpoint_checks_without_network(self):
-        from operaitor.agents.providers import check_endpoint, check_public_url, endpoint_for
-
-        class Resp:
-            status_code = 401
-
-        class Client:
-            def __init__(self, *a, **k): pass
-            async def __aenter__(self): return self
-            async def __aexit__(self, *a): return False
-            async def get(self, *a, **k): return Resp()
-
-        with mock.patch("httpx.AsyncClient", Client):
-            ok, reason = asyncio.run(check_endpoint(endpoint_for("groq", "m", "bad-key"), public=True))
-        self.assertFalse(ok)
-        self.assertIn("401", reason)
-        # a public server must not be pointed at private / loopback addresses (SSRF)
-        self.assertIsNotNone(check_public_url("http://example.org"))          # not https
-        self.assertIsNotNone(check_public_url("https://127.0.0.1:11434"))
-        self.assertIsNotNone(check_public_url("https://192.168.1.10"))
-        ok, reason = asyncio.run(check_endpoint(endpoint_for("ollama", "qwen3:8b", url="https://10.0.0.5"), public=True))
-        self.assertFalse(ok)
-        self.assertIn("private", reason)
-
 
 if __name__ == "__main__":
     unittest.main()

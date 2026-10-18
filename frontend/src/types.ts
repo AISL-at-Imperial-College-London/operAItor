@@ -101,7 +101,6 @@ export interface HumanTest {
 
 export interface Meta {
   scenarios: string[];
-  campaigns?: Record<string, string>;
   fault_library?: string[];
   human_scenarios?: HumanScenario[];
   loops: Record<string, { sp_min: number; sp_max: number; sp_unit: string; mv_unit: string; pv_tag: string }>;
@@ -250,16 +249,6 @@ export interface LlmUsage { calls: number; input_tokens: number; output_tokens: 
 
 export interface Message { type: "message"; level: "info" | "warn" | "error"; text: string; time_min: number }
 
-export interface CampaignItem {
-  label: string; name: string; kind: string; due_min: number; duration_min: number | null;
-  status: "pending" | "active" | "cleared" | "failed"; injected_min?: number | null; end_min?: number | null; error?: string | null;
-  waiting?: boolean;
-}
-
-export interface Campaign {
-  name: string; t0: number; state: string; started: string; report_path: string | null; items: CampaignItem[];
-}
-
 export interface ChatMessage { role: "user" | "assistant"; text: string; tools?: string[]; pending?: boolean; id?: number }
 
 export interface Hello {
@@ -271,7 +260,6 @@ export interface Hello {
   agent_log: AgentEvent[];
   messages: Message[];
   agent?: AgentInfo;
-  campaign?: Campaign | null;
   human_test?: HumanTest | null;
   chat?: { mode: string; model?: string | null };
   session?: SessionInfo;
@@ -291,6 +279,8 @@ export interface SessionInfo {
   bench?: BenchStatus | null;
   /** The desktop app (Windows / macOS / Linux): the console can quit it. */
   desktop?: boolean;
+  /** For bug reports (no secrets). */
+  server?: { version: string; install: string; system: string; machine: string; python: string };
 }
 
 /** A pipeline benchmark: benchmark scenarios replayed with the published scoring (server/pipeline_bench.py). */

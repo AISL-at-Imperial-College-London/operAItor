@@ -136,10 +136,6 @@ class IntegratedPlantDAE:
             drum_leak_flow=u.drum_liquid_leak_kmol_h,
         )
 
-    def ida_residual(self, t, y, ydot, result, inputs: Optional[PlantInputs] = None):
-        result[:] = self.residual(t, y, ydot, inputs)
-        return 0
-
     def residual(self, t: float, state: np.ndarray, state_dot: np.ndarray,
                  inputs: Optional[PlantInputs] = None) -> np.ndarray:
         u = self.default_inputs() if inputs is None else inputs
@@ -173,18 +169,6 @@ class IntegratedPlantDAE:
 
     def initial_guess(self, inputs: Optional[PlantInputs] = None) -> np.ndarray:
         return self.nominal_state(inputs)
-
-    def solve_open_loop_steady_state(self, inputs: Optional[PlantInputs] = None,
-                                     guess: Optional[np.ndarray] = None,
-                                     max_nfev: int = 6000):
-        u = self.default_inputs() if inputs is None else inputs
-        y0 = self.initial_guess(u) if guess is None else np.asarray(guess, dtype=float)
-        z = np.zeros_like(y0)
-        return least_squares(
-            lambda yy: self.scaled_residual(0.0, yy, z, u),
-            y0, x_scale="jac", max_nfev=max_nfev,
-            ftol=1e-12, xtol=1e-12, gtol=1e-12,
-        )
 
     def backward_euler_step(self, y_old: np.ndarray, dt_h: float,
                             inputs: Optional[PlantInputs] = None,

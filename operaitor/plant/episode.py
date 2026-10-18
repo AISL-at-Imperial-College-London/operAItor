@@ -38,10 +38,6 @@ class EpisodeTiming:
         return self.plant_step_min / 60.0
 
     @property
-    def decision_interval_h(self) -> float:
-        return self.decision_interval_min / 60.0
-
-    @property
     def control_interval_h(self) -> float:
         return self.control_interval_min / 60.0
 

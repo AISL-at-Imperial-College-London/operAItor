@@ -262,6 +262,37 @@ def test_quit_only_stops_the_desktop_app():
         del A.app.state.quit
 
 
+def test_the_console_offers_only_what_it_can_use(client):
+    """New episode offers the three episode types; removed commands (campaigns, server-side keys) are refused."""
+    with client() as c, c.websocket_connect("/ws") as ws:
+        hello = ws.receive_json()
+        assert hello["meta"]["scenarios"] == ["nominal", "variability", "surprise"]
+        assert "campaigns" not in hello["meta"] and "campaign" not in hello
+        assert len(hello["meta"]["human_scenarios"]) == 20 and "reflux_pump_trip" in hello["meta"]["fault_library"]
+        for gone in ("campaign_start", "campaign_stop", "set_api_key"):
+            ws.send_json({"type": gone, "key": "sk-x"})
+            assert _ack(ws, gone)["ok"] is False
+        ws.send_json({"type": "set_llm", "provider": "groq", "model": "m", "key": "gsk-x"})  # a key, not via the browser
+        assert "never receives API keys" in _ack(ws, "set_llm")["summary"]
+
+
+def test_bug_reports_get_server_facts_but_no_secrets(client):
+    from operaitor import __version__
+    with client() as c, c.websocket_connect("/ws") as ws:
+        info = ws.receive_json()["session"]["server"]
+        assert info["version"] == __version__ and info["install"] == "website"   # a public server
+        assert info["system"] and info["python"]
+        assert not {"key", "api_key", "env", "path"} & set(info)
+
+
+def test_a_single_fault_episode_still_loads_for_scripts(client):
+    """The single-fault episodes left the console menu, not the server (tests and scripts load them)."""
+    with client() as c, c.websocket_connect("/ws") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "load", "scenario": "reflux_pump_trip", "horizon_min": 10})
+        assert _ack(ws, "load")["ok"] is True
+
+
 def test_chat_runs_through_the_browser_with_tools(client):
     """The chat assistant's model calls (including a tool call) go to the browser and back; no key travels."""
     with client() as c, c.websocket_connect("/ws") as ws:

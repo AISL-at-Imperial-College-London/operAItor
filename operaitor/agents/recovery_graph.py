@@ -781,7 +781,7 @@ def build_recovery_graph(ctx: RunContext):
                       f"{wait:.0f} min, at t={t_obs + wait:.1f}")
         else:
             wait, reason = None, ""
-        ctx.monitor.mark_acted(t_obs, state["diagnosis"]["summary"], wait)
+        ctx.monitor.mark_acted(t_obs, wait)
         if wait:
             await emit({"event": "verification", "t": t_obs, "until": t_obs + wait, "reason": reason})
         try:
@@ -825,7 +825,7 @@ def build_recovery_graph(ctx: RunContext):
                                       "time unsafe)", "n_safe": len(better), "key": best["key"],
                             "baseline_key": base["key"] if base else None})
                 return {"plan": best["plan"], "action": best["action"], "outcome": "mitigation"}
-        ctx.monitor.mark_acted(state["detection"]["time_min"], state["diagnosis"]["summary"])
+        ctx.monitor.mark_acted(state["detection"]["time_min"])
         await emit({"event": "reject", "t": state["detection"]["time_min"],
                     "reason": state["evaluation"].get("fail_reason")})
         await end_decision()

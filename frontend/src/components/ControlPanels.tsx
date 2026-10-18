@@ -140,62 +140,6 @@ export function OperatorPanel() {
   );
 }
 
-function CampaignSection() {
-  const meta = usePlant((s) => s.meta);
-  const campaign = usePlant((s) => s.campaign);
-  const snap = usePlant((s) => s.snap);
-  const [name, setName] = useState("demo");
-  const [rnd, setRnd] = useState({ seed: 0, n: 4, gap_min: 25, duration_min: 15 });
-  const presets = Object.entries(meta?.campaigns ?? {});
-  const running = campaign?.state === "running";
-  const start = () => send({ type: "campaign_start", campaign: name, scenario: "nominal",
-                              ...(name === "random" ? rnd : {}) });
-  return (
-    <details className="sub">
-      <summary>Fault campaign <span className="dim small">scripted sequence of faults</span></summary>
-      <div className="row">
-        <Field label="Campaign">
-          <Select value={name} onChange={setName}
-            options={[...presets.map(([k, d]) => [k, `${k} — ${d}`] as [string, string]), ["random", "random — seeded sequence"]]} />
-        </Field>
-      </div>
-      {name === "random" && (
-        <div className="row">
-          <Field label="Seed"><Num value={rnd.seed} onChange={(v) => setRnd({ ...rnd, seed: v })} /></Field>
-          <Field label="Faults"><Num value={rnd.n} onChange={(v) => setRnd({ ...rnd, n: v })} /></Field>
-          <Field label="Gap [min]"><Num value={rnd.gap_min} onChange={(v) => setRnd({ ...rnd, gap_min: v })} /></Field>
-          <Field label="Duration [min]"><Num value={rnd.duration_min} onChange={(v) => setRnd({ ...rnd, duration_min: v })} /></Field>
-        </div>
-      )}
-      <div className="row">
-        <button className="btn danger" onClick={start} title="Loads a fresh nominal episode and starts the plant">
-          {running ? "Restart campaign" : "Start campaign"}
-        </button>
-        {running && <button className="btn" onClick={() => send({ type: "campaign_stop" })}>Stop &amp; report</button>}
-      </div>
-      {campaign && (
-        <div className="campaign">
-          <div className="kv-line"><b>{campaign.name}</b> <span className={`pill ${running ? "pill-warn" : "pill-ok"}`}>{campaign.state}</span></div>
-          {campaign.items.map((it, i) => {
-            const due = it.due_min - (snap?.time_min ?? 0);
-            return (
-              <div key={i} className="kv-line small">
-                <span className={`pill ${it.status === "active" ? "pill-bad" : it.status === "cleared" ? "pill-ok" : ""}`}>{it.status}</span>{" "}
-                {it.label} <span className="dim">@ {it.due_min.toFixed(1)} min
-                  {it.status === "pending" && it.waiting ? " (waiting for the plant to settle)" : ""}
-                  {it.status === "pending" && !it.waiting && due > 0 ? ` (in ${due.toFixed(1)})` : ""}
-                  {it.duration_min ? `, ${it.duration_min} min` : ", persistent"}</span>
-                {it.error && <span className="alm-unack"> {it.error}</span>}
-              </div>
-            );
-          })}
-          {campaign.report_path && <div className="dim small">Report: <code>{campaign.report_path.split(/[\/]/).pop()}</code></div>}
-        </div>
-      )}
-    </details>
-  );
-}
-
 type Kind = "pump" | "actuator" | "sensor" | "process" | "disturbance";
 // Default sensor bias in engineering units: [bias, unit]. Large enough to matter, small enough to be plausible.
 const SENSOR_BIAS: Record<string, [number, string]> = {
@@ -292,7 +236,6 @@ export function FaultsPanel() {
           </details>
         )}
       </section>
-      <CampaignSection />
     </div>
   );
 }

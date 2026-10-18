@@ -1,4 +1,4 @@
-import { navigate, send, usePlant } from "../store";
+import { navigate, usePlant } from "../store";
 import type { Snapshot } from "../types";
 import { Overview } from "./Overview";
 
@@ -83,7 +83,6 @@ function ActiveAlarms({ snap, onAll }: { snap: Snapshot; onAll: () => void }) {
     <section className="card alarm-strip">
       <h3>Active alarms <span className="dim">({active.length})</span>
         <span className="spacer" />
-        <button className="btn sm" onClick={() => send({ type: "ack_all" })}>Acknowledge all</button>
         <button className="btn sm ghost" onClick={onAll}>All alarms →</button></h3>
       <ul className="alarm-list">
         {active.slice(0, 6).map((a) => (

@@ -20,7 +20,8 @@
 > **Beta.** The plant is a process surrogate: its physics are checked in CI (conservation, numerics,
 > thermodynamics, fault responses) and its simplifications are listed in the
 > [model scope](docs/plant-model.md#model-scope-and-known-simplifications-beta). Something odd in the physics or
-> the workflow? [Report it](https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new/choose).
+> the workflow? Use **Feedback** in the console's header (it fills in a GitHub issue with the version and plant
+> state), or [report it here](https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new/choose).
 
 A simulated chemical plant you can run in the browser, break on purpose, and watch AI agents try
 to recover. It has fault detection, safety functions, and LLM agents whose actions are checked
@@ -172,7 +173,7 @@ benchmark_results/   campaign results and logs
 ```
 
 **Documentation:**
-- [docs/architecture.md](docs/architecture.md): agents, console and campaigns.
+- [docs/architecture.md](docs/architecture.md): agents, console, human test and benchmark.
 - [docs/pipelines.md](docs/pipelines.md): baseline and custom agent pipelines (settings, prompts, knowledge graph).
 - [docs/plant-model.md](docs/plant-model.md): equations, control, SIFs and faults.
 - [docs/admit.md](docs/admit.md): ADMIT integration.

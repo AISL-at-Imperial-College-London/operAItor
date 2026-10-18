@@ -47,14 +47,14 @@ class HumanTest:
     scenario, the benchmark reports."""
 
     def __init__(self, service: "PlantService", sid: str, blind: bool, random_pick: bool, who: str = "human"):
-        from operaitor.server.campaigns import FAULT_LIBRARY
+        from operaitor.server.fault_library import fault_params
         self.service, self.sid, self.blind, self.random_pick = service, sid, blind, random_pick
         self.who = who
         scn = BY_ID[sid]
         self.sched, self.window = schedule(sid)
         self.injections = []
         for i, f in enumerate(scn["faults"]):
-            params = {k: v for k, v in FAULT_LIBRARY[f["fault"]].items() if k != "vary"}
+            params = fault_params(f["fault"])
             params.update({k: v for k, v in f.items() if k not in ("fault", "at_min")})
             lift = self.sched[i]["lift_min"]
             params["duration_min"] = 0 if lift is None else lift - self.sched[i]["onset_min"]

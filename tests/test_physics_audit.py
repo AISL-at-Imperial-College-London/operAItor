@@ -105,14 +105,14 @@ def test_thermodynamics_match_real_acetone_and_ipa():
 
 def _fault(fault: str, minutes: float = 25.0):
     async def run():
-        from operaitor.server.campaigns import FAULT_LIBRARY
+        from operaitor.server.fault_library import fault_params
         from operaitor.server.plant_service import PlantService
         s = PlantService()
         await s.load({"scenario": "nominal", "horizon_min": minutes + 5, "stop_on_trip": False})
         await s.step(2.0)
         view = lambda: {**s.env.plant.measurements(s.env.y), **s.env.plant.operating_summary(s.env.y, s.env.last_actual)}  # noqa: E731
         before = view()
-        await s._inject({k: v for k, v in FAULT_LIBRARY[fault].items() if k != "vary"})
+        await s._inject(fault_params(fault))
         trip = None
         for _ in range(int(minutes / 0.5)):
             await s.step(0.5)

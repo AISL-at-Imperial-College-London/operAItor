@@ -65,9 +65,6 @@ class OutcomeEvaluator:
         self._safe_trip_dwell_h = 0.0
         self._abnormal_seen = False
 
-    def mark_abnormal(self) -> None:
-        self._abnormal_seen = True
-
     def numerical_failure(self, t_h: float, reason: str) -> OutcomeState:
         self.state.status = EpisodeStatus.NUMERICAL_FAILURE
         self.state.reason = reason

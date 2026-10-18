@@ -97,7 +97,6 @@ class MonitorMemory:
     consecutive_pca: int = 0
     consecutive_spe: int = 0
     last_action_min: float | None = None
-    last_signature: str | None = None
     wait_until_min: float | None = None   # verification window: twin-predicted recovery time
     handled_trains: set[str] = field(default_factory=set)
     pending_trains: set[str] = field(default_factory=set)
@@ -113,7 +112,6 @@ class MonitorMemory:
     def reset(self) -> None:
         self.consecutive_pca = 0
         self.last_action_min = None
-        self.last_signature = None
         self.wait_until_min = None
         self.handled_trains.clear()
         self.pending_trains.clear()
@@ -234,11 +232,10 @@ class MonitoringAgent:
             detection["custom_detectors"] = custom
         return {"detection": detection, "diagnosis": diagnosis}
 
-    def mark_acted(self, time_min: float, signature: str, wait_min: float | None = None) -> None:
+    def mark_acted(self, time_min: float, wait_min: float | None = None) -> None:
         """Record an action; ``wait_min`` = expected recovery time (verification window)."""
         mem = self.memory
         mem.last_action_min = time_min
-        mem.last_signature = signature
         mem.wait_until_min = time_min + wait_min if wait_min else None
         mem.handled_trains |= mem.pending_trains
         mem.handled_p1 |= mem.pending_p1
