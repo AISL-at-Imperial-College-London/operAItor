@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { quitApp, send, usePlant } from "../store";
+import { FeedbackDialog } from "./Feedback";
 import type { Snapshot } from "../types";
 
 export type Tab = "plant" | "trends" | "agents" | "alarms";
@@ -101,6 +102,7 @@ export function Header({ tab, onTab, drawer, onDrawer }:
   const last = usePlant((s) => s.lastMonitor);
   const pipeline = usePlant((s) => s.pipeline);
   const desktop = usePlant((s) => !!s.session?.desktop);
+  const [feedback, setFeedback] = useState(false);
 
   const unack = snap?.alarms.filter((a) => a.state.endsWith("UNACK")).length ?? 0;
   const active = snap?.alarms.filter((a) => a.state.startsWith("ACTIVE")).length ?? 0;
@@ -151,8 +153,11 @@ export function Header({ tab, onTab, drawer, onDrawer }:
           <button key={d.id} className={`btn ${drawer === d.id ? "on" : ""}`} aria-pressed={drawer === d.id} title={d.title}
             onClick={() => onDrawer(d.id)}>{d.label}</button>
         ))}
+        <button className="btn ghost" title="Report a bug or give feedback (opens a GitHub issue, filled in)"
+          onClick={() => setFeedback(true)}>Feedback</button>
         {desktop && <button className="btn ghost" title="Stop OperAItor on this computer" onClick={quitApp}>Quit OperAItor</button>}
       </div>
+      {feedback && <FeedbackDialog onClose={() => setFeedback(false)} />}
     </header>
   );
 }

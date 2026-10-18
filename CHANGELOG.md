@@ -13,6 +13,16 @@
   without chemical equilibrium; the condenser vapour has no composition state). The plant model itself is
   unchanged, so the reference runs stay reproducible.
 - Issue forms for physics and app bugs, and `CONTRIBUTING.md`.
+- **Feedback** in the console's header: report a bug (app or physics) or give feedback. It opens a GitHub issue
+  filled in with the version, how OperAItor runs (desktop app, Docker, pip, website), the pipeline, the model
+  (never the key) and the plant state; or copy / download the report. Issue forms gain a diagnostics field, a
+  "help fix it" box, and a feedback form; `CONTRIBUTING.md` explains picking up `help wanted` issues.
+- Clean-up: the console offers only what it can use. New episode lists normal, with disturbances and surprise
+  (the single-fault episodes stay loadable by scripts); live fault campaigns are gone (the pipeline benchmark and
+  the human test replace them; the fault library is `server/fault_library.py`); the Plant tab's alarm card links
+  to the Alarms tab instead of repeating its button; the ADMIT card shows only when ADMIT checks the actions.
+- The server no longer accepts API keys at all (`set_api_key` and the server-side key path are gone; the browser
+  always makes the model calls), and 13 unused functions are removed.
 - Fix: with the agents running on this computer's Ollama (picked by the server when it has no API key), the
   console offered no way to connect Groq, Gemini, OpenRouter or OpenAI. **Use another provider** on the connected
   card opens the provider form.

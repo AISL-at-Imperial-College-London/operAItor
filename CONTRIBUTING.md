@@ -1,6 +1,9 @@
 # Contributing to OperAItor
 
-OperAItor is in **beta**. The most useful contributions right now are reports of anything that looks wrong:
+OperAItor is in **beta**. The most useful contributions right now are reports of anything that looks wrong.
+The quickest way is **Feedback** in the console's header (the desktop app, Docker, pip and the website all have
+it): it opens a GitHub issue filled in with the version, how OperAItor runs, the pipeline and the plant state
+(never an API key). No GitHub account? Copy or download the report there instead.
 
 - **Physics or process behaviour** ([report](https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new?template=physics.yml)):
   a balance that does not close, a response a real process would not show, a trip or a limit in the wrong place.
@@ -11,6 +14,12 @@ OperAItor is in **beta**. The most useful contributions right now are reports of
 - **Your pipeline's results.** If you benchmark a pipeline of your own, open an issue with the exported pipeline
   file (`.operaitor-pipeline.json`) and the benchmark report. Comparisons on the same faults are what make the
   benchmark useful.
+
+## Fixing an issue
+
+Issues labelled [`help wanted`](https://github.com/AISL-at-Imperial-College-London/operAItor/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+are ready for someone to pick up; reporters can tick "I would like to work on a fix". Comment on the issue to
+say you're on it, then open a pull request to `dev` that links it (`Fixes #123`).
 
 ## Changing the code
 

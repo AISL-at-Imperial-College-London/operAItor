@@ -227,3 +227,15 @@ test("customising is one click away from the agent settings", async ({ page }) =
   await expect(section.locator(".pl-list").first()).toBeInViewport();
   await expect(section.locator(":scope > summary")).toContainText("Customise the agents");
 });
+
+test("the console offers only what it can use", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /New episode/ }).click();
+  const options = page.locator(".menu-pop select").first().locator("option");
+  await expect(options).toHaveText(["Normal operation", "Normal operation with disturbances", "Surprise (hidden faults)"]);
+  await page.getByRole("button", { name: /New episode/ }).click();
+  await page.locator(".drawer-buttons button", { hasText: "Faults" }).click();
+  const panel = page.locator(".panel-body").filter({ hasText: "Inject a fault" });
+  await expect(panel.getByRole("button", { name: "Inject", exact: true })).toBeVisible();
+  await expect(page.getByText("Fault campaign")).toHaveCount(0);
+});

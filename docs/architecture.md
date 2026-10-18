@@ -1,10 +1,10 @@
-# Agents, fault campaigns and web console
+# Agents, scored fault scenarios and web console
 
 ```
  React console (frontend/) ──WebSocket /ws──► FastAPI (operaitor/server/app.py)
                                                    │
                                   PlantService (operaitor/server/plant_service.py)
-                       owns EpisodeRunner · steps it on a worker thread · campaign scheduler
+                       owns EpisodeRunner · steps it on a worker thread · human test / benchmark
                          │ latest observation                       ▲ apply_action (locked)
                          ▼                                          │
             AsyncSupervisor (operaitor/agents/supervisor.py) runs the recovery LangGraph:
@@ -42,7 +42,8 @@ In the console:
 - **Plant** tab: process graphic with all safety functions, key variables, control loops, active alarms.
 - **Trends**, **Agents** (pipeline, current decision, fault detection, ADMIT trace, timeline), **Alarms** (active alarms + event log).
 - Header buttons open a side panel: **Operate** (operator actions), **Assistant** (chat, OpenAI key,
-  agent configuration), **Faults** (inject a fault, fault campaigns). **Episode** sets up a new episode.
+  agent configuration), **Faults** (inject a fault). **New episode** starts a fresh plant (normal, with disturbances,
+  or with hidden faults).
 
 ### Watching the agents (Agents tab)
 
@@ -91,10 +92,10 @@ In the console:
 
   Untick the box to run the plant and agents fully concurrently (the async
   setting studied in the paper).
-- **Episode length.** Episodes default to 360 min (top-bar horizon), and
-  campaigns keep running 30 min after the last fault.
+- **Episode length.** Episodes default to 360 min (top-bar horizon); a benchmark scenario runs for its scoring
+  window.
 
-Without `langgraph` the server still starts. The plant, console, campaigns and
+Without `langgraph` the server still starts. The plant, console, human test and
 offline chat work; the agents show as offline.
 
 ### OpenAI
@@ -142,31 +143,21 @@ operaitor serve --port 9000
   (LLM planning agent too), `llm_nokg`, `llm_notwin`.
 - **Models:** `gpt*` / `o*` names use langchain-openai; any other name uses a local Ollama.
 
-## Fault campaigns (automated injection)
+## Scored fault scenarios
 
-Start a campaign from the console (**Faults** panel → Fault campaign); presets: `demo`, `random`,
-`reprompt_demo`, and more in `operaitor/server/campaigns.py`.
+Every named fault is in the fault library, `operaitor/server/fault_library.py` (`FAULT_LIBRARY`). Its names are the
+knowledge graph's fault modes and the diagnosis vocabulary, so a fault can be injected, diagnosed and scored under
+one name. The 20 benchmark scenarios (`operaitor/benchmark/profit_campaign.py`) combine these faults with fixed
+onset and lift times, and are replayed in the console in two ways, with the benchmark's schedule, shift operator and
+score (`operaitor/server/human_test.py`):
 
-A campaign is a timed list of injections from `operaitor/server/campaigns.py`
-(`FAULT_LIBRARY`). Its fault names are the KG fault-mode names, so each run can
-be scored. By default:
+- **Human test** (Operate panel): a person answers one scenario, optionally blind, and is ranked against the
+  reference runs.
+- **Pipeline benchmark** (Agents → Customise the agents → Benchmark): the running pipeline answers 3, 20 or one
+  scenario, each scored next to the reference runs ([pipelines.md](pipelines.md)).
 
-- **After each fault clears:** the campaign restores the operator settings it
-  started with and keeps requesting a SIF reset. A latch only clears once its
-  variable is back inside the reset band.
-- **Before the next injection:** the campaign waits until the monitoring agent
-  has reported normal for 3 min (at most 45 min). Later injections shift by the
-  same amount.
-
-At the end, `campaign_results/<name>_<timestamp>.json` holds the schedule, a
-per-fault report and the full agent log. The report gives, for each fault:
-detection delay, top-1/top-3 diagnosis, the planning agent's target, and the
-first action. A fault injected while the plant was still abnormal is marked
-**carry-over** and left out of the scores.
-
-
-The plant needs more than 45 min to settle after the outlet fault, so the
-condenser fault started while it was still abnormal.
+Reports go to the campaign folder (`PLANT_CAMPAIGN_DIR`, `campaign_results/` by default; none on a public server).
+The **Faults** panel injects single faults by hand.
 
 ## The agents
 
@@ -264,7 +255,7 @@ Regenerate the table and coverage report with `python -m operaitor.agents.kg_map
 ## Normal disturbances
 
 Disturbances are physical steps (`DISTURBANCE_STEPS` in `operaitor/plant/scenario.py`).
-The console, the campaigns and the random scenario generator all use them:
+The console, the benchmark scenarios and the random scenario generator all use them:
 
 | Variable | Step |
 |---|---|

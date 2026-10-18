@@ -34,8 +34,8 @@ Your pipelines are kept in this browser, like your LLM key; the server keeps the
 your session only. **Export** saves a pipeline as a `.operaitor-pipeline.json` file, to share or keep;
 **Import** loads one. Pick a baseline in **Agent settings → Pipeline** (or **Run** it) to go back.
 
-Scenario campaigns started from the console run with whichever pipeline is running, so a custom pipeline can be
-compared with a baseline on the same faults.
+The pipeline benchmark (below) runs whichever pipeline is running, so a custom pipeline is compared with the
+baselines on the same faults.
 
 ## Knowledge graph format
 

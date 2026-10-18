@@ -10,15 +10,15 @@ HTTP
 
 WebSocket ``/ws?session=<id>`` (JSON). Reconnecting with the same id reattaches to that plant.
   server -> client  {"type": "hello", "session": {...}, ...}   full state on connect
-                    {"type": "snapshot"|"monitor"|"agent"|"campaign"|"chat"|"llm_usage"|
+                    {"type": "snapshot"|"monitor"|"agent"|"pipeline_bench"|"human_test"|"chat"|"llm_usage"|
                      "status"|"message"|"reset"|"agent_mode"|"ack", ...}
                     {"type": "busy", "text"}      server full, connection closed
                     {"type": "expired", "text"}   session closed by the server
   client -> server  {"type": "load"|"run"|"pause"|"step"|"speed"|"pace"|"action"|"inject"|
                      "clear_injections"|"ack_all"|"reset_sif"|"agent_mode"|"agent_approve"|
-                     "agent_dismiss"|"diagnose_now"|"campaign_start"|"campaign_stop"|"chat", ...}
-                    {"type": "set_llm", "provider": "groq|gemini|openrouter|ollama|openai",
-                     "model": "...", "key": "...", "url": "https://... (ollama only)"}
+                     "agent_dismiss"|"diagnose_now"|"human_test_start"|"human_test_stop"|"chat", ...}
+                    {"type": "set_llm", "provider": "groq|gemini|openrouter|ollama|openai", "model": "...",
+                     "in_browser": true}   the browser checked its key and makes the calls; no key is sent
                     {"type": "clear_api_key"}
                     {"type": "set_agent_preset", "preset": "llm" | "llm_admit" | "llm_judge" | "llm_lucky"}
 """
@@ -37,7 +37,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from operaitor import __version__
-from operaitor.agents.llm import is_openai_model
 
 from .plant_service import jsonable
 from .sessions import VISITOR_PRESETS, Session, SessionManager
@@ -94,12 +93,11 @@ async def config():
 
 
 async def _set_llm(session: Session, msg: dict) -> dict:
-    """Connect this session's agents to an LLM provider.
+    """Connect this session's agents to an LLM provider, through the visitor's browser.
 
-    ``in_browser`` (the public console): the visitor's browser has already checked its key with the
-    provider and makes every call itself; no key is sent here. A public server refuses keys outright,
-    so a visitor's key cannot reach it. Otherwise (a private server) the key is held in memory."""
-    from operaitor.agents.providers import PROVIDERS, Endpoint, check_endpoint, endpoint_for
+    The browser has already checked its key with the provider and makes every model call itself
+    (browser_llm.py), so no key is ever sent here, and none is accepted."""
+    from operaitor.agents.providers import PROVIDERS, Endpoint, endpoint_for
     provider = str(msg.get("provider") or "openai")
     if provider not in PROVIDERS:
         return {"ok": False, "summary": f"unknown provider {provider!r}"}
@@ -117,19 +115,8 @@ async def _set_llm(session: Session, msg: dict) -> dict:
         warning = await session.configure_agents(endpoint=ep)
         await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
         return {"ok": not warning, "summary": warning or f"LLM agents on: {p['label']}, {model} (calls made by your browser)"}
-    if manager.settings.hosted:
-        return {"ok": False, "summary": "this server never receives API keys; reload the page to use the current console"}
-    if provider == "openai" and model not in manager.settings.models:
-        return {"ok": False, "summary": f"model {model!r} is not offered here"}
-    if provider == "ollama" and not url and manager.settings.hosted:
-        return {"ok": False, "summary": "give the https address of your Ollama server"}
-    ep = endpoint_for(provider, model, key, url)
-    ok, reason = await check_endpoint(ep, public=manager.settings.hosted)
-    if not ok:
-        return {"ok": False, "summary": reason}
-    warning = await session.configure_agents(endpoint=ep)
-    await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
-    return {"ok": not warning, "summary": warning or f"LLM agents on: {p['label']}, {model}"}
+    return {"ok": False, "summary": "this server never receives API keys: connect from the console, where your browser "
+                                    "checks the key and makes the calls (reload the page if this console is old)"}
 
 
 def _server_ollama(session: Session) -> bool:
@@ -159,10 +146,6 @@ async def _set_model(session: Session, msg: dict) -> dict:
     warning = await session.configure_agents(model=model)
     await session.service.broadcast({"type": "reset", "hello": session.service.hello()})
     return {"ok": not warning, "summary": warning or f"agents now use {model} (Ollama on this machine)"}
-
-
-async def _set_key(session: Session, msg: dict) -> dict:  # older consoles: OpenAI key only
-    return await _set_llm(session, {**msg, "provider": "openai"})
 
 
 async def _set_preset(session: Session, msg: dict) -> dict:
@@ -375,8 +358,6 @@ async def ws(websocket: WebSocket):
                 continue
             if kind == "set_llm":
                 ack = await _set_llm(session, msg)
-            elif kind == "set_api_key":
-                ack = await _set_key(session, msg)
             elif kind == "clear_api_key":
                 ack = await _clear_key(session)
             elif kind == "set_agent_preset":

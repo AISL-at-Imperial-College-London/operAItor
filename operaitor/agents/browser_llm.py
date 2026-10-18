@@ -34,10 +34,6 @@ class BrowserRelay:
         self._pending: dict[int, asyncio.Future] = {}
         self._ids = itertools.count(1)
 
-    @property
-    def connected(self) -> bool:
-        return bool(self._senders)
-
     def attach(self, send: Callable[[dict], None]) -> None:
         self._senders.append(send)
 

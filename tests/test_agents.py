@@ -1,4 +1,4 @@
-"""Live-server agents: supervisor modes, chat agent (offline + LLM tool loop), fault campaigns."""
+"""Live-server agents: supervisor modes, chat agent (offline + LLM tool loop)."""
 import asyncio
 import json
 import unittest
@@ -142,25 +142,6 @@ class ChatTests(unittest.TestCase):
             self.assertGreater(fake.history_lengths[2], fake.history_lengths[0])
             await chat.ask("Fresh session", session="b")
             self.assertEqual(fake.history_lengths[4], fake.history_lengths[0])
-        asyncio.run(scenario())
-
-
-class CampaignTests(unittest.TestCase):
-    def test_campaign_injects_clears_and_reports(self):
-        async def scenario():
-            s = PlantService()
-            ack = await s.handle_command({"type": "campaign_start", "run": False, "tail_min": 0.5, "campaign": {
-                "name": "t", "items": [{"at_min": 0.5, "fault": "reflux_pump_trip", "duration_min": 1.0}]}})
-            self.assertTrue(ack["ok"])
-            await s.step(1.0)
-            self.assertEqual(s.campaign["items"][0]["status"], "active")
-            self.assertTrue(s.snapshot()["truth"]["pump"])
-            await s.step(1.5)
-            self.assertEqual(s.campaign["items"][0]["status"], "cleared")
-            await s.step(1.0)
-            self.assertEqual(s.campaign["state"], "complete")
-            report = s.campaign_report()
-            self.assertEqual(report[0]["fault"], "reflux_pump_trip")
         asyncio.run(scenario())
 
 

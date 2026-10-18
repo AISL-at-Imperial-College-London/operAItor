@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { callLlm, checkConnection, listModels, type LlmConn, type LlmRequest } from "./browserLlm";
-import type { AgentEvent, AgentInfo, BenchStatus, Brief, Campaign, ChatMessage, CustomPipeline, Hello, HumanTest, KgReport, LlmUsage, Message, Meta, MonitorEvent, Num, PipelineDefaults, SessionInfo, Snapshot, TrendPoint } from "./types";
+import type { AgentEvent, AgentInfo, BenchStatus, Brief, ChatMessage, CustomPipeline, Hello, HumanTest, KgReport, LlmUsage, Message, Meta, MonitorEvent, Num, PipelineDefaults, SessionInfo, Snapshot, TrendPoint } from "./types";
 
 const MAX_POINTS = 1440;
 
@@ -32,7 +32,6 @@ export interface PlantState {
   messages: Message[];
   toast: { ok: boolean; text: string; at: number } | null;
   brief: Brief | null;          // planning agent's latest brief
-  campaign: Campaign | null;
   humanTest: HumanTest | null;
   chat: ChatMessage[];
   chatMode: string;
@@ -127,7 +126,7 @@ class PlantStore {
   state: PlantState = {
     connected: false, backendVersion: null, meta: null, snap: null, trend: {}, trendVersion: 0,
     monitor: emptyMonitor(), lastMonitor: null, agentLog: [], agent: null, pending: {},
-    messages: [], toast: null, brief: null, campaign: null, humanTest: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
+    messages: [], toast: null, brief: null, humanTest: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
     pipeline: idlePipeline(), session: null, notice: null, keyBusy: false, nav: null, serverModels: [],
     pipelineDefaults: null, kgCheck: null, codeCheck: null, pipelineBusy: false, bench: null,
   };
@@ -185,7 +184,7 @@ class PlantStore {
       meta: h.meta, snap: h.snapshot, trend, trendVersion: this.state.trendVersion + 1,
       monitor, lastMonitor: h.monitor.at(-1) ?? null, agentLog: h.agent_log.slice(-300),
       agent: h.agent ?? this.state.agent, pending, messages: h.messages, brief, pipeline,
-      campaign: h.campaign ?? null, humanTest: h.human_test ?? null, chatMode: h.chat?.mode ?? this.state.chatMode,
+      humanTest: h.human_test ?? null, chatMode: h.chat?.mode ?? this.state.chatMode,
       chatModel: h.chat?.model ?? null, llmUsage: h.agent?.llm_usage ?? this.state.llmUsage,
       session: h.session ?? null, notice: null, bench: h.session?.bench ?? this.state.bench,
     });
@@ -288,9 +287,6 @@ class PlantStore {
       case "llm_usage":
         this.set({ llmUsage: msg.total });
         break;
-      case "campaign":
-        this.set({ campaign: msg.campaign });
-        break;
       case "human_test":
         this.set({ humanTest: msg.human_test });
         break;
@@ -323,11 +319,11 @@ class PlantStore {
           this.set({ notice: { kind: "stopped", text: "OperAItor has stopped. You can close this tab; open the app again to restart it." } });
           break;
         }
-        if (msg.request === "set_llm" || msg.request === "set_api_key") {
+        if (msg.request === "set_llm") {
           if (!msg.ok) this.llmConn = null;
           this.set({ keyBusy: false });
         }
-        if (!msg.ok || ["set_llm", "set_api_key", "clear_api_key", "set_agent_preset", "set_model", "set_pipeline", "bench_start", "bench_stop"].includes(msg.request) || ["action", "inject", "agent_approve", "campaign_start", "campaign_stop", "human_test_start", "human_test_stop"].includes(msg.request))
+        if (!msg.ok || ["set_llm", "clear_api_key", "set_agent_preset", "set_model", "set_pipeline", "bench_start", "bench_stop"].includes(msg.request) || ["action", "inject", "agent_approve", "human_test_start", "human_test_stop"].includes(msg.request))
           this.set({ toast: { ok: msg.ok, text: msg.summary, at: Date.now() } });
         break;
     }

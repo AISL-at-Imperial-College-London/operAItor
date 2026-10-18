@@ -123,10 +123,6 @@ class DistillationDAE:
     def _positive(a: float, eps: float = 1e-10) -> float:
         return float(0.5 * (a + np.sqrt(a * a + eps * eps)))
 
-    @staticmethod
-    def _smooth_min(a: float, b: float, eps: float = 1e-8) -> float:
-        return float(0.5 * (a + b - np.sqrt((a - b) ** 2 + eps ** 2)))
-
     def _vapour_flow(self, delta_p_bar: float) -> float:
         return self.Cv_vap * np.sqrt(self._positive(delta_p_bar) + 1e-14)
 

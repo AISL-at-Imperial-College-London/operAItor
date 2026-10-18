@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
-import math
 from pathlib import Path
 from typing import Iterable, Mapping
 
@@ -212,6 +211,3 @@ def matrix_from_feature_rows(rows: Iterable[Mapping[str, float]]) -> tuple[np.nd
     X = np.array([[r[v] for v in variables] for r in rows], dtype=float)
     return X, variables
 
-
-def finite_or_none(x: float) -> float | None:
-    return float(x) if math.isfinite(x) else None

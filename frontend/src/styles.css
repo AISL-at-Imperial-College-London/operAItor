@@ -470,3 +470,14 @@ button.pl-step:hover { border-color: #7aa7ff; }
 
 /* The pipeline section opened from Agent settings: keep its title below the sticky header */
 #customise { scroll-margin-top: 72px; }
+
+/* Feedback dialog (Feedback.tsx) */
+.modal-wrap { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; }
+.modal-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, .55); }
+.modal { position: relative; width: min(640px, 100%); max-height: calc(100vh - 32px); overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; }
+.modal-head h3 { margin: 0; }
+.modal textarea { width: 100%; resize: vertical; background: var(--panel-3); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit; }
+.modal .diag { max-height: 220px; overflow: auto; white-space: pre-wrap; font-size: 11.5px; background: var(--panel-2); padding: 8px 10px; border-radius: 6px; }
+.modal-actions { flex-wrap: wrap; gap: 8px; }
+a.btn { text-decoration: none; }

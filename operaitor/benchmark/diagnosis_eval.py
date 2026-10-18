@@ -16,7 +16,6 @@ import argparse
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 import json
-import os
 
 from .profit_campaign import OUT, SCENARIOS, _utf8
 
@@ -26,7 +25,7 @@ LATER_MIN = 5.0
 
 async def _snapshots(scn: dict) -> list[dict]:
     from operaitor.agents.monitoring import MonitoringAgent
-    from operaitor.server.campaigns import FAULT_LIBRARY
+    from operaitor.server.fault_library import fault_params
     from operaitor.server.plant_service import PlantService
     s = PlantService()
     s.pace_every = 0
@@ -38,7 +37,7 @@ async def _snapshots(scn: dict) -> list[dict]:
         t = 60 * s.env.t_h
         for f in faults:
             if abs(t - f["at_min"]) < 1e-6:
-                p = {k: v for k, v in FAULT_LIBRARY[f["fault"]].items() if k != "vary"}
+                p = fault_params(f["fault"])
                 p.update({k: v for k, v in f.items() if k not in ("fault", "at_min")})
                 await s._inject({**p, "duration_min": 0})
         await s.step(0.5)

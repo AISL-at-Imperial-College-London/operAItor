@@ -95,7 +95,8 @@ export function AdmitCard() {
   const events = useMemo(() => log.filter((e): e is AgentEvent => e.stage === "admit" && !!e.records), [log]);
   const [pick, setPick] = useState(-1);
   useEffect(() => setPick(-1), [events.length]);
-  if (!events.length && !agent?.preset?.startsWith("llm_admit")) return null;
+  const admitOn = agent?.validator ? agent.validator.startsWith("admit") : agent?.preset?.startsWith("llm_admit");
+  if (!events.length && !admitOn) return null;
   const e = events.at(pick < 0 ? -1 : pick);
   const cited = new Set((e?.records ?? []).flatMap((r) => r.record?.cited_evidence ?? []));
   const ledgerIds = new Set((e?.ledger ?? []).map((x) => x.id));

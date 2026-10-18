@@ -63,7 +63,7 @@ Give 1-4 hypotheses, most likely first; probabilities should sum to at most 1.
 
 def fault_catalogue(kg: Any = None) -> list[dict]:
     """Fault modes from the knowledge graph plus the fault library (pump trips are library-only)."""
-    from operaitor.server.campaigns import FAULT_LIBRARY
+    from operaitor.server.fault_library import FAULT_LIBRARY
     cat: dict[str, dict] = {}
     if kg is not None:
         for nid in kg.nodes:

@@ -1,4 +1,4 @@
-"""Fault campaigns and the benchmark's scenario, timing and scoring helpers."""
+"""The fault library and the benchmark's scenario, timing and scoring helpers."""
 from __future__ import annotations
 
 import pytest
@@ -7,36 +7,17 @@ from operaitor.benchmark.economics import MW_ACETONE, PRICES, hourly_margin, inv
 from operaitor.benchmark.profit_campaign import (
     BY_ID, LIFT_AFTER_TRIP, LIFT_NO_TRIP, MIN_WINDOW, ONSET, SCENARIOS, TAIL, _window_profit, lift_schedule, window_for,
 )
-from operaitor.server.campaigns import CAMPAIGNS, FAULT_LIBRARY, build_campaign, random_campaign
+from operaitor.server.fault_library import FAULT_LIBRARY, fault_params
 
 
-# ----------------------------------------------------------------------------- campaigns
-@pytest.mark.parametrize("name", sorted(CAMPAIGNS))
-def test_every_preset_campaign_builds(name):
-    label, items = build_campaign(name)
-    assert label == name and items
-    assert [it["at_min"] for it in items] == sorted(it["at_min"] for it in items)
-    assert all(it["name"] in FAULT_LIBRARY and "kind" in it for it in items)
-
-
-def test_random_campaigns_are_reproducible_and_respect_ranges():
-    a, b, c = random_campaign(seed=4, n=6), random_campaign(seed=4, n=6), random_campaign(seed=5, n=6)
-    assert a == b and a != c
-    for it in a["items"]:
-        for param, (lo, hi) in FAULT_LIBRARY[it["fault"]].get("vary", {}).items():
-            assert lo <= it[param] <= hi
-    name, items = build_campaign("random", seed=4, n=6)
-    assert name == "random_s4" and len(items) == 6
-
-
-def test_bad_campaigns_are_refused():
-    with pytest.raises(ValueError, match="unknown campaign"):
-        build_campaign("nope")
-    with pytest.raises(ValueError, match="unknown fault"):
-        build_campaign({"items": [{"at_min": 1, "fault": "meteor_strike"}]})
-    name, items = build_campaign({"name": "mine", "items": [{"at_min": 9, "fault": "reflux_pump_trip"},
-                                                             {"at_min": 2, "fault": "feed_pump_trip"}]})
-    assert name == "mine" and [it["name"] for it in items] == ["feed_pump_trip", "reflux_pump_trip"]
+# ----------------------------------------------------------------------------- fault library
+def test_every_library_fault_is_injectable_by_kind():
+    kinds = {"pump", "actuator", "sensor", "process", "disturbance"}
+    for name, p in FAULT_LIBRARY.items():
+        assert p["kind"] in kinds, name
+        copy = fault_params(name)
+        copy["duration_min"] = 5
+        assert "duration_min" not in FAULT_LIBRARY[name]   # callers get a copy
 
 
 # ----------------------------------------------------------------------------- benchmark scenarios

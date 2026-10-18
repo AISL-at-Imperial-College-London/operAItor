@@ -90,10 +90,6 @@ def use_session_llm(endpoint: "Endpoint | None", usage: "UsageMeter | None") -> 
     _SESSION_USAGE.set(usage)
 
 
-def session_endpoint() -> "Endpoint | None":
-    return _SESSION_ENDPOINT.get()
-
-
 def is_openai_model(model: str) -> bool:
     return model.startswith("gpt") or bool(re.match(r"o\d", model))
 

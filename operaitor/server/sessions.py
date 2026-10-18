@@ -29,6 +29,26 @@ from operaitor.fdd import DEFAULT_MODEL_PATH, PCAMonitor
 from .plant_service import PlantService
 
 
+def install_kind(hosted: bool) -> str:
+    """How this OperAItor runs, for bug reports: website, desktop app, Docker, pip or a source checkout."""
+    if hosted:
+        return "website"
+    if os.environ.get("OPERAITOR_DESKTOP") == "1":
+        return "desktop app"
+    if os.path.exists("/.dockerenv"):
+        return "docker"
+    import operaitor
+    return "pip" if "site-packages" in (operaitor.__file__ or "") else "source"
+
+
+def server_info(hosted: bool) -> dict:
+    """What a bug report needs about the server (no secrets): version, install, system."""
+    import platform
+    from operaitor import __version__
+    return {"version": __version__, "install": install_kind(hosted), "system": f"{platform.system()} {platform.release()}",
+            "machine": platform.machine(), "python": platform.python_version()}
+
+
 def default_model() -> str:
     """Free first: PLANT_LLM_MODEL if set; OpenAI only when a key is configured; else local Ollama."""
     load_env()
@@ -237,6 +257,7 @@ class Session:
         return {"session": {"id": self.id, "hosted": self.settings.hosted, "models": list(self.settings.models),
                             "plugins": {"allowed": allowed, "reason": why},
                             "desktop": os.environ.get("OPERAITOR_DESKTOP") == "1",  # the desktop app: Quit offered
+                            "server": server_info(self.settings.hosted),  # for bug reports
                             "bench": self.bench.status() if self.bench is not None else None,
                             "llm": {"model": self.model, "key_source": self.key_source,
                                     "connection": self.connection(), "providers": provider_catalog(),

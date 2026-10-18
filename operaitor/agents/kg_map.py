@@ -7,8 +7,8 @@ measurement ``cstr_pressure_bar``, input ``cstr_vent_valve``, pump train ``REFLU
 auxiliary ``H2_BDV``). This module builds the mapping from both sides, so it stays in
 sync when either changes, and is used to
 
-  * annotate KG evidence sent to the agents with the simulator name and the exact
-    command target (``node["sim"]``),
+  * give the KG evidence sent to the agents the simulator name and the exact
+    command target (``node["sim"]``, via ``lookup``),
   * resolve whatever name an agent writes in a command to the catalog target
     (``VariableMap.command_target``),
   * show simulator names in chat answers.
@@ -167,12 +167,6 @@ class VariableMap:
     def lookup(self, name: str) -> dict | None:
         return self.table.get(name)
 
-    def kg_nodes_for(self, sim_name: str) -> list[str]:
-        """Reverse lookup: simulator name (loop, tag, field, train, alarm...) → KG node ids."""
-        return [nid for nid, e in self.table.items()
-                if e.get("sim") == sim_name or e.get("pv") == sim_name or e.get("mv") == sim_name
-                or e.get("pump_train") == sim_name]
-
     def command_target(self, command_type: str, name: Any) -> Any:
         """Resolve any KG id / equipment tag / simulator name to the catalog target for a command."""
         if not isinstance(name, str):
@@ -200,10 +194,6 @@ class VariableMap:
             if e and want == "pump_train" and e.get("pump_train"):
                 return e["pump_train"]
         return raw
-
-    def annotate(self, node: dict) -> dict:
-        e = self.table.get(node["id"])
-        return {**node, "sim": e} if e else node
 
     def command_targets(self) -> dict:
         """Compact cheat-sheet for prompts: the exact names commands accept."""
