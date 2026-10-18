@@ -13,6 +13,11 @@
   without chemical equilibrium; the condenser vapour has no composition state). The plant model itself is
   unchanged, so the reference runs stay reproducible.
 - Issue forms for physics and app bugs, and `CONTRIBUTING.md`.
+- Fix: with the agents running on this computer's Ollama (picked by the server when it has no API key), the
+  console offered no way to connect Groq, Gemini, OpenRouter or OpenAI. **Use another provider** on the connected
+  card opens the provider form.
+- Customising is easy to find: **Customise prompts, knowledge graph & agents** in Agent settings opens the
+  *Customise the agents* section (baselines, your pipelines, the benchmark), now right below the settings.
 
 **Run it on your own computer**
 - Windows app: per-user installer (`OperAItor-Setup-<version>.exe`, no administrator rights) and a portable zip.

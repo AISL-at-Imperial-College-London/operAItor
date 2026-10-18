@@ -34,21 +34,16 @@ function ModelPicker({ current }: { current: string }) {
   );
 }
 
-/** Where the visitor connects the agents to an LLM: free tiers and Ollama first, OpenAI optional. */
+/** Where the visitor connects the agents to an LLM: free tiers and Ollama first, OpenAI optional. Always reachable:
+ *  also when the agents already run on a model (e.g. the Ollama this computer has, which the server picks itself). */
 export function LlmKeyCard() {
   const session = usePlant((s) => s.session);
-  const busy = usePlant((s) => s.keyBusy);
   const usage = usePlant((s) => s.llmUsage);
-  const [provider, setProvider] = useState("");
-  const [model, setModel] = useState("");
-  const [key, setKey] = useState("");
-  const [url, setUrl] = useState("");
-  const [found, setFound] = useState<string[]>([]);
-  useEffect(() => setFound([]), [provider]);
+  const [switching, setSwitching] = useState(false);
+  const conn = session?.llm.connection;
+  useEffect(() => setSwitching(false), [conn?.provider, conn?.model]);
   if (!session) return null;
   const llm = session.llm;
-  const providers = llm.providers ?? {};
-  const conn = llm.connection;
 
   if (conn && llm.active) {
     return (
@@ -63,12 +58,29 @@ export function LlmKeyCard() {
           {" "}Keep this tab open while the agents work.</div>}
         <div className="key-row">
           {(conn.in_browser || (llm.key_source === "server" && conn.provider === "ollama")) && <ModelPicker current={conn.model} />}
+          <button className="btn sm" aria-expanded={switching} onClick={() => setSwitching(!switching)}>
+            {switching ? "Cancel" : "Use another provider"}</button>
           {llm.key_source === "visitor" && <button className="btn sm" onClick={forgetKey}>Disconnect</button>}
         </div>
+        {switching && <ProviderForm />}
       </div>
     );
   }
+  return <ProviderForm />;
+}
 
+/** Choose a provider (Groq, Gemini, OpenRouter, Ollama, OpenAI), a model and a key; the browser makes the calls. */
+function ProviderForm() {
+  const session = usePlant((s) => s.session);
+  const busy = usePlant((s) => s.keyBusy);
+  const [provider, setProvider] = useState("");
+  const [model, setModel] = useState("");
+  const [key, setKey] = useState("");
+  const [url, setUrl] = useState("");
+  const [found, setFound] = useState<string[]>([]);
+  useEffect(() => setFound([]), [provider]);
+  if (!session) return null;
+  const providers = session.llm.providers ?? {};
   const pid = provider || Object.keys(providers)[0] || "";
   const p = providers[pid];
   const chosenModel = model || p?.models[0] || "";
