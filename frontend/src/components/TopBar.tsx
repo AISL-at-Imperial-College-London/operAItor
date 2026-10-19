@@ -153,7 +153,7 @@ export function Header({ tab, onTab, drawer, onDrawer, onTour }:
           <button key={d.id} className={`btn ${drawer === d.id ? "on" : ""}`} aria-pressed={drawer === d.id} title={d.title}
             onClick={() => onDrawer(d.id)}>{d.label}</button>
         ))}
-        <button className="btn ghost" title="A guided tour of the console: how to play with the plant" onClick={onTour}>Tour</button>
+        <button className="btn ghost tour-btn" aria-label="Tour" title="Tour: a guided walkthrough of how to play with the plant" onClick={onTour}>?</button>
         <button className="btn ghost" title="Report a bug or give feedback (opens a GitHub issue, filled in)"
           onClick={() => setFeedback(true)}>Feedback</button>
         {desktop && <button className="btn ghost" title="Stop OperAItor on this computer" onClick={quitApp}>Quit OperAItor</button>}

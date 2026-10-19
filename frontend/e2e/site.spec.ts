@@ -85,3 +85,18 @@ test("the page presents a beta benchmark to run, with the original runs as refer
   await expect(report).toHaveAttribute("href", /issues\/new\/choose$/);
   await expect(page.locator(".beta a", { hasText: "model scope" })).toHaveAttribute("href", /plant-model\.md#model-scope/);
 });
+
+test.describe("on a high-resolution (retina) screen", () => {
+  test.use({ deviceScaleFactor: 2 });
+  test("the console screenshot is sharp: the 2x image, drawn flat", async ({ page }) => {
+    await openSite(page, [RC3]);
+    const shot = page.locator(".window img");
+    await shot.scrollIntoViewIfNeeded();
+    await expect.poll(() => shot.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
+    expect(await shot.evaluate((i: HTMLImageElement) => i.currentSrc)).toMatch(/plant@2x\.webp$/);
+    // at least two image pixels per screen pixel, and no 3D tilt (it resamples the image and blurs the text)
+    const [natural, shown] = await shot.evaluate((i: HTMLImageElement) => [i.naturalWidth * 2, i.clientWidth]);
+    expect(natural).toBeGreaterThanOrEqual(shown * 2);
+    expect(await page.locator(".window").evaluate((w) => getComputedStyle(w).transform)).toBe("none");
+  });
+});
