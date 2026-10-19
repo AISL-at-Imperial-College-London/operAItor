@@ -138,7 +138,7 @@ docker run -p 7860:7860 -e PLANT_HOSTED=0 -e OPENAI_API_KEY=sk-... operaitor   #
 
 ## Benchmark your own pipeline
 
-Every pipeline answers the same 20 fault scenarios (single, coupled and triple faults, fixed onset and lift
+Every pipeline handles the same 20 fault scenarios (single, coupled and triple faults, fixed onset and lift
 times) and gets one score: operating margin plus inventory, minus a penalty when the plant stops. In the console,
 **Agents → Customise prompts, knowledge graph & agents** runs a baseline or your own (settings, prompts, knowledge graph, Python agents) and
 **Benchmark the running pipeline** scores it next to the reference runs below. See [docs/pipelines.md](docs/pipelines.md).
@@ -155,6 +155,31 @@ is [benchmark_results/LLM_CAMPAIGN_LOG.md](benchmark_results/LLM_CAMPAIGN_LOG.md
 | LLM, no validation | 9 | $179k |
 | LLM + LLM judge | 11 | $135k |
 | LLM + digital twin | 5 | $260k |
+
+## Contribute a plant model
+
+Have a model of another process? We would like OperAItor's agents to be benchmarked on more than the demo plant,
+and we welcome plant models from researchers and industry: a reactor, a separation train, a utility system, a
+whole site.
+
+Plants are **not plug-in yet**. The framework's parts are built to carry over, but each plant brings its own
+pieces, so we integrate new plants **together with their authors**:
+
+1. **Propose it.** Open a [plant proposal](https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new?template=plant.yml):
+   the process, the model you have (equations, Python, MATLAB/Simulink, Modelica/FMU, a commercial simulator), its
+   measurements, controls and safety limits, and the faults worth benchmarking. Nothing has to be finished.
+2. **Agree the scope.** We reply on the issue with what the integration needs and how to share the model (a pull
+   request, or privately if it is not public yet), and its license (OperAItor is Apache-2.0).
+3. **Integrate it together.** A plant in OperAItor is:
+   - a dynamic model with states, inputs and measurements (as in [operaitor/plant/plant.py](operaitor/plant/plant.py));
+   - its control loops, alarms and safety functions ([control.py](operaitor/plant/control.py),
+     [alarms.py](operaitor/plant/alarms.py), [safety.py](operaitor/plant/safety.py));
+   - the faults that can be injected, and benchmark scenarios built from them;
+   - a knowledge graph of faults, symptoms and actions for the agents ([operaitor/data/knowledge_graph](operaitor/data/knowledge_graph));
+   - its process graphic and P&ID for the console.
+
+   Physics checks like the demo plant's ([tests/test_physics_audit.py](tests/test_physics_audit.py)) come with it.
+4. **Benchmark it.** The new plant's fault scenarios join the benchmark, credited to its authors.
 
 ## Repository
 

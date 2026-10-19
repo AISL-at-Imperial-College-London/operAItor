@@ -3,11 +3,12 @@ name: website (GitHub Pages)
 # Publishes the project home page (site/) and the campaign dashboard to
 # https://aisl-at-imperial-college-london.github.io/operAItor/
 # One-time setup: Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
-# The live-demo button links to the Hugging Face Space named by the repository variable HF_SPACE.
+# The live-demo button links to the repository variable DEMO_URL, or to the Hugging Face Space named by HF_SPACE;
+# with neither, .github/scripts/assemble_site.py removes it from the page.
 on:
   push:
     branches: [main]
-    paths: ["site/**", "benchmark_results/fault_campaign_dashboard.html", ".github/workflows/pages.yml"]
+    paths: ["site/**", "benchmark_results/fault_campaign_dashboard.html", ".github/workflows/pages.yml", ".github/scripts/assemble_site.py"]
   workflow_dispatch:
 
 permissions:
@@ -28,16 +29,8 @@ jobs:
         env:
           DEMO_URL: ${{ vars.DEMO_URL }}    # the live console, e.g. the self-hosted https://<machine>.<tailnet>.ts.net
           HF_SPACE: ${{ vars.HF_SPACE }}
-        run: |
-          mkdir -p _site/dashboard
-          cp -r site/. _site/
-          cp benchmark_results/fault_campaign_dashboard.html _site/dashboard/index.html
-          url="$DEMO_URL"
-          if [ -z "$url" ] && [ -n "$HF_SPACE" ]; then
-            url="https://$(echo "$HF_SPACE" | tr '/' '-' | tr '[:upper:]' '[:lower:]' | tr '_.' '--').hf.space"
-          fi
-          if [ -n "$url" ]; then sed -i "s#__DEMO_URL__#$url#" _site/index.html; fi
-          touch _site/.nojekyll
+        # copies site/ and the dashboard; fills in the live-demo button, or removes it when neither variable is set
+        run: python3 .github/scripts/assemble_site.py _site
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
