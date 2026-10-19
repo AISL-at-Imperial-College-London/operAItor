@@ -72,7 +72,7 @@ export const STEPS: Step[] = [
       the same faults the agents face.</> },
   { title: "You are ready", target: '.header button[title^="Report a bug"]',
     body: <>If the plant trips, <b>↻ Restart</b> or <b>New episode</b> starts again. Found a bug or have an idea?
-      <b> Feedback</b> opens a GitHub issue, already filled in. Replay this tour from <b>Tour</b> at any time.</> },
+      <b> Feedback</b> opens a GitHub issue, already filled in. Replay this tour from <b>?</b> in the header at any time.</> },
 ];
 
 type Box = { top: number; left: number; width: number; height: number };

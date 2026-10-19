@@ -82,7 +82,8 @@ h1 em { display: block; font-family: var(--serif); font-style: italic; font-weig
 .stage::before { content: ""; position: absolute; inset: 10% 8% -4%; z-index: -1; filter: blur(70px); border-radius: 40px;
   background: linear-gradient(120deg, rgba(79, 125, 255, .45), rgba(90, 209, 255, .22), rgba(255, 200, 97, .16)); }
 .window { margin: 0; border-radius: 16px; overflow: hidden; border: 1px solid var(--line-2); background: #0d1117;
-  box-shadow: 0 40px 120px -30px rgba(0, 0, 0, .9); transform: perspective(1800px) rotateX(5deg); transform-origin: 50% 100%; }
+  box-shadow: 0 40px 120px -30px rgba(0, 0, 0, .9); }
+/* flat on purpose: a 3D tilt resamples the screenshot and blurs its text */
 .window .chrome { display: flex; align-items: center; gap: 7px; padding: 11px 14px; background: linear-gradient(#161d29, #121823); border-bottom: 1px solid var(--line); }
 .window .chrome i { width: 11px; height: 11px; border-radius: 50%; display: block; }
 .window .chrome i:nth-child(1) { background: #ff5f57; } .window .chrome i:nth-child(2) { background: #febc2e; } .window .chrome i:nth-child(3) { background: #28c840; }
@@ -97,7 +98,7 @@ h1 em { display: block; font-family: var(--serif); font-style: italic; font-weig
 .callout.c1 { left: -26px; top: 26%; } .callout.c1 .dot { background: rgba(255, 107, 107, .15); color: var(--red); }
 .callout.c2 { right: -26px; top: 60%; animation-delay: -3s; } .callout.c2 .dot { background: rgba(61, 220, 151, .14); color: var(--green); }
 @keyframes float { 50% { transform: translateY(-8px); } }
-@media (max-width: 900px) { .callout { display: none; } .window { transform: none; } }
+@media (max-width: 900px) { .callout { display: none; } }
 .cap { color: var(--dim); font-size: 13.5px; margin: 20px 0 0; }
 
 /* ------------------------------------------------------------------ numbers */
@@ -320,7 +321,7 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
       <div class="stage reveal">
         <figure class="window">
           <div class="chrome" aria-hidden="true"><i></i><i></i><i></i><span>operaitor · console</span></div>
-          <img src="assets/plant.webp" width="1400" height="915"
+          <img src="assets/plant.webp" srcset="assets/plant.webp 1x, assets/plant@2x.webp 2x" width="1600" height="1060"
             alt="OperAItor console: process graphic of a reactor and distillation column with alarms, safety functions and live values, during a reflux pump trip">
         </figure>
         <div class="callout c1" aria-hidden="true">
