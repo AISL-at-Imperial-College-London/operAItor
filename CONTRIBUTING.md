@@ -14,6 +14,9 @@ it): it opens a GitHub issue filled in with the version, how OperAItor runs, the
 - **Your pipeline's results.** If you benchmark a pipeline of your own, open an issue with the exported pipeline
   file (`.operaitor-pipeline.json`) and the benchmark report. Comparisons on the same faults are what make the
   benchmark useful.
+- **A plant model of your own** ([propose it](https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new?template=plant.yml)):
+  another process for the agents to be benchmarked on. Plants are integrated together with their authors; see
+  [Contribute a plant model](README.md#contribute-a-plant-model).
 
 ## Fixing an issue
 

@@ -1,0 +1,60 @@
+name: Contribute a plant model
+description: Propose a process of your own as an OperAItor plant, so agents can be benchmarked on it.
+title: "[plant] "
+labels: ["plant", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you! OperAItor's framework (agents, fault detection, validation, benchmark) is built to carry over to
+        other processes, but plants are not plug-in yet: each needs its own model, limits, actions and knowledge
+        graph, so we integrate new plants together with their authors. Tell us about your process and your model
+        below; nothing has to be finished. See
+        [Contribute a plant model](https://github.com/AISL-at-Imperial-College-London/operAItor#contribute-a-plant-model)
+        for what integration involves.
+  - type: textarea
+    id: process
+    attributes:
+      label: The process
+      description: What it makes, the main units (reactors, columns, separators, heat exchangers ...), and why it is interesting for operator agents.
+    validations:
+      required: true
+  - type: dropdown
+    id: form
+    attributes:
+      label: The model you have
+      options:
+        - Equations (paper, notes)
+        - Python code
+        - MATLAB / Simulink
+        - Modelica / FMU
+        - A commercial simulator (Aspen, gPROMS, ...)
+        - Other
+      multiple: true
+    validations:
+      required: true
+  - type: textarea
+    id: model
+    attributes:
+      label: About the model
+      description: Dynamic or steady state, states and equations, a link to the code or paper if public, and how it was checked (data, a reference model).
+  - type: textarea
+    id: operation
+    attributes:
+      label: Measurements, controls and safety
+      description: What an operator sees and moves, the control loops, alarm and trip limits, and the safety functions, as far as you know them.
+  - type: textarea
+    id: faults
+    attributes:
+      label: Faults to benchmark
+      description: The abnormal situations agents should handle (equipment failures, sensor faults, disturbances), and what a good response looks like.
+  - type: input
+    id: license
+    attributes:
+      label: License
+      description: The license the model can be shared under (OperAItor is Apache-2.0), or "not yet decided".
+  - type: textarea
+    id: contact
+    attributes:
+      label: You and your group (optional)
+      description: Who to work with, and how you would like the plant to be credited.

@@ -112,3 +112,16 @@ test("OperAItor is presented as the framework, and the acetone plant as its demo
   await expect(beta).toContainText("please report it");
   await expect(page.locator("body")).not.toContainText("surrogate");
 });
+
+test("the ADMIT gate is drawn as a readable record, not a shrunken screenshot", async ({ page }) => {
+  await openSite(page, [RC3]);
+  const card = page.locator(".admit-row .record");
+  await card.scrollIntoViewIfNeeded();
+  await expect(card).toContainText("start_standby_pump");
+  await expect(card.locator(".rec-gates li")).toHaveCount(5);
+  for (const g of ["T0", "T1", "T2", "T3", "T4"]) await expect(card.locator(".rec-gates")).toContainText(g);
+  await expect(card).toContainText("1.9 min");
+  await expect(page.locator(".admit-row img")).toHaveCount(0);
+  const size = await card.locator(".rec-gates li span").first().evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+  expect(size).toBeGreaterThanOrEqual(13);   // legible text, at the size it is shown
+});

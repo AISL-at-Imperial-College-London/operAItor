@@ -175,6 +175,35 @@ h2.sm { font-size: clamp(27px, 3.3vw, 40px); }
 .gates { list-style: none; margin: 26px 0 0; padding: 0; display: grid; gap: 10px; }
 .gates li { display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); font-size: 15px; }
 .gates li code { font: 600 13px var(--mono); color: var(--cyan); background: rgba(90, 209, 255, .1); border: 1px solid rgba(90, 209, 255, .3); border-radius: 8px; padding: 3px 8px; flex: none; }
+/* The ADMIT gate, drawn: one action record and its gate results (crisp at any size, unlike a shrunken screenshot) */
+.record { margin: 0; padding: 22px; border-radius: 18px; border: 1px solid var(--line-2); background: linear-gradient(180deg, #0f1626, #0b1120);
+  box-shadow: 0 30px 80px -30px rgba(0,0,0,.9); font-size: 14px; }
+.rec-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--muted); font: 500 12px var(--mono); }
+.ok-badge { color: var(--green); border: 1px solid rgba(61, 220, 151, .4); background: rgba(61, 220, 151, .1); border-radius: 999px; padding: 3px 10px; }
+.rec-act { margin: 14px 0 16px; display: grid; gap: 4px; }
+.rec-act code { font: 600 17px var(--mono); color: var(--ink); }
+.rec-act span { color: var(--muted); }
+.rec-fields { margin: 0 0 16px; display: grid; gap: 7px; }
+.rec-fields div { display: grid; grid-template-columns: 118px 1fr; gap: 10px; align-items: baseline; }
+.rec-fields dt { color: var(--dim); font-size: 13px; }
+.rec-fields dd { margin: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.rec-fields small { color: var(--dim); margin-left: 6px; }
+.tag { font: 500 12px var(--mono); color: var(--cyan); border: 1px solid rgba(90, 209, 255, .3); border-radius: 6px; padding: 1px 7px; }
+.rec-gates { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.rec-gates li { display: grid; grid-template-columns: 38px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.rec-gates code { font: 600 12.5px var(--mono); color: var(--cyan); }
+.rec-gates b { font: 600 12px var(--mono); color: var(--green); }
+.rec-t4 { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: rgba(255, 255, 255, .03); border: 1px solid var(--line); }
+.rec-t4 svg { width: 100%; height: auto; display: block; }
+.rec-legend { display: grid; gap: 3px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.rec-legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 8px; vertical-align: middle; }
+.rec-legend i.bad { background: var(--red); } .rec-legend i.good { background: var(--green); }
+.rec-legend i.lim { background: repeating-linear-gradient(90deg, var(--red) 0 4px, transparent 4px 7px); }
+.rec-foot { margin-top: 14px; color: var(--green); font-weight: 600; }
+.record figcaption { margin-top: 10px; font-size: 12px; color: var(--dim); }
+@media (max-width: 520px) { .record { padding: 16px; } .rec-fields div { grid-template-columns: 1fr; gap: 2px; } }
+.plant-call { margin: 22px 0 0; color: var(--muted); font-size: 15px; }
+.plant-call a { color: var(--ink); }
 .shot { margin: 0; border-radius: 18px; overflow: hidden; border: 1px solid var(--line-2); box-shadow: 0 30px 80px -30px rgba(0,0,0,.9); }
 
 /* benchmark */
@@ -385,7 +414,7 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
         </div>
         <div class="tile t-human reveal">
           <h3>Or take the controls</h3>
-          <p>Answer the same faults yourself and compare.</p>
+          <p>Handle the same faults yourself and compare.</p>
           <div class="vis score" role="img" aria-label="Your result compared with no agents and with the agents">
             <span>No agents</span><i style="background:linear-gradient(90deg,#ff9a9a,#ff6b6b);width:35%"></i>
             <span>Agents</span><i style="background:linear-gradient(90deg,#8ff3c8,#3ddc97);width:85%"></i>
@@ -423,8 +452,39 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
             <li><code>T4</code>Projected on the plant, it stays inside the safety limits</li>
           </ul>
         </div>
-        <figure class="shot reveal"><img src="assets/admit.webp" width="1400" height="1330" loading="lazy"
-          alt="Agents tab: the ADMIT gate after the action agent, and the record the agent filed next to the rule and each gate result"></figure>
+        <figure class="record reveal" aria-label="An action record checked by the ADMIT gates: start the standby reflux pump, admitted">
+          <div class="rec-head"><span>Action record · decision at 3.5 min</span><span class="ok-badge">✓ admitted</span></div>
+          <div class="rec-act"><code>start_standby_pump</code><span>Reflux pump trip: switch to the healthy standby, P-201B</span></div>
+          <dl class="rec-fields">
+            <div><dt>Evidence cited</dt><dd><span class="tag">pumps</span><span class="tag">PCA</span><span class="tag">alarms</span><span class="tag">knowledge graph</span></dd></div>
+            <div><dt>Hazard</dt><dd>Column trays running dry</dd></div>
+            <div><dt>Authority</dt><dd>Operate equipment</dd></div>
+            <div><dt>Procedure</dt><dd>Verify the pump has failed ✓</dd></div>
+            <div><dt>Confidence</dt><dd>0.85 <small>needs 0.50</small></dd></div>
+          </dl>
+          <ol class="rec-gates" aria-label="Gate results">
+            <li><code>T0</code><span>Record complete</span><b>pass</b></li>
+            <li><code>T1</code><span>Evidence trusted and fresh</span><b>pass</b></li>
+            <li><code>T2</code><span>Hazard addressed</span><b>pass</b></li>
+            <li><code>T3</code><span>Authority, mode, procedure</span><b>pass</b></li>
+            <li><code>T4</code><span>Projected 30 min on the plant</span><b>pass</b></li>
+          </ol>
+          <div class="rec-t4">
+            <svg viewBox="0 0 320 96" role="img" aria-label="Tray liquid over the next 30 minutes: doing nothing falls below the limit after 1.9 minutes; with the plan it stays above">
+              <path d="M0 64 H320" stroke="#ff6b6b" stroke-width="1.2" stroke-dasharray="5 5"/>
+              <path d="M0 30 C 14 40, 22 60, 30 70 S 60 88, 320 90" fill="none" stroke="#ff6b6b" stroke-width="2.2"/>
+              <path d="M0 30 C 16 40, 34 54, 58 56 S 120 34, 320 26" fill="none" stroke="#3ddc97" stroke-width="2.4"/>
+              <circle cx="27" cy="64" r="3.5" fill="#ff6b6b"/>
+            </svg>
+            <div class="rec-legend">
+              <span><i class="bad"></i>Do nothing: the trays run dry in <b>1.9 min</b></span>
+              <span><i class="good"></i>With the plan: stays above the limit</span>
+              <span><i class="lim"></i>Safety limit</span>
+            </div>
+          </div>
+          <div class="rec-foot">→ Applied to the plant</div>
+          <figcaption>From a run of the demo plant. The projection curves are drawn to show their shape.</figcaption>
+        </figure>
       </div>
     </div>
   </section>
@@ -435,7 +495,7 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
         <span class="eyebrow">Benchmark</span>
         <h2>Bring your own agents. <em>Same faults, same score.</em></h2>
         <p>20 fault scenarios with fixed onset and lift times, and one score: operating margin plus inventory, minus a
-          penalty when the plant stops. Every pipeline answers the same faults.</p>
+          penalty when the plant stops. Every pipeline handles the same faults.</p>
       </div>
       <ol class="bench-steps reveal">
         <li><b>Pick a baseline</b><span>Run one of the five as it is, or customise it: settings, prompts, your own
@@ -445,6 +505,8 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
         <li><b>Run the benchmark</b><span>Agents → Customise → Benchmark: 3 scenarios for a quick look or all 20,
           each scored next to the reference runs below.</span></li>
       </ol>
+      <p class="plant-call reveal">Have a model of another process? <a href="https://github.com/AISL-at-Imperial-College-London/operAItor#contribute-a-plant-model">Contribute
+        a plant model</a>: we integrate new plants together with their authors, and their faults join the benchmark.</p>
 
       <div class="head reveal" style="margin:72px 0 26px">
         <span class="eyebrow">Reference runs</span>
