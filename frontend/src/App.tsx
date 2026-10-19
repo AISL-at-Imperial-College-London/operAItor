@@ -7,6 +7,7 @@ import { HumanTestPanel } from "./components/HumanTest";
 import { SessionNotice } from "./components/LlmKey";
 import { PlantTab } from "./components/PlantTab";
 import { DRAWERS, Header, type Drawer, type Tab, TABS } from "./components/TopBar";
+import { Tour, tourSeen } from "./components/Tour";
 import { Trends } from "./components/Trends";
 import { API_VERSION, usePlant } from "./store";
 
@@ -51,15 +52,20 @@ export default function App() {
   useEffect(() => {  // another panel asked to show a tab or a drawer
     if (!nav) return;
     if (nav.tab) setTab(nav.tab);
-    if (nav.drawer) setDrawer(nav.drawer);
+    if (nav.drawer !== undefined) setDrawer(nav.drawer);
   }, [nav]);
+  // The tour starts by itself on the first visit, once the plant is there (not for automated browsers: the tests).
+  const [touring, setTouring] = useState(false);
+  const ready = !!snap;
+  useEffect(() => { if (ready && !tourSeen() && !navigator.webdriver) setTouring(true); }, [ready]);
 
   useEffect(() => save("tab", tab), [tab]);
   useEffect(() => save("drawer", drawer), [drawer]);
 
   return (
     <div className={`app ${drawer ? "with-drawer" : ""}`}>
-      <Header tab={tab} onTab={setTab} drawer={drawer} onDrawer={(d) => setDrawer((cur) => (cur === d ? "" : d))} />
+      <Header tab={tab} onTab={setTab} drawer={drawer} onDrawer={(d) => setDrawer((cur) => (cur === d ? "" : d))}
+        onTour={() => setTouring(true)} />
       {connected && backendVersion !== null && backendVersion < API_VERSION && (
         <div className="banner warn">
           The plant server runs older code than this console (API v{backendVersion}, console needs v{API_VERSION}).
@@ -101,6 +107,7 @@ export default function App() {
         {drawer && <div className="scrim" onClick={() => setDrawer("")} />}
       </div>
       <Toast />
+      {touring && snap && <Tour onClose={() => setTouring(false)} />}
     </div>
   );
 }

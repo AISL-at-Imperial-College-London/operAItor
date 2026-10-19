@@ -501,3 +501,23 @@ a.btn { text-decoration: none; }
 .ce-table tr.on td { background: rgba(229, 57, 53, .18); }
 .ce-table tr.on td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
 
+
+/* First-visit tour: a spotlight on one part of the console and a card that explains it. Only the card takes clicks,
+   so the visitor can do what a step asks (press Run, open a panel) through the spotlight. */
+.tour { position: fixed; inset: 0; z-index: 1000; pointer-events: none; }
+.tour-dim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.72); }
+.tour-hole { position: fixed; border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.72);
+  outline: 2px solid var(--accent, #3b82f6); transition: top .2s, left .2s, width .2s, height .2s; }
+.tour-card { position: fixed; pointer-events: auto; background: var(--panel, #fff); color: var(--text, #111);
+  border: 1px solid var(--border, #ccc); border-radius: 10px; padding: 14px 16px; box-shadow: 0 12px 32px rgba(0, 0, 0, .35); }
+.tour-card h3 { margin: 6px 0 6px; font-size: 16px; }
+.tour-card p { margin: 0 0 10px; line-height: 1.45; }
+.tour-progress { display: flex; gap: 4px; }
+.tour-progress span { flex: 1; height: 3px; border-radius: 2px; background: var(--border, #ccc); }
+.tour-progress span.past, .tour-progress span.now { background: var(--accent, #3b82f6); }
+.tour-progress span.now { opacity: .55; }
+.tour-task { padding: 6px 10px; border-radius: 6px; background: color-mix(in srgb, var(--accent, #3b82f6) 14%, transparent); }
+.tour-task.done { background: color-mix(in srgb, var(--ok, #16a34a) 18%, transparent); font-weight: 600; }
+.tour-buttons { display: flex; gap: 6px; align-items: center; }
+.tour-buttons .spacer { flex: 1; }
+@media (prefers-reduced-motion: reduce) { .tour-hole { transition: none; } }
