@@ -38,12 +38,45 @@ def test_each_cause_trips_at_its_documented_limit():
 
 
 def test_the_drawing_shows_every_tag_in_the_tables():
-    svg = (DOC.parent / "pid.svg").read_text(encoding="utf-8")
+    svg = (DOC.parents[1] / "frontend" / "public" / "static" / "pid.svg").read_text(encoding="utf-8")
     for tag, element, _ in CE.LOOP_TAGS.values():
         assert f">{tag.split('-')[0]}<" in svg and f">{tag.split('-')[1]}<" in svg, tag   # bubble: letters / number
         assert f">{element}<" in svg, element
     for sif in SafetySystem.CAUSES:
         assert sif.split("_")[0] in svg and sif.rsplit("_", 1)[1] in svg, sif
-    for tag in ("R-101", "T-201", "E-201", "E-202", "V-201", "PSV-101", "BDV-101", "HV-102",
+    for tag in ("R-101", "T-201", "E-201", "E-202", "V-201", "PSV-101", "BDV-101", "XV-102",
                 "P-101A/B", "P-102A/B", "P-201A/B", "P-202A/B", "P-203A/B"):
         assert tag in svg, tag
+
+
+def test_the_console_drawing_is_wired_for_the_live_view():
+    """The P&ID view lights the SIS box of a latched SIF and writes each controller's value next to it."""
+    import re
+    from operaitor.plant.control import RegulatoryControlSystem
+    svg = (DOC.parents[1] / "frontend" / "public" / "static" / "pid.svg").read_text(encoding="utf-8")
+    covered = {c for group in re.findall(r'data-sif="([^"]+)"', svg) for c in group.split()}
+    assert covered == set(SafetySystem.CAUSES)
+    assert set(re.findall(r'data-pv="([^"]+)"', svg)) == set(RegulatoryControlSystem.LOOP_SPECS)
+
+
+def test_the_console_gets_the_matrix():
+    from operaitor.server.plant_service import cause_effect
+    ce = cause_effect()
+    assert [r["sif"] for r in ce["rows"]] == [c.sif for c in CE.CAUSES] and len(ce["rows"]) == len(SafetySystem.CAUSES)
+    assert [name for name, _ in ce["effects"]] == [name for name, _, _ in CE.EFFECTS]
+
+
+def test_the_drawings_are_generated_and_carry_every_final_element():
+    """docs/pid/build_pid.py draws the P&ID for the console (SVG) and for editing (draw.io); both must be current."""
+    import runpy
+    gen = runpy.run_path(str(DOC.parent / "pid" / "build_pid.py"))
+    unix = lambda s: s.replace(chr(13) + chr(10), chr(10))  # noqa: E731 - files may be checked out with CRLF
+    svg = unix((DOC.parents[1] / "frontend" / "public" / "static" / "pid.svg").read_text(encoding="utf-8"))
+    drawio = unix((DOC.parent / "pid" / "pid.drawio").read_text(encoding="utf-8"))
+    assert svg == gen["svg"]() and drawio == gen["drawio"](), "run python docs/pid/build_pid.py"
+    for _, _, where in CE.EFFECTS:
+        for tag in (w.split(" ")[0] for w in where.split(", ")):
+            assert f">{tag}<" in svg and tag in drawio, tag
+    for c in CE.CAUSES:                                  # one interlock diamond per SIF, numbered as in the matrix
+        assert f">{CE.INTERLOCK[c.sif]}<" in svg and f'value="{CE.INTERLOCK[c.sif]}"' in drawio
+    assert drawio.count("actuator=solenoid;fillColor=#000000") == 3      # BDV-101, XV-102 (normally closed), legend

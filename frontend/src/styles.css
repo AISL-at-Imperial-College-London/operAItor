@@ -481,3 +481,22 @@ button.pl-step:hover { border-color: #7aa7ff; }
 .modal .diag { max-height: 220px; overflow: auto; white-space: pre-wrap; font-size: 11.5px; background: var(--panel-2); padding: 8px 10px; border-radius: 6px; }
 .modal-actions { flex-wrap: wrap; gap: 8px; }
 a.btn { text-decoration: none; }
+
+/* Plant tab: process graphic or P&ID (PidView.tsx) */
+.view-switch { display: flex; justify-content: flex-end; margin-bottom: -4px; }
+.pid { background: #fff; border-radius: 8px; overflow: hidden; }
+.pid svg { display: block; width: 100%; height: auto; }
+.pid [data-sif].on { --sis-fill: #ffcdd2; }
+.pid [data-sif].on text { font-weight: 700; }
+.pid [data-sif].on > circle, .pid [data-sif].on > path[style] { animation: sis-blink 1.2s ease-in-out infinite; }
+@keyframes sis-blink { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .pid [data-sif].on > circle, .pid [data-sif].on > path[style] { animation: none; } }
+.ce { margin-top: 12px; }
+.ce-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ce-table th, .ce-table td { padding: 4px 6px; border-bottom: 1px solid var(--border); text-align: center; white-space: nowrap; }
+.ce-table th { color: var(--text-dim); font-weight: 500; font-size: 11px; }
+.ce-table td:first-child, .ce-table th:first-child { text-align: left; }
+.ce-table td.act { color: var(--text); font-weight: 600; }
+.ce-table tr.on td { background: rgba(229, 57, 53, .18); }
+.ce-table tr.on td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
+

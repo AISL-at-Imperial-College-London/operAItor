@@ -103,6 +103,12 @@ export interface Meta {
   scenarios: string[];
   fault_library?: string[];
   human_scenarios?: HumanScenario[];
+  /** SIF cause & effect matrix (plant/cause_effect.py), for the P&ID view. */
+  cause_effect?: {
+    effects: [string, string][];   // [column name, P&ID tag]
+    rows: { sif: string; description: string; measurement: string; trip: string; reset: string; plant_trip: boolean;
+            effects: Record<string, string> }[];
+  };
   loops: Record<string, { sp_min: number; sp_max: number; sp_unit: string; mv_unit: string; pv_tag: string }>;
   auxiliaries: Record<string, [number, number]>;
   throughput_bounds: [number, number];
