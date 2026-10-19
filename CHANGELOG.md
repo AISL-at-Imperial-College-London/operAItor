@@ -13,6 +13,9 @@
   without chemical equilibrium; the condenser vapour has no composition state). The plant model itself is
   unchanged, so the reference runs stay reproducible.
 - Issue forms for physics and app bugs, and `CONTRIBUTING.md`.
+- P&ID and cause & effect (`docs/pid.md`, `docs/pid.svg`): equipment, control loops, alarms and the SIF cause &
+  effect matrix, generated from the simulator (`python -m operaitor.plant.cause_effect --write`) and checked by
+  `tests/test_cause_effect.py`.
 - **Feedback** in the console's header: report a bug (app or physics) or give feedback. It opens a GitHub issue
   filled in with the version, how OperAItor runs (desktop app, Docker, pip, website), the pipeline, the model
   (never the key) and the plant state; or copy / download the report. Issue forms gain a diagnostics field, a

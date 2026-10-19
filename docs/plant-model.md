@@ -199,6 +199,8 @@ The fault layer is downstream of the SIF layer. A safety system can therefore co
 
 ## SIF / interrupt layer
 
+The full cause & effect matrix, generated from the code, is in [pid.md](pid.md) with the P&ID.
+
 The first safety layer is deterministic, independent and latched. Current synthetic trip thresholds are benchmark values, not engineered SIL settings.
 
 | Cause | Initial threshold | Main effects |
