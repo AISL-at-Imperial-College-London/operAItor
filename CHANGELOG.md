@@ -18,6 +18,11 @@
   `tests/test_cause_effect.py`.
 - Plant tab: **Process graphic | P&ID** switch. The P&ID view shows each controller's live value, lights a latched
   safety function on the drawing, and shows the cause & effect matrix with the latched rows highlighted.
+- P&ID revised after review and now editable: `docs/pid/pid.drawio` (draw.io / diagrams.net) and the console's SVG
+  are generated from one description (`docs/pid/build_pid.py`). PCV-101 is a control valve driven by PIC-101;
+  SIS valves are solenoid valves (black normally closed: BDV-101, XV-102; white normally open: the XV shutdown
+  valves); each SIF has its own switch (TSHH, PSHH, LSHH, LSLL …) and interlock diamond I1–I11, numbered as in the
+  cause & effect matrix, and each shutdown valve lists the interlocks acting on it.
 - **Feedback** in the console's header: report a bug (app or physics) or give feedback. It opens a GitHub issue
   filled in with the version, how OperAItor runs (desktop app, Docker, pip, website), the pipeline, the model
   (never the key) and the plant state; or copy / download the report. Issue forms gain a diagnostics field, a

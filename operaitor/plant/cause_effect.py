@@ -41,18 +41,23 @@ CAUSES = (
           "column_tray_holdup_ll_kmol", "kmol"),
 )
 
-# Final elements: (column heading, PlantInputs field, what it is on the P&ID)
+# Interlock numbers on the P&ID (the diamonds I1 ... I11), in the order of CAUSES.
+INTERLOCK = {c.sif: f"I{i}" for i, c in enumerate(CAUSES, start=1)}
+
+# Final elements: (column heading, PlantInputs field, what it is on the P&ID). The XV valves are the SIS shutdown
+# valves: XV-102 and BDV-101 are normally closed (black on the P&ID), the others normally open (white). The
+# simulator applies a trip to the flow or utility directly; the valves show where that happens.
 EFFECTS = (
-    ("Fresh feed", "fresh_ipa_feed", "P-101A/B, FV-101"),
-    ("Reactor heating", "cstr_heater_factor", "TV-101 (jacket steam)"),
-    ("Emergency cooling", "cstr_emergency_cooling_factor", "HV-102 (E-102 cooling water)"),
+    ("Fresh feed", "fresh_ipa_feed", "XV-101 (stop), FV-101 (≤40 %)"),
+    ("Reactor heating", "cstr_heater_factor", "XV-103"),
+    ("Emergency cooling", "cstr_emergency_cooling_factor", "XV-102"),
     ("H₂ vent", "cstr_vent_valve", "PCV-101"),
     ("Blowdown", "cstr_bdv_valve", "BDV-101"),
-    ("Reactor outlet / column feed", "cstr_outflow", "P-102A/B, FV-102"),
-    ("Reflux", "reflux_flow", "P-201A/B, FV-201"),
-    ("Distillate", "distillate_flow", "P-202A/B, FV-202"),
-    ("Bottoms", "bottoms_flow", "P-203A/B, FV-203"),
-    ("Reboiler steam", "steam_factor", "TV-202"),
+    ("Reactor outlet / column feed", "cstr_outflow", "XV-104"),
+    ("Reflux", "reflux_flow", "XV-201"),
+    ("Distillate", "distillate_flow", "XV-202"),
+    ("Bottoms", "bottoms_flow", "XV-203"),
+    ("Reboiler steam", "steam_factor", "XV-204"),
     ("Condenser cooling water", "condenser_cooling_valve", "PV-201"),
 )
 
@@ -87,7 +92,7 @@ def matrix() -> tuple[dict, ...]:
         else:
             k = 1 - cfg.reset_hysteresis_fraction if c.direction == "HIGH" else 1 + cfg.reset_hysteresis_fraction
             reset = f"{'<' if c.direction == 'HIGH' else '>'} {getattr(cfg, c.limit_attr) * k:.3g} {c.unit}"
-        rows.append({"sif": c.sif, "description": c.description, "measurement": c.measurement,
+        rows.append({"sif": c.sif, "interlock": INTERLOCK[c.sif], "description": c.description, "measurement": c.measurement,
                      "trip": f"{'≥' if c.direction == 'HIGH' else '≤'} {getattr(cfg, c.limit_attr):g} {c.unit}",
                      "reset": reset, "plant_trip": result.plant_trip_latched, "effects": effects})
     return tuple(rows)
@@ -130,12 +135,12 @@ def alarms_markdown() -> str:
 
 def markdown() -> str:
     names = [n for n, _, _ in EFFECTS]
-    head = "| SIF | Cause | Trips at | Resets when | " + " | ".join(names) + " | Plant trip |"
-    sep = "|---|---|---:|---:|" + "|".join([":-:"] * len(names)) + "|:-:|"
+    head = "| Interlock | SIF | Cause | Trips at | Resets when | " + " | ".join(names) + " | Plant trip |"
+    sep = "|:-:|---|---|---:|---:|" + "|".join([":-:"] * len(names)) + "|:-:|"
     lines = [head, sep]
     for r in matrix():
         cells = [r["effects"][n] or "·" for n in names]
-        lines.append(f"| `{r['sif']}` | {r['description']} | {r['trip']} | {r['reset']} | " + " | ".join(cells)
+        lines.append(f"| {r['interlock']} | `{r['sif']}` | {r['description']} | {r['trip']} | {r['reset']} | " + " | ".join(cells)
                      + f" | {'**LATCH**' if r['plant_trip'] else '·'} |")
     return "\n".join(lines)
 
@@ -153,13 +158,16 @@ match the code. The process is modelled on isopropanol → acetone + H₂ (see t
 
 ![P&ID of the OperAItor plant](../frontend/public/static/pid.svg)
 
+Editable version: [pid/pid.drawio](pid/pid.drawio) (draw.io / diagrams.net, free; exports to PDF, SVG, PNG and
+Visio). Both are generated from `docs/pid/build_pid.py`: change the drawing there, then run it.
+
 The console shows it live: **Plant → P&ID** (controller values, latched SIFs, this matrix).
 
 ## Equipment
 
 | Tag | Equipment |
 |---|---|
-| R-101 | Reactor: CSTR, 6 m³, jacket heated (TV-101), agitator M-101, emergency cooling coil E-102 (HV-102) |
+| R-101 | Reactor: CSTR, 6 m³, jacket heated (TV-101), agitator M-101, emergency cooling coil E-102 (XV-102) |
 | T-201 | Distillation column: 10 equilibrium trays, feed on tray 6 |
 | E-201 | Condenser (cooling water, PV-201) |
 | V-201 | Reflux drum |
@@ -170,7 +178,8 @@ The console shows it live: **Plant → P&ID** (controller values, latched SIFs, 
 | P-202A/B | Distillate pumps |
 | P-203A/B | Bottoms pumps |
 | PCV-101 | Reactor H₂ vent to the flare / fuel-gas header (pressure control) |
-| BDV-101 | Reactor blowdown valve (SIF and operator) |
+| BDV-101 | Reactor blowdown valve: solenoid, normally closed (SIF and operator) |
+| XV-101 … XV-104, XV-201 … XV-204 | SIS shutdown valves: solenoid, normally open, except XV-102 (emergency cooling, normally closed) |
 | PSV-101 | Reactor relief valve: starts to open at 4.50 bar, fully open at 4.70 bar (mechanical, no SIF) |
 
 Every pump train alarms when its running pump fails; the operator or the agents start the standby pump. The fresh
@@ -194,7 +203,8 @@ to the final elements below (a final element that has failed can still defeat th
 only on request (operator, agents, or the shift operator in the benchmark) once its variable is back past the reset
 value. **LATCH**: the SIF also latches the plant trip, which stops the episode as a safe trip.
 
-Final elements:
+Each SIF is an interlock on the P&ID (the diamonds I1 … I11): its switch (e.g. LSHH-101) trips the interlock, and
+each shutdown valve is labelled with the interlocks that act on it. Final elements:
 
 | Column | On the P&ID | Simulator input |
 |---|---|---|

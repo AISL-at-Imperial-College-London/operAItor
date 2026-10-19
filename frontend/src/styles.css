@@ -488,9 +488,9 @@ a.btn { text-decoration: none; }
 .pid svg { display: block; width: 100%; height: auto; }
 .pid [data-sif].on { --sis-fill: #ffcdd2; }
 .pid [data-sif].on text { font-weight: 700; }
-.pid [data-sif].on use { animation: sis-blink 1.2s ease-in-out infinite; }
+.pid [data-sif].on > circle, .pid [data-sif].on > path[style] { animation: sis-blink 1.2s ease-in-out infinite; }
 @keyframes sis-blink { 50% { opacity: .45; } }
-@media (prefers-reduced-motion: reduce) { .pid [data-sif].on use { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .pid [data-sif].on > circle, .pid [data-sif].on > path[style] { animation: none; } }
 .ce { margin-top: 12px; }
 .ce-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .ce-table th, .ce-table td { padding: 4px 6px; border-bottom: 1px solid var(--border); text-align: center; white-space: nowrap; }

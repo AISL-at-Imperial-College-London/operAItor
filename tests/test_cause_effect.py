@@ -44,7 +44,7 @@ def test_the_drawing_shows_every_tag_in_the_tables():
         assert f">{element}<" in svg, element
     for sif in SafetySystem.CAUSES:
         assert sif.split("_")[0] in svg and sif.rsplit("_", 1)[1] in svg, sif
-    for tag in ("R-101", "T-201", "E-201", "E-202", "V-201", "PSV-101", "BDV-101", "HV-102",
+    for tag in ("R-101", "T-201", "E-201", "E-202", "V-201", "PSV-101", "BDV-101", "XV-102",
                 "P-101A/B", "P-102A/B", "P-201A/B", "P-202A/B", "P-203A/B"):
         assert tag in svg, tag
 
@@ -64,3 +64,19 @@ def test_the_console_gets_the_matrix():
     ce = cause_effect()
     assert [r["sif"] for r in ce["rows"]] == [c.sif for c in CE.CAUSES] and len(ce["rows"]) == len(SafetySystem.CAUSES)
     assert [name for name, _ in ce["effects"]] == [name for name, _, _ in CE.EFFECTS]
+
+
+def test_the_drawings_are_generated_and_carry_every_final_element():
+    """docs/pid/build_pid.py draws the P&ID for the console (SVG) and for editing (draw.io); both must be current."""
+    import runpy
+    gen = runpy.run_path(str(DOC.parent / "pid" / "build_pid.py"))
+    unix = lambda s: s.replace(chr(13) + chr(10), chr(10))  # noqa: E731 - files may be checked out with CRLF
+    svg = unix((DOC.parents[1] / "frontend" / "public" / "static" / "pid.svg").read_text(encoding="utf-8"))
+    drawio = unix((DOC.parent / "pid" / "pid.drawio").read_text(encoding="utf-8"))
+    assert svg == gen["svg"]() and drawio == gen["drawio"](), "run python docs/pid/build_pid.py"
+    for _, _, where in CE.EFFECTS:
+        for tag in (w.split(" ")[0] for w in where.split(", ")):
+            assert f">{tag}<" in svg and tag in drawio, tag
+    for c in CE.CAUSES:                                  # one interlock diamond per SIF, numbered as in the matrix
+        assert f">{CE.INTERLOCK[c.sif]}<" in svg and f'value="{CE.INTERLOCK[c.sif]}"' in drawio
+    assert drawio.count("actuator=solenoid;fillColor=#000000") == 3      # BDV-101, XV-102 (normally closed), legend
