@@ -6,13 +6,17 @@ const SERVER_OLLAMA = { provider: "ollama", label: "Ollama on this machine", mod
 
 /** The test server has no LLM; make its first greeting say "the agents use this computer's Ollama". Returns the
  *  messages the console sends to the server. */
-async function withServerOllama(page: Page) {
+async function withServerOllama(page: Page, { fake = true, installed = [] as string[] } = {}) {
   const sent: Record<string, unknown>[] = [];
   await page.routeWebSocket(/\/ws/, (ws) => {
     const server = ws.connectToServer();
-    let faked = false;
+    let faked = !fake;
     server.onMessage((raw) => {
       const msg = JSON.parse(String(raw));
+      if (msg.request === "list_models" && installed.length) {   // the models this computer's Ollama has
+        ws.send(JSON.stringify({ ...msg, models: installed }));
+        return;
+      }
       if (!faked && msg.type === "hello" && msg.session) {
         faked = true;
         Object.assign(msg.session.llm, { active: true, key_source: "server", connection: SERVER_OLLAMA, model: "qwen3:8b", reason: "" });
@@ -77,4 +81,50 @@ test("with no LLM connected, the provider form is shown straight away", async ({
   const settings = await agentSettings(page);
   await expect(settings.getByLabel("Provider")).toBeVisible();
   await expect(settings.getByLabel("Provider").locator("option", { hasText: "Groq" })).toHaveCount(1);
+});
+
+const CORS = { "access-control-allow-origin": "*" };
+const OTHER = "Other model (type its name)…";
+
+test("OpenRouter: every model it has is in the dropdown, and a custom model it does not have is refused", async ({ page }) => {
+  const sent = await withServerOllama(page, { fake: false });   // nothing connected: the provider form
+  await page.route("https://openrouter.ai/api/v1/models", (route) => route.fulfill({ headers: CORS, json: { data: [
+    { id: "meta-llama/llama-3.3-70b-instruct:free" }, { id: "anthropic/claude-haiku-4.5" }, { id: "someone/fine-tuned-model" },
+  ] } }));
+  await page.route("https://openrouter.ai/api/v1/key", (route) => route.fulfill({ headers: CORS, json: { data: {} } }));
+  const settings = await agentSettings(page);
+  await settings.getByLabel("Provider").selectOption("openrouter");
+  const model = settings.getByLabel("Model", { exact: true });
+  // the whole list, listed before any key is typed (not only the preselected model)
+  for (const m of ["meta-llama/llama-3.3-70b-instruct:free", "anthropic/claude-haiku-4.5", "someone/fine-tuned-model", OTHER])
+    await expect(model.locator("option", { hasText: m })).toHaveCount(1);
+  await expect(model).toHaveValue("meta-llama/llama-3.3-70b-instruct:free");
+  await expect(model.locator("option", { hasText: "qwen/qwen3-235b-a22b:free" })).toHaveCount(0);   // suggested, but gone
+
+  await settings.getByLabel("API key").fill("sk-or-test");
+  await model.selectOption({ label: OTHER });
+  await settings.getByLabel("Model name").fill("nobody/no-such-model");
+  await settings.getByRole("button", { name: "Connect" }).click();
+  await expect(page.locator(".toast")).toContainText('"nobody/no-such-model" does not exist on OpenRouter');
+  expect(sent.find((m) => m.type === "set_llm")).toBeUndefined();
+
+  await settings.getByLabel("Model name").fill("someone/fine-tuned-model");
+  await settings.getByRole("button", { name: "Connect" }).click();
+  await expect.poll(() => sent.find((m) => m.type === "set_llm")).toMatchObject(
+    { provider: "openrouter", model: "someone/fine-tuned-model", in_browser: true });
+  expect(JSON.stringify(sent)).not.toContain("sk-or-test");
+});
+
+test("Change model lists every model this computer's Ollama has", async ({ page }) => {
+  const sent = await withServerOllama(page, { installed: ["llama3.2:latest", "mistral-nemo:12b", "qwen3:8b"] });
+  const settings = await agentSettings(page);
+  const card = settings.locator(".key-card.on");
+  await card.getByRole("button", { name: "Change model" }).click();
+  const model = card.getByLabel("Model", { exact: true });
+  for (const m of ["llama3.2:latest", "mistral-nemo:12b", "qwen3:8b", OTHER])
+    await expect(model.locator("option", { hasText: m })).toHaveCount(1);
+  await expect(model).toHaveValue("qwen3:8b");
+  await model.selectOption("mistral-nemo:12b");
+  await card.getByRole("button", { name: "Use this model" }).click();
+  await expect.poll(() => sent.find((m) => m.type === "set_model")).toMatchObject({ model: "mistral-nemo:12b" });
 });

@@ -65,10 +65,16 @@ export async function checkConnection(c: LlmConn): Promise<string | null> {
     if (!api) return `unknown provider ${c.provider}`;
     if (!c.key) return `${api.label} needs an API key`;
     const r = await fetchWithTimeout(api.base + api.check, { headers: { Authorization: `Bearer ${c.key}` } }, 10_000);
-    if (r.ok) return null;
-    if (r.status === 401 || r.status === 403) return `${api.label} rejected this key (${r.status})`;
-    const why = await errorText(r);
-    return `${api.label} answered ${r.status}${why ? `: ${why}` : ""}`;
+    if (!r.ok) {
+      if (r.status === 401 || r.status === 403) return `${api.label} rejected this key (${r.status})`;
+      const why = await errorText(r);
+      return `${api.label} answered ${r.status}${why ? `: ${why}` : ""}`;
+    }
+    const ids = await catalogue(c);   // a model the provider does not list would fail at the agents' first call
+    if (ids?.length && !hasModel(c, ids))
+      return `the model "${c.model}" does not exist on ${api.label}` + (c.provider === "openrouter"
+        ? " (names look like provider/model, e.g. meta-llama/llama-3.3-70b-instruct; see openrouter.ai/models)" : "");
+    return null;
   } catch (e) {
     return c.provider === "ollama"
       ? `could not reach your Ollama at ${ollamaRoot(c.url)} from this browser (is it running, and does OLLAMA_ORIGINS allow this site?)`
@@ -138,25 +144,35 @@ function safeJson(s: string): unknown {
 // Not chat models: speech, images, embeddings, moderation and the like.
 const NOT_CHAT = /(embed|tts|whisper|audio|realtime|transcri|image|dall-e|moderation|guard|search|aqa|babbage|davinci)/i;
 
-/** The chat models this connection can use, listed by the provider from this browser ([] if unavailable). */
-export async function listModels(c: LlmConn): Promise<string[]> {
+/** Every model id the provider lists for this connection, or null when it cannot be listed. OpenRouter's catalogue
+ *  is public (no key needed), so it is listed, and a custom model checked, before a key is typed. */
+async function catalogue(c: LlmConn): Promise<string[] | null> {
   try {
     if (c.provider === "ollama") {
       const r = await fetchWithTimeout(`${ollamaRoot(c.url)}/api/tags`, {}, 10_000);
-      if (!r.ok) return [];
-      return ((await r.json()).models ?? []).map((m: { name: string }) => m.name).sort();
+      return r.ok ? ((await r.json()).models ?? []).map((m: { name: string }) => m.name) : null;
     }
     const api = API[c.provider];
-    if (!api || !c.key) return [];
-    const r = await fetchWithTimeout(`${api.base}/models`, { headers: { Authorization: `Bearer ${c.key}` } }, 10_000);
-    if (!r.ok) return [];
-    let ids: string[] = ((await r.json()).data ?? []).map((m: { id: string }) => String(m.id).replace(/^models\//, ""));
-    ids = ids.filter((id) => !NOT_CHAT.test(id));
-    if (c.provider === "openai") ids = ids.filter((id) => /^(gpt|o\d|chatgpt)/.test(id));
-    if (c.provider === "gemini") ids = ids.filter((id) => id.startsWith("gemini"));
-    const free = (id: string) => (id.endsWith(":free") ? 0 : 1);   // OpenRouter: free models first
-    return [...new Set(ids)].sort((a, b) => free(a) - free(b) || a.localeCompare(b));
+    if (!api || (!c.key && c.provider !== "openrouter")) return null;
+    const headers: Record<string, string> = c.provider === "openrouter" ? {} : { Authorization: `Bearer ${c.key}` };
+    const r = await fetchWithTimeout(`${api.base}/models`, { headers }, 10_000);
+    if (!r.ok) return null;
+    return ((await r.json()).data ?? []).map((m: { id: string }) => String(m.id).replace(/^models\//, ""));
   } catch {
-    return [];
+    return null;
   }
+}
+
+// OpenRouter's routing suffixes (":nitro", ":floor", ...) name a listed model too.
+const hasModel = (c: LlmConn, ids: string[]) =>
+  ids.includes(c.model) || (c.provider === "openrouter" && ids.includes(c.model.replace(/:(nitro|floor|online|exacto)$/, "")));
+
+/** The chat models this connection can use, listed by the provider from this browser ([] if unavailable). */
+export async function listModels(c: LlmConn): Promise<string[]> {
+  if (c.provider === "ollama") return [...((await catalogue(c)) ?? [])].sort();
+  let ids = ((await catalogue(c)) ?? []).filter((id) => !NOT_CHAT.test(id));
+  if (c.provider === "openai") ids = ids.filter((id) => /^(gpt|o\d|chatgpt)/.test(id));
+  if (c.provider === "gemini") ids = ids.filter((id) => id.startsWith("gemini"));
+  const free = (id: string) => (id.endsWith(":free") ? 0 : 1);   // OpenRouter: free models first
+  return [...new Set(ids)].sort((a, b) => free(a) - free(b) || a.localeCompare(b));
 }
