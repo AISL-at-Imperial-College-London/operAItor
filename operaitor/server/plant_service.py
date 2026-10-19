@@ -78,6 +78,12 @@ def jsonable(obj: Any) -> Any:
 API_VERSION = 9
 
 
+def cause_effect() -> dict:
+    """The SIF cause & effect matrix for the console's P&ID view (from the safety system, plant/cause_effect.py)."""
+    from operaitor.plant.cause_effect import EFFECTS, matrix
+    return {"effects": [[name, tag] for name, _, tag in EFFECTS], "rows": list(matrix())}
+
+
 class PlantService:
     TIMING = EpisodeTiming(plant_step_min=0.1, decision_interval_min=0.5, control_interval_min=1.0)
 
@@ -600,11 +606,12 @@ class PlantService:
                                "actuator_modes": ["freeze", "capacity", "fixed", "stiction"],
                                "sensor_targets": SENSOR_TARGETS, "process_faults": PROCESS_FAULTS}}
 
-    def hello(self) -> dict:
+    def hello(self) -> dict:  # noqa: D102 - the console's full state on connect
         from .fault_library import FAULT_LIBRARY
         from .human_test import scenario_list
         out = {"api_version": API_VERSION,
-               "meta": {**self.meta(), "fault_library": sorted(FAULT_LIBRARY), "human_scenarios": scenario_list()},
+               "meta": {**self.meta(), "fault_library": sorted(FAULT_LIBRARY), "human_scenarios": scenario_list(),
+                        "cause_effect": cause_effect()},
                **self.human_test_status(), "snapshot": self.snapshot(), "trend": list(self.trend),
                "monitor": list(self.monitor), "agent_log": list(self.agent_log),
                "messages": list(self.messages)}

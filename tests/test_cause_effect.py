@@ -38,7 +38,7 @@ def test_each_cause_trips_at_its_documented_limit():
 
 
 def test_the_drawing_shows_every_tag_in_the_tables():
-    svg = (DOC.parent / "pid.svg").read_text(encoding="utf-8")
+    svg = (DOC.parents[1] / "frontend" / "public" / "static" / "pid.svg").read_text(encoding="utf-8")
     for tag, element, _ in CE.LOOP_TAGS.values():
         assert f">{tag.split('-')[0]}<" in svg and f">{tag.split('-')[1]}<" in svg, tag   # bubble: letters / number
         assert f">{element}<" in svg, element
@@ -47,3 +47,20 @@ def test_the_drawing_shows_every_tag_in_the_tables():
     for tag in ("R-101", "T-201", "E-201", "E-202", "V-201", "PSV-101", "BDV-101", "HV-102",
                 "P-101A/B", "P-102A/B", "P-201A/B", "P-202A/B", "P-203A/B"):
         assert tag in svg, tag
+
+
+def test_the_console_drawing_is_wired_for_the_live_view():
+    """The P&ID view lights the SIS box of a latched SIF and writes each controller's value next to it."""
+    import re
+    from operaitor.plant.control import RegulatoryControlSystem
+    svg = (DOC.parents[1] / "frontend" / "public" / "static" / "pid.svg").read_text(encoding="utf-8")
+    covered = {c for group in re.findall(r'data-sif="([^"]+)"', svg) for c in group.split()}
+    assert covered == set(SafetySystem.CAUSES)
+    assert set(re.findall(r'data-pv="([^"]+)"', svg)) == set(RegulatoryControlSystem.LOOP_SPECS)
+
+
+def test_the_console_gets_the_matrix():
+    from operaitor.server.plant_service import cause_effect
+    ce = cause_effect()
+    assert [r["sif"] for r in ce["rows"]] == [c.sif for c in CE.CAUSES] and len(ce["rows"]) == len(SafetySystem.CAUSES)
+    assert [name for name, _ in ce["effects"]] == [name for name, _, _ in CE.EFFECTS]

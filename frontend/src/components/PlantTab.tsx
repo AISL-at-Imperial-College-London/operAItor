@@ -1,6 +1,35 @@
+import { useState } from "react";
 import { navigate, usePlant } from "../store";
 import type { Snapshot } from "../types";
 import { Overview } from "./Overview";
+import { PidView } from "./PidView";
+
+// The plant as a process graphic (front panel) or as its P&ID; the choice is remembered in this browser.
+const VIEW_KEY = "operaitor.plantView";
+type View = "graphic" | "pid";
+function storedView(): View {
+  try { return localStorage.getItem(VIEW_KEY) === "pid" ? "pid" : "graphic"; } catch { return "graphic"; }
+}
+
+function PlantView() {
+  const [view, setView] = useState<View>(storedView);
+  const pick = (v: View) => {
+    setView(v);
+    try { localStorage.setItem(VIEW_KEY, v); } catch { /* storage unavailable: just for this visit */ }
+  };
+  return (
+    <>
+      <div className="view-switch">
+        <div className="seg small" role="radiogroup" aria-label="Plant view">
+          {([["graphic", "Process graphic"], ["pid", "P&ID"]] as const).map(([v, l]) => (
+            <button key={v} role="radio" aria-checked={view === v} className={view === v ? "on" : ""} onClick={() => pick(v)}>{l}</button>
+          ))}
+        </div>
+      </div>
+      {view === "pid" ? <PidView /> : <Overview />}
+    </>
+  );
+}
 
 // Key process variables, grouped by unit: [label, measurement tag, unit, decimals]
 const KEY_VARS: [string, [string, string, string, number][]][] = [
@@ -103,7 +132,7 @@ export function PlantTab({ onAlarms }: { onAlarms: () => void }) {
   return (
     <div className="stack">
       <ActiveAlarms snap={snap} onAll={onAlarms} />
-      <Overview />
+      <PlantView />
       <KeyVariables snap={snap} />
       <Loops snap={snap} />
     </div>
