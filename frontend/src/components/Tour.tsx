@@ -1,5 +1,5 @@
-import { type ReactNode, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { navigate, store, usePlant } from "../store";
+import { type ReactNode, useEffect, useLayoutEffect, useState } from "react";
+import { navigate, store } from "../store";
 import type { Snapshot } from "../types";
 import type { Drawer, Tab } from "./TopBar";
 
@@ -30,8 +30,9 @@ const injected = (_: Snapshot, since: number) => store.state.injectedAt > since;
 
 export const STEPS: Step[] = [
   { title: "Welcome to the control room",
-    body: <>This is a simulated acetone plant: a reactor (R-101) makes acetone from isopropanol, and a distillation column
-      (T-201) purifies it. AI agents supervise it, and you can too.<br />In two minutes you will run the plant, break it on
+    body: <>OperAItor is a framework for AI operator agents. This is its demo plant, a simulated acetone process: a reactor
+      (R-101) makes acetone from isopropanol, and a distillation column (T-201) purifies it. The agents supervise it,
+      and you can too.<br />In two minutes you will run the plant, break it on
       purpose, and see who fixes it.</> },
   { title: "Plant status", target: ".header-status .status", tab: "plant",
     body: <>The one thing to watch. <b className="ok-text">Normal</b> is green; it turns amber for a fault or a safety
@@ -77,7 +78,7 @@ export const STEPS: Step[] = [
 
 type Box = { top: number; left: number; width: number; height: number };
 
-/** Where the target is on screen (re-measured as the console updates and scrolls); null when it is not shown. */
+/** Where the target is on screen (re-measured every frame); null when it is not shown. */
 function useTargetBox(selector: string | undefined, step: number): Box | null {
   const [box, setBox] = useState<Box | null>(null);
   useLayoutEffect(() => {
@@ -91,38 +92,40 @@ function useTargetBox(selector: string | undefined, step: number): Box | null {
       setBox((b) => (b && b.top === r.top && b.left === r.left && b.width === r.width && b.height === r.height
         ? b : { top: r.top, left: r.left, width: r.width, height: r.height }));
     };
-    measure();
-    const id = setInterval(measure, 250);
-    window.addEventListener("resize", measure);
-    window.addEventListener("scroll", measure, true);
-    return () => { clearInterval(id); window.removeEventListener("resize", measure); window.removeEventListener("scroll", measure, true); };
+    // every frame: the card follows the layout at once when the page shifts (a header that wraps, a panel opening)
+    let frame = 0;
+    const loop = () => { measure(); frame = requestAnimationFrame(loop); };
+    loop();
+    return () => cancelAnimationFrame(frame);
   }, [selector, step]);
   return box;
 }
 
 export function Tour({ onClose }: { onClose: () => void }) {
-  const snap = usePlant((s) => s.snap);
   const [i, setI] = useState(0);
-  const since = useMemo(() => Date.now(), [i]);
-  const [, tick] = useState(0);
+  const [doneStep, setDoneStep] = useState(-1);   // the step whose task was done: latched, so it cannot flicker back
   const step = STEPS[i];
   const box = useTargetBox(step.target, i);
   const last = i === STEPS.length - 1;
-  const done = !!step.task && !!snap && step.task.done(snap, since);
+  const done = doneStep === i;
 
   useEffect(() => {   // put the console where the step is
     if (step.tab !== undefined || step.drawer !== undefined) navigate({ tab: step.tab, drawer: step.drawer });
   }, [i]);   // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {   // tasks that live in the page (an open panel, a tab): look again
-    if (!step.task) return;
-    const id = setInterval(() => tick((n) => n + 1), 300);
-    return () => clearInterval(id);
-  }, [i, step.task]);
-  useEffect(() => {   // a finished task moves on by itself, after a moment to see the tick
-    if (!done) return;
-    const id = setTimeout(() => setI((n) => Math.min(n + 1, STEPS.length - 1)), 900);
-    return () => clearTimeout(id);
-  }, [done, i]);
+  useEffect(() => {   // watch for the task (some live in the page: an open panel, a tab), then move on by itself
+    const task = step.task;
+    if (!task) return;
+    const since = Date.now();
+    let next: ReturnType<typeof setTimeout> | undefined;
+    const look = setInterval(() => {
+      const s = store.state.snap;
+      if (!s || !task.done(s, since)) return;
+      clearInterval(look);
+      setDoneStep(i);
+      next = setTimeout(() => setI((n) => (n === i ? Math.min(n + 1, STEPS.length - 1) : n)), 900);   // a moment to see ✓
+    }, 300);
+    return () => { clearInterval(look); clearTimeout(next); };
+  }, [i]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const finish = () => { markSeen(); onClose(); };
   useEffect(() => {

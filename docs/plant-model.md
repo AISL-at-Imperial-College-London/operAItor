@@ -7,8 +7,8 @@ The design goal is **causal realism rather than high-fidelity equipment modellin
 
 ## Model scope and known simplifications (beta)
 
-OperAItor is a **process surrogate** for testing operators and AI agents, not a validated design model of an
-acetone plant. The process is modelled on isopropanol (IPA) dehydrogenation to acetone: the physical properties
+The demo plant is a **simulation of a process plant, with physics**, for testing operators and AI agents; it is
+not a validated design model of an acetone plant, and it can contain bugs (please report them). The process is modelled on isopropanol (IPA) dehydrogenation to acetone: the physical properties
 are acetone's and IPA's, while the reactor is best read as a generic **endothermic liquid-phase reaction
 A → B + gas** feeding a distillation column.
 
