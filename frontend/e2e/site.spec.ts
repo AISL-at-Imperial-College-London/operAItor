@@ -100,3 +100,15 @@ test.describe("on a high-resolution (retina) screen", () => {
     expect(await page.locator(".window").evaluate((w) => getComputedStyle(w).transform)).toBe("none");
   });
 });
+
+test("OperAItor is presented as the framework, and the acetone plant as its demo", async ({ page }) => {
+  await openSite(page, [RC3]);
+  await expect(page.locator(".hero .pill")).toContainText("framework");
+  await expect(page.locator(".hero .sub")).toContainText("framework for AI operator agents");
+  await expect(page.locator(".hero .cap")).toContainText("demo plant");
+  const beta = page.locator(".beta");
+  await expect(beta).toContainText("simulation of a process plant, with physics");
+  await expect(beta).toContainText("can still contain bugs");
+  await expect(beta).toContainText("please report it");
+  await expect(page.locator("body")).not.toContainText("surrogate");
+});

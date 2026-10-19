@@ -15,19 +15,20 @@
 [![ollama](https://img.shields.io/badge/LLM-Ollama%20(free)-000000.svg?logo=ollama&logoColor=white)](https://ollama.com)
 [![ADMIT](https://img.shields.io/badge/validation-ADMIT-b31b1b.svg)](https://arxiv.org/abs/2608.03866)
 
-**AI operators for a chemical plant, checked before they act.** *(beta)*
+**An open-source framework for AI operator agents in process plants, checked before they act.** *(beta)*
+It ships with a demo: a simulated acetone plant.
 
-> **Beta.** The plant is a process surrogate: its physics are checked in CI (conservation, numerics,
-> thermodynamics, fault responses) and its simplifications are listed in the
-> [model scope](docs/plant-model.md#model-scope-and-known-simplifications-beta). Something odd in the physics or
-> the workflow? Use **Feedback** in the console's header (it fills in a GitHub issue with the version and plant
-> state), or [report it here](https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new/choose).
+> **Beta.** The demo plant is a simulation of a process plant, with physics (mass and energy balances,
+> thermodynamics, kinetics) checked in CI; its simplifications are listed in the
+> [model scope](docs/plant-model.md#model-scope-and-known-simplifications-beta). It can still contain bugs: if you
+> find one, please report it with **Feedback** in the console's header (it fills in a GitHub issue with the version
+> and plant state), or [here](https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new/choose).
 
-A simulated chemical plant you can run in the browser, break on purpose, and watch AI agents try
-to recover. It has fault detection, safety functions, and LLM agents whose actions are checked
-before they reach the plant.
+OperAItor is a framework for building, running and benchmarking AI operator agents: fault detection, LLM agents
+whose actions are checked before they reach the process, a console, and a benchmark. You try it on the demo plant,
+in the browser: break it on purpose, and watch the agents try to recover it.
 
-- **The plant.** An endothermic liquid-phase reaction, modelled on isopropanol dehydrogenation to acetone, in a
+- **The demo plant.** An endothermic liquid-phase reaction, modelled on isopropanol dehydrogenation to acetone, in a
   CSTR (R-101) that feeds a 10-tray distillation column (T-201). It is a dynamic DAE model with 8 PI loops, 5 duty/standby pump
   trains, ISA-18.2 alarms and 11 independent safety instrumented functions (SIFs).
 - **Fault detection.** PCA (Hotelling T² and SPE) confirms faults. The diagnosis comes from rules

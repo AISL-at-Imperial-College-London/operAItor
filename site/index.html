@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OperAItor · AI operators for process plants</title>
-<meta name="description" content="OperAItor: AI operator agents for process plants, checked before they act. A simulated plant with control loops, alarms and safety functions, PCA fault detection, and LLM agents validated by a digital twin or the ADMIT admissibility gates. An AISL project, Imperial College London.">
+<meta name="description" content="OperAItor: an open-source framework for AI operator agents in process plants, checked before they act: fault detection, LLM agents, validation by a digital twin or the ADMIT admissibility gates, and a benchmark. Demonstrated on a simulated acetone plant you can break on purpose.">
 <meta property="og:title" content="OperAItor · AI operators for process plants">
-<meta property="og:description" content="Break a simulated process plant on purpose and watch AI agents detect, diagnose and fix the fault, with every action checked before it reaches the plant.">
+<meta property="og:description" content="An open-source framework for AI operator agents in process plants. Try it on the demo: break a simulated acetone plant on purpose and watch the agents detect, diagnose and fix the fault, with every action checked before it reaches the process.">
 <meta property="og:image" content="assets/logo-512.png">
 <meta name="theme-color" content="#070b14">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
@@ -302,10 +302,10 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
       </g>
     </svg>
     <div class="wrap">
-      <span class="pill"><b>Beta</b>Open source · AISL · Imperial College London</span>
+      <span class="pill"><b>Beta</b>Open-source framework · AISL · Imperial College London</span>
       <h1>AI operators for <span style="white-space:nowrap">process plants</span><em>checked before they act.</em></h1>
-      <p class="sub">Break a simulated plant on purpose. AI agents detect the fault, diagnose it and fix it, and every
-        action is validated before it touches the process.</p>
+      <p class="sub">An open framework for AI operator agents: they detect a fault, diagnose it and fix it, and every
+        action is validated before it touches the process. Try it on the demo plant: break it on purpose.</p>
       <div class="ctas">
         <a class="btn primary" id="demo" href="__DEMO_URL__">Open the live demo</a>
         <a class="btn" id="download" href="#run">
@@ -331,8 +331,8 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
           <span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
           <span><b>Action admitted</b><small>Start the spare pump · T0–T4 passed</small></span></div>
       </div>
-      <p class="cap">The example process: an endothermic reactor, modelled on isopropanol → acetone, feeding a
-        distillation column.</p>
+      <p class="cap">The demo plant that ships with OperAItor: a simulated acetone process, an endothermic reactor
+        (isopropanol → acetone) feeding a distillation column.</p>
 
       <div class="numbers reveal">
         <div><b>20</b><span>benchmark fault scenarios: single, coupled and triple faults, with one score</span></div>
@@ -346,12 +346,13 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
     <div class="wrap">
       <div class="head reveal">
         <span class="eyebrow">What's inside</span>
-        <h2>A realistic process, real safety layers, <em>and agents that have to earn trust.</em></h2>
+        <h2>A framework for operator agents, <em>and a demo plant to put them to the test.</em></h2>
       </div>
       <div class="bento">
         <div class="tile t-plant reveal">
-          <h3>A plant you can break</h3>
-          <p>A dynamic process model with control loops, duty/standby pumps, alarms and 11 independent safety functions.</p>
+          <h3>The demo plant: made to be broken</h3>
+          <p>A dynamic simulation of an acetone process, with physics: control loops, duty/standby pumps, alarms and
+            11 independent safety functions.</p>
           <div class="vis chips">
             <span class="chip hot">Pump trip</span><span class="chip">Valve stiction</span><span class="chip">Sensor bias</span>
             <span class="chip">Frozen sensor</span><span class="chip">Cooling loss</span><span class="chip">Liquid leak</span><span class="chip">Feed disturbances</span>
@@ -448,7 +449,7 @@ footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
       <div class="head reveal" style="margin:72px 0 26px">
         <span class="eyebrow">Reference runs</span>
         <h2 class="sm">The original study. <em>A starting point, not a leaderboard.</em></h2>
-        <p>One run per configuration with gpt-5-nano, on an earlier version of the plant. These are the runs we report
+        <p>One run per configuration with gpt-5-nano, on an earlier version of the demo plant. These are the runs we report
           in our paper; your runs are compared with them scenario by scenario.</p>
       </div>
       <div class="chart reveal">
@@ -557,16 +558,16 @@ operaitor serve</pre>
 
       <div class="beta reveal">
         <span class="pill"><b>Beta</b></span>
-        <p><b>OperAItor is in beta.</b> The plant is a process surrogate: its physics are checked (conservation, numerics,
-          thermodynamics, fault responses) and its simplifications are documented in the
-          <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/blob/main/docs/plant-model.md#model-scope-and-known-simplifications-beta">model scope</a>.
-          Something odd in the physics or the workflow? Use <b>Feedback</b> in the app, or
-          <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new/choose">report it</a>; we'd like to fix it.</p>
+        <p><b>OperAItor is in beta.</b> The demo plant is a simulation of a process plant, with physics: mass and energy
+          balances, thermodynamics and kinetics, checked in CI (simplifications in the
+          <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/blob/main/docs/plant-model.md#model-scope-and-known-simplifications-beta">model scope</a>).
+          It can still contain bugs. <b>If you find one, please report it:</b> <b>Feedback</b> in the app, or
+          <a href="https://github.com/AISL-at-Imperial-College-London/operAItor/issues/new/choose">report it on GitHub</a>.</p>
       </div>
 
       <div class="closing reveal">
         <img src="assets/logo.svg" alt="" width="68" height="68">
-        <h2 class="sm">Break the plant. <em>Watch it recover.</em></h2>
+        <h2 class="sm">Break the demo plant. <em>Watch the agents recover it.</em></h2>
         <div class="ctas"><a class="btn primary" href="#run">Download OperAItor</a><a class="btn" href="./dashboard/">Benchmark dashboard</a></div>
       </div>
     </div>
