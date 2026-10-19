@@ -23,13 +23,14 @@ test("switch to the P&ID, and a reflux pump trip lights up the dry-tray safety f
   await page.locator(".drawer-buttons button", { hasText: "Faults" }).click();
   await page.locator(".panel-body").filter({ hasText: "Inject a fault" }).getByRole("button", { name: "Inject", exact: true }).click();
   await page.getByRole("button", { name: "Close panel" }).click();
+  // The trip ends the episode and "+1 min" disappears, possibly between the check and the click: a short click
+  // that may miss, then look again.
   const step = page.getByRole("button", { name: "+1 min" });
   for (let i = 0; i < 20 && (await page.locator(".ce-table tr.on").count()) === 0; i++) {
-    if (!(await step.isVisible())) break;
-    await step.click();
+    await step.click({ timeout: 5_000 }).catch(() => {});
     await page.waitForTimeout(400);
   }
-  await expect(page.locator('.pid [data-sif="COL_L_LL"]')).toHaveClass(/on/);
+  await expect(page.locator('.pid [data-sif="COL_L_LL"]')).toHaveClass(/on/, { timeout: 15_000 });
   await expect(page.locator(".ce-table tr.on").filter({ hasText: "COL_L_LL" })).toHaveCount(1);
   await expect(page.locator(".ce-table tr.on").filter({ hasText: "COL_L_LL" })).toContainText("LATCH");
   await expect(page.locator('.pid [data-sif="R_T_HH"]')).not.toHaveClass(/on/);
