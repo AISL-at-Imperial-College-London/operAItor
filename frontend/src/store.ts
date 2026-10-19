@@ -49,9 +49,10 @@ export interface PlantState {
   codeCheck: { ok: boolean; summary: string; at: number } | null;
   bench: BenchStatus | null;   // pipeline benchmark (latest)
   pipelineBusy: boolean;
+  injectedAt: number;   // the server accepted the last fault injection (the tour waits for one)
 }
 
-export interface NavRequest { tab?: "plant" | "trends" | "agents" | "alarms"; drawer?: "operate" | "assistant" | "faults"; loop?: string; at: number }
+export interface NavRequest { tab?: "plant" | "trends" | "agents" | "alarms"; drawer?: "operate" | "assistant" | "faults" | ""; loop?: string; at: number }
 
 export type NodeStatus = "idle" | "running" | "ok" | "warn" | "fail" | "skip";
 export const PIPELINE_NODES = ["monitoring", "kg_retrieval", "planning", "action_propose",
@@ -128,7 +129,7 @@ class PlantStore {
     monitor: emptyMonitor(), lastMonitor: null, agentLog: [], agent: null, pending: {},
     messages: [], toast: null, brief: null, humanTest: null, chat: [], chatMode: "offline", chatModel: null, llmUsage: null,
     pipeline: idlePipeline(), session: null, notice: null, keyBusy: false, nav: null, serverModels: [],
-    pipelineDefaults: null, kgCheck: null, codeCheck: null, pipelineBusy: false, bench: null,
+    pipelineDefaults: null, kgCheck: null, codeCheck: null, pipelineBusy: false, bench: null, injectedAt: 0,
   };
   // The visitor's LLM connection (incl. key) lives only in this page's memory (never in browser storage or on
   // the server): this tab makes the agents' LLM calls itself (browserLlm.ts). A new session (server restart or
@@ -315,6 +316,7 @@ class PlantStore {
         if (msg.request === "check_code") { this.set({ codeCheck: { ok: msg.ok, summary: msg.summary, at: Date.now() } }); break; }
         if (msg.request === "set_pipeline" || msg.request === "set_agent_preset") this.set({ pipelineBusy: false });
         if (msg.request === "set_model") this.set({ keyBusy: false });
+        if (msg.request === "inject" && msg.ok) this.set({ injectedAt: Date.now() });
         if (msg.request === "quit_app" && msg.ok) {
           this.set({ notice: { kind: "stopped", text: "OperAItor has stopped. You can close this tab; open the app again to restart it." } });
           break;

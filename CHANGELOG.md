@@ -2,6 +2,11 @@
 
 ## 1.1.0 (unreleased)
 
+**First-visit tour**
+- A guided tour of the console, like a game's first-time tutorial: it spotlights one part at a time and, at the steps
+  that matter, waits for you to do it (press Run, open Operate and Faults, inject a fault, open the Agents tab). It
+  starts on the first visit, can be skipped (or a single step), and the **Tour** button in the header replays it.
+
 **Choosing a model**
 - The model is chosen from a dropdown that lists every model the connection can use: the provider's list for your
   key, your Ollama's installed models, and OpenRouter's whole catalogue (public, listed before a key is typed);

@@ -96,8 +96,8 @@ function OperatorModeSwitch() {
   );
 }
 
-export function Header({ tab, onTab, drawer, onDrawer }:
-  { tab: Tab; onTab: (t: Tab) => void; drawer: Drawer | ""; onDrawer: (d: Drawer) => void }) {
+export function Header({ tab, onTab, drawer, onDrawer, onTour }:
+  { tab: Tab; onTab: (t: Tab) => void; drawer: Drawer | ""; onDrawer: (d: Drawer) => void; onTour: () => void }) {
   const snap = usePlant((s) => s.snap);
   const last = usePlant((s) => s.lastMonitor);
   const pipeline = usePlant((s) => s.pipeline);
@@ -118,7 +118,7 @@ export function Header({ tab, onTab, drawer, onDrawer }:
       <div className="brand"><img className="logo" src="/favicon.svg" alt="" width={22} height={22} /><span className="brand-name">Oper<b className="ai">AI</b>tor <span className="dim brand-sub">beta</span></span></div>
       <nav className="tabs" role="tablist">
         {TABS.map((t) => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => onTab(t.id)}>
+          <button key={t.id} role="tab" data-tab={t.id} aria-selected={tab === t.id} className={tab === t.id ? "on" : ""} onClick={() => onTab(t.id)}>
             {t.label}
             {t.id === "alarms" && active > 0 && <span className={`count ${unack ? "bad" : "warn"}`}>{active}</span>}
           </button>
@@ -153,6 +153,7 @@ export function Header({ tab, onTab, drawer, onDrawer }:
           <button key={d.id} className={`btn ${drawer === d.id ? "on" : ""}`} aria-pressed={drawer === d.id} title={d.title}
             onClick={() => onDrawer(d.id)}>{d.label}</button>
         ))}
+        <button className="btn ghost" title="A guided tour of the console: how to play with the plant" onClick={onTour}>Tour</button>
         <button className="btn ghost" title="Report a bug or give feedback (opens a GitHub issue, filled in)"
           onClick={() => setFeedback(true)}>Feedback</button>
         {desktop && <button className="btn ghost" title="Stop OperAItor on this computer" onClick={quitApp}>Quit OperAItor</button>}
