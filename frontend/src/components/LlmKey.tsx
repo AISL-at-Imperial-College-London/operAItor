@@ -2,10 +2,43 @@ import { useEffect, useState } from "react";
 import { listModels } from "../browserLlm";
 import { availableModels, changeModel, connectLlm, forgetKey, usePlant } from "../store";
 
+const OTHER = "other:";   // the dropdown's "type a name" entry (no model id starts like this)
+
+/** Pick a model: the ones this connection can use (listed live by the provider or Ollama), the popular ones first,
+ *  or any other name typed in. The browser checks a typed name with the provider before the agents use it. */
+function ModelSelect({ value, onChange, listed, popular }:
+  { value: string; onChange: (m: string) => void; listed: string[]; popular: string[] }) {
+  const [typing, setTyping] = useState(false);
+  const live = listed.length > 0;
+  const top = live ? popular.filter((m) => listed.includes(m)) : popular;   // a live list drops retired names
+  const rest = listed.filter((m) => !top.includes(m));
+  const free = rest.filter((m) => m.endsWith(":free"));
+  const paid = rest.filter((m) => !m.endsWith(":free"));
+  const custom = typing || (!!value && !top.includes(value) && !rest.includes(value));
+  const opts = (ms: string[]) => ms.map((m) => <option key={m} value={m}>{m}</option>);
+  return (
+    <>
+      <select aria-label="Model" value={custom ? OTHER : value} onChange={(e) => {
+        const typed = e.target.value === OTHER;
+        setTyping(typed);
+        if (!typed) onChange(e.target.value);
+      }}>
+        {top.length > 0 && <optgroup label="Popular">{opts(top)}</optgroup>}
+        {free.length > 0 && <optgroup label="Free">{opts(free)}</optgroup>}
+        {paid.length > 0 && <optgroup label={free.length ? "Paid" : "All models"}>{opts(paid)}</optgroup>}
+        <option value={OTHER}>Other model (type its name)…</option>
+      </select>
+      {custom && <input type="text" aria-label="Model name" value={value} onChange={(e) => onChange(e.target.value)}
+        placeholder="e.g. provider/model-name" spellCheck={false} autoFocus />}
+    </>
+  );
+}
+
 /** Switch the agents' model at any time; the key (or the server's Ollama) stays connected. */
-function ModelPicker({ current }: { current: string }) {
+function ModelPicker({ current, provider }: { current: string; provider: string }) {
   const busy = usePlant((s) => s.keyBusy);
   const serverModels = usePlant((s) => s.serverModels);
+  const popular = usePlant((s) => s.session?.llm.providers?.[provider]?.models ?? []);
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(current);
   const [listed, setListed] = useState<string[] | null>(null);
@@ -24,9 +57,7 @@ function ModelPicker({ current }: { current: string }) {
       if (m && m !== current) changeModel(m);
       setOpen(false);
     }}>
-      <input type="text" list="model-options" value={value} onChange={(e) => setValue(e.target.value)} spellCheck={false}
-        aria-label="Model" placeholder="model name" autoFocus />
-      <datalist id="model-options">{options.map((m) => <option key={m} value={m} />)}</datalist>
+      <ModelSelect value={value} onChange={setValue} listed={options} popular={popular} />
       <button className="btn primary sm" disabled={busy || !value.trim() || value.trim() === current}>Use this model</button>
       <button type="button" className="btn sm" onClick={() => setOpen(false)}>Cancel</button>
       <span className="dim small">{listed === null && !serverModels.length ? "finding models…" : `${options.length} available`}</span>
@@ -57,7 +88,7 @@ export function LlmKeyCard() {
             : "Your browser makes these calls with your key; this server never sees it. Reloading forgets the key."}
           {" "}Keep this tab open while the agents work.</div>}
         <div className="key-row">
-          {(conn.in_browser || (llm.key_source === "server" && conn.provider === "ollama")) && <ModelPicker current={conn.model} />}
+          {(conn.in_browser || (llm.key_source === "server" && conn.provider === "ollama")) && <ModelPicker current={conn.model} provider={conn.provider} />}
           <button className="btn sm" aria-expanded={switching} onClick={() => setSwitching(!switching)}>
             {switching ? "Cancel" : "Use another provider"}</button>
           {llm.key_source === "visitor" && <button className="btn sm" onClick={forgetKey}>Disconnect</button>}
@@ -78,12 +109,19 @@ function ProviderForm() {
   const [key, setKey] = useState("");
   const [url, setUrl] = useState("");
   const [found, setFound] = useState<string[]>([]);
-  useEffect(() => setFound([]), [provider]);
-  if (!session) return null;
-  const providers = session.llm.providers ?? {};
+  const providers = session?.llm.providers ?? {};
   const pid = provider || Object.keys(providers)[0] || "";
   const p = providers[pid];
-  const chosenModel = model || p?.models[0] || "";
+  // Ollama and OpenRouter list their models without a key: straight away. The others once the key is typed.
+  useEffect(() => {
+    setFound([]);
+    if (!p || (p.key && pid !== "openrouter")) return;
+    let current = true;
+    listModels({ provider: pid, model: "", key: "", url: url.trim() }).then((ms) => current && setFound(ms));
+    return () => { current = false; };
+  }, [pid]);   // eslint-disable-line react-hooks/exhaustive-deps
+  if (!session) return null;
+  const chosenModel = model || (found.length ? p?.models.find((m) => found.includes(m)) ?? found[0] : p?.models[0]) || "";
   const findModels = () => {
     if (p && (!p.key || key.trim())) listModels({ provider: pid, model: "", key: key.trim(), url: url.trim() }).then(setFound);
   };
@@ -92,21 +130,20 @@ function ProviderForm() {
     <form className="key-card" onSubmit={(e) => {
       e.preventDefault();
       if (!ready) return;
+      // the key stays typed if the check fails (e.g. a misspelt model); the form closes once connected
       connectLlm({ provider: pid, model: chosenModel.trim(), key: key.trim(), url: url.trim() });
-      setKey("");
     }}>
       <p className="small dim">The free options need only a free account with the provider, or your own Ollama.</p>
       <label className="field"><span>Provider</span>
-        <select value={pid} onChange={(e) => { setProvider(e.target.value); setModel("");
-          if (providers[e.target.value] && !providers[e.target.value].key)   // Ollama: list its models straight away
-            listModels({ provider: e.target.value, model: "", key: "", url: url.trim() }).then(setFound); }}>
+        <select value={pid} onChange={(e) => { setProvider(e.target.value); setModel(""); }}>
           {Object.entries(providers).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select></label>
       {p && <>
-        <label className="field"><span>Model</span>
-          <input type="text" list={`models-${pid}`} value={chosenModel} onChange={(e) => setModel(e.target.value)} spellCheck={false} />
-          <datalist id={`models-${pid}`}>{[...new Set([...found, ...p.models])].map((m) => <option key={m} value={m} />)}</datalist>
-          {found.length > 0 && <span className="dim small">{found.length} models available with this {p.key ? "key" : "Ollama"}</span>}</label>
+        <div className="field"><span>Model</span>
+          <ModelSelect key={pid} value={chosenModel} onChange={setModel} listed={found} popular={p.models} />
+          <span className="dim small">{found.length > 0
+            ? `${found.length} models available ${pid === "openrouter" ? "on OpenRouter" : `with this ${p.key ? "key" : "Ollama"}`}`
+            : p.key ? "Type your key to list every model it can use, or pick Other to type a name." : ""}</span></div>
         {p.url && (
           <label className="field"><span>Ollama address (blank = Ollama on your own computer)</span>
             <input type="text" placeholder="http://localhost:11434"

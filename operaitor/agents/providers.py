@@ -3,7 +3,8 @@ agents use one client (langchain-openai) for every provider, including Ollama.
 
 Free options first: Groq, Google Gemini and OpenRouter have free tiers (the visitor creates a key
 on their site), and Ollama is free and local. OpenAI is paid by whoever owns the key. Model lists
-are suggestions (providers rename models over time); any model name the provider accepts works.
+are popular suggestions (providers rename models over time): the console lists the models a connection can
+actually use, shows only the suggestions among them, and accepts any other name the provider has.
 """
 from __future__ import annotations
 
@@ -13,20 +14,22 @@ from typing import Any
 
 PROVIDERS: dict[str, dict] = {
     "groq": {"label": "Groq (free tier)", "base_url": "https://api.groq.com/openai/v1", "free": True,
-             "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3-32b"],
+             "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3-32b", "openai/gpt-oss-120b",
+                        "openai/gpt-oss-20b"],
              "json_mode": True, "key": True, "check": "/models", "signup": "https://console.groq.com/keys"},
     "gemini": {"label": "Google Gemini (free tier)", "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
                "free": True, "models": ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"],
                "json_mode": False, "key": True, "check": "/models", "signup": "https://aistudio.google.com/apikey"},
     "openrouter": {"label": "OpenRouter (free models)", "base_url": "https://openrouter.ai/api/v1", "free": True,
                    "models": ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen3-235b-a22b:free",
-                              "google/gemma-3-27b-it:free"],
+                              "google/gemma-3-27b-it:free", "openai/gpt-oss-120b:free", "deepseek/deepseek-chat-v3.1:free",
+                              "openai/gpt-5-mini", "google/gemini-2.5-flash", "anthropic/claude-haiku-4.5"],
                    "json_mode": False, "key": True, "check": "/key", "signup": "https://openrouter.ai/keys"},
     "ollama": {"label": "Ollama (your own server)", "base_url": None, "free": True,
-               "models": ["qwen3:8b", "llama3.2", "mistral", "llama3.1:8b"],
+               "models": ["qwen3:8b", "llama3.2", "mistral", "llama3.1:8b", "gpt-oss:20b", "gemma3:12b"],
                "json_mode": True, "key": False, "check": "/api/tags", "signup": "https://ollama.com/download"},
     "openai": {"label": "OpenAI (paid by you)", "base_url": "https://api.openai.com/v1", "free": False,
-               "models": ["gpt-5-nano", "gpt-5-mini"], "json_mode": True, "key": True, "check": "/models",
+               "models": ["gpt-5-nano", "gpt-5-mini", "gpt-5", "gpt-4.1-mini"], "json_mode": True, "key": True, "check": "/models",
                "signup": "https://platform.openai.com/api-keys"},
 }
 

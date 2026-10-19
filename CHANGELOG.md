@@ -2,6 +2,14 @@
 
 ## 1.1.0 (unreleased)
 
+**Choosing a model**
+- The model is chosen from a dropdown that lists every model the connection can use: the provider's list for your
+  key, your Ollama's installed models, and OpenRouter's whole catalogue (public, listed before a key is typed);
+  popular models first, retired suggestions dropped. *Other model…* takes any name, e.g. a custom model hosted on
+  OpenRouter; a name the provider does not have is refused with an error before the agents use it. (The old text
+  box with suggestions showed only the preselected model: browsers filter suggestions by what is typed.)
+- A failed check (e.g. a misspelt model) no longer clears the typed key.
+
 **Beta release**
 - OperAItor is published as a beta: the project page and README present it as a benchmark to run with your own
   models, prompts and agents. The original study's runs are kept as reference runs (labelled with their model,
