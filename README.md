@@ -175,6 +175,7 @@ benchmark_results/   campaign results and logs
 **Documentation:**
 - [docs/architecture.md](docs/architecture.md): agents, console, human test and benchmark.
 - [docs/pipelines.md](docs/pipelines.md): baseline and custom agent pipelines (settings, prompts, knowledge graph).
+- [docs/pid.md](docs/pid.md): P&ID, control loops, alarms and the SIF cause & effect matrix.
 - [docs/plant-model.md](docs/plant-model.md): equations, control, SIFs and faults.
 - [docs/admit.md](docs/admit.md): ADMIT integration.
 - [docs/deployment.md](docs/deployment.md): hosting.
