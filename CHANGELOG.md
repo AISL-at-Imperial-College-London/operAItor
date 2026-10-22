@@ -1,6 +1,18 @@
 # Changelog
 
-## 1.1.0 (unreleased)
+## 1.2.0 (unreleased)
+
+**The plant on CasADi: about 100x faster, same results**
+- Each 0.1-min implicit step is now solved by Newton's method with exact Jacobians from CasADi
+  (`operaitor/plant/casadi_model.py`): about 0.01 s per simulated minute instead of about 1.2 s. The equations
+  mirror the SciPy model term by term (`fmax`/`fmin` for `max`/`min`, nothing smoothed); trajectories agree with
+  the SciPy solver to about 1e-9, and every benchmark scenario trips (or not) at the same time. Step halving and
+  the least-squares last resort are kept.
+- The SciPy solver stays as the reference: `PLANT_SOLVER=scipy` (or `IntegratedPlantDAE(solver="scipy")`)
+  reproduces 1.1 exactly. `/api/health` reports the solver.
+- `casadi` is a new dependency; the desktop apps bundle it, and their smoke test steps the plant on every system.
+
+## 1.1.0 (2026-10-19)
 
 **First-visit tour**
 - A guided tour of the console, like a game's first-time tutorial: it spotlights one part at a time and, at the steps

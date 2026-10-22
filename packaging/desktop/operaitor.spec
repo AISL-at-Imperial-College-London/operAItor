@@ -19,7 +19,7 @@ IS_MAC = sys.platform == "darwin"
 ICON = os.path.join(BRANDING, "operaitor.icns" if IS_MAC else "operaitor.ico") if sys.platform != "linux" else None
 
 datas, binaries, hiddenimports = [], [], []
-for pkg in ("operaitor", "langgraph", "langchain_core", "langchain_openai", "langchain_ollama", "tiktoken",
+for pkg in ("operaitor", "casadi", "langgraph", "langchain_core", "langchain_openai", "langchain_ollama", "tiktoken",
             "tiktoken_ext", "admitbench"):
     try:
         d, b, h = collect_all(pkg)

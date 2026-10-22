@@ -43,6 +43,7 @@ def test_health_config_and_console(client):
     with client() as c:
         h = c.get("/api/health").json()
         assert h["ok"] is True and h["max_sessions"] == 2 and h["sessions"] == 0
+        assert h["solver"] == "casadi"   # the plant's implicit steps (PLANT_SOLVER=scipy for the reference solver)
         cfg = c.get("/api/config").json()
         assert cfg["hosted"] is True and "groq" in cfg["providers"]
         assert all("api_key" not in p for p in cfg["providers"].values())  # no secrets in the public config

@@ -7,7 +7,8 @@ Starts the program as a user would (no browser), then checks that
   1. the server answers /api/health and serves the console page,
   2. a second start finds the running app and exits instead of starting another server,
   3. a page from another website cannot open the WebSocket (origin check), the console's own page can,
-  4. the console reports the desktop app and "Quit OperAItor" stops the program cleanly.
+  4. the plant runs on the CasADi solver (bundled with its plugin libraries) and steps forward,
+  5. the console reports the desktop app and "Quit OperAItor" stops the program cleanly.
 """
 from __future__ import annotations
 
@@ -48,6 +49,14 @@ async def websocket_checks(port: int) -> None:
         assert hello["type"] == "hello", hello["type"]
         assert hello["session"]["desktop"] is True, "the console does not know it is the desktop app"
         assert hello["session"]["plugins"]["allowed"] is True, "Python agents should run in the desktop app"
+        await ws.send(json.dumps({"type": "step", "minutes": 1}))   # the plant steps (CasADi's Newton plugin loads)
+        while True:
+            msg = json.loads(await ws.recv())
+            if msg.get("type") == "ack" and msg.get("request") == "step":
+                assert msg["ok"], msg
+            if msg.get("type") == "snapshot" and msg.get("time_min", 0) >= 1.0 - 1e-6:
+                assert not msg.get("done"), "the plant stopped during a nominal minute"
+                break
         await ws.send(json.dumps({"type": "quit_app"}))
         while True:
             msg = json.loads(await ws.recv())
@@ -65,6 +74,7 @@ def main() -> None:
     try:
         health = wait_health(url, proc)
         print("1. started:", health)
+        assert health.get("solver") == "casadi", f"the app should run the plant on CasADi, not {health.get('solver')}"
         with urllib.request.urlopen(url, timeout=10) as r:
             assert b'id="root"' in r.read(), "the console page is missing"
         print("   console page served")
@@ -76,7 +86,7 @@ def main() -> None:
         print("2. a second start opens the running app:", second.stdout.strip().splitlines()[-1])
 
         asyncio.run(websocket_checks(port))
-        print("3. other websites are refused; the console connects")
+        print("3. other websites are refused; the console connects; the plant steps on CasADi")
         code = proc.wait(timeout=60)
         assert code == 0, f"exit code {code} after Quit"
         print("4. Quit OperAItor stopped the app (exit code 0)")
