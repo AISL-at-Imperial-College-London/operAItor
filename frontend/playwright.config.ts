@@ -26,6 +26,8 @@ export default defineConfig({
     url: `http://127.0.0.1:${PORT}/api/health`,
     timeout: 120_000,
     reuseExistingServer: false,
-    env: { PLANT_MAX_SESSIONS: "50", PLANT_HOSTED: "0", PLANT_CAMPAIGN_DIR: "", PYTHONIOENCODING: "utf-8" },
+    // PLANT_BENCH_TICK_DELAY_S: pace benchmark runs (0.05 s per 0.5 sim-min), so a scenario can be watched and stopped
+    env: { PLANT_MAX_SESSIONS: "50", PLANT_HOSTED: "0", PLANT_CAMPAIGN_DIR: "", PYTHONIOENCODING: "utf-8",
+           PLANT_BENCH_TICK_DELAY_S: "0.05" },
   },
 });

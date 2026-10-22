@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 import json
+import os
 from typing import TYPE_CHECKING
 
 from operaitor.benchmark.profit_campaign import BY_ID, SCENARIOS
@@ -42,6 +43,10 @@ def scenario_ids(choice) -> list[str]:
 
 
 class PipelineBenchmark:
+    # Seconds of wall time per plant step (0.5 sim-min) while benchmarking: 0 = flat out (the agents hold the plant
+    # while they decide). A small delay keeps a scenario on screen long enough to watch or stop it, e.g. in tests.
+    TICK_DELAY_ENV = "PLANT_BENCH_TICK_DELAY_S"
+
     def __init__(self, session: "Session", ids: list[str]):
         self.session = session
         self.ids = ids
@@ -62,7 +67,7 @@ class PipelineBenchmark:
     async def run(self) -> None:
         svc = self.session.service
         pace = (svc.tick_delay_s, svc.pace_every, svc.pace_sleep_s)
-        svc.tick_delay_s, svc.pace_every = 0.0, 0  # flat out; the agents hold the plant while they decide
+        svc.tick_delay_s, svc.pace_every = max(0.0, float(os.environ.get(self.TICK_DELAY_ENV) or 0.0)), 0
         sup = self.session.supervisor
         mode = sup.mode if sup is not None else None
         if sup is not None:
