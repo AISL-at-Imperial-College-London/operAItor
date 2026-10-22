@@ -291,5 +291,5 @@ The model is not intended to be a rigorous startup/shutdown simulator. Deferred 
 - a complete human operator model
 - a real LLM/action agent
 
-The physical DAE remains compact and transparent, and the existing backward-Euler nonlinear solve is retained as the reference integrator.
+The physical DAE remains compact and transparent. Each backward-Euler step is solved with CasADi (Newton, exact Jacobians; the default since 1.2), and the SciPy solve used up to 1.1 is kept as the reference integrator (`PLANT_SOLVER=scipy`); both solve the same equations (see [equations.md](equations.md)).
 

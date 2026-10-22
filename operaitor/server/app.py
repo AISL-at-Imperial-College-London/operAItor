@@ -4,7 +4,7 @@
     operaitor serve --hosted        # public deployment: visitors bring their own OpenAI key
 
 HTTP
-  GET  /api/health          liveness + session counts (for the host's health check)
+  GET  /api/health          liveness, the plant solver and session counts (for the host's health check)
   GET  /api/config          public settings (hosted?, allowed models)
   GET  /                    the built console (frontend/dist, or PLANT_FRONTEND_DIST)
 
@@ -84,7 +84,8 @@ def origin_allowed(origin: str | None, host: str | None, hosted: bool) -> bool:
 
 @app.get("/api/health")
 async def health():
-    return {"ok": True, "version": __version__, **manager.stats()}
+    from operaitor.plant.plant import default_solver
+    return {"ok": True, "version": __version__, "solver": default_solver(), **manager.stats()}
 
 
 @app.get("/api/config")

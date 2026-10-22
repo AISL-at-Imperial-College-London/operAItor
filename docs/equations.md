@@ -248,9 +248,15 @@ $$
 \mathbf{F}\!\left(\mathbf{y}^{n+1},\ \dot{\mathbf{y}}_{\mathcal D} = \frac{\mathbf{y}^{n+1}_{\mathcal D} - \mathbf{y}^{n}_{\mathcal D}}{\Delta t},\ \mathbf{u}\right) = \mathbf{0}
 $$
 
-The solver uses Powell's hybrid method. If that fails to converge, the step is halved recursively
-up to 5 times (down to $\Delta t/32$), with a least-squares fallback at the smallest step.
-Residuals are scaled per equation, for example energy balances by $5$–$6\times10^6$.
+Each step is solved by Newton's method with exact Jacobians from CasADi
+([operaitor/plant/casadi_model.py](../operaitor/plant/casadi_model.py), the default since 1.2). If it fails to
+converge, the step is halved recursively up to 5 times (down to $\Delta t/32$), with a least-squares fallback at
+the smallest step. Residuals are scaled per equation, for example energy balances by $5$–$6\times10^6$.
+
+The reference solver (`PLANT_SOLVER=scipy`, used for every run up to 1.1) solves the same equations with
+Powell's hybrid method and finite-difference Jacobians. The CasADi equations mirror it term by term
+(`max`/`min` become `fmax`/`fmin`, nothing is smoothed), and `tests/test_casadi_model.py` keeps the two equal.
+Both give the same trajectories to about $10^{-9}$; CasADi is about 70–100× faster.
 
 ---
 

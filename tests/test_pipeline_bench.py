@@ -80,7 +80,9 @@ def test_a_scenario_scores_like_the_published_benchmark():
     assert bench.status()["config"] == reference.CONFIG_OF_PRESET[bench.pipeline["base"]]
 
 
-def test_a_benchmark_can_be_stopped_and_restores_the_session(tmp_path):
+def test_a_benchmark_can_be_stopped_and_restores_the_session(tmp_path, monkeypatch):
+    # The plant is fast (S01 trips 17 sim-min in): pace it, so the first scenario is still running when Stop comes.
+    monkeypatch.setenv(PB.PipelineBenchmark.TICK_DELAY_ENV, "0.1")
     async def run():
         s = _session()
         s.service.campaign_dir = tmp_path
@@ -88,7 +90,9 @@ def test_a_benchmark_can_be_stopped_and_restores_the_session(tmp_path):
         speed = (s.service.tick_delay_s, s.service.pace_every, s.service.pace_sleep_s)
         bench = PB.PipelineBenchmark(s, PB.scenario_ids("quick"))
         bench.start()
-        await asyncio.sleep(1.0)
+        while bench.current is None:          # the first scenario has started
+            await asyncio.sleep(0.02)
+        await asyncio.sleep(0.3)
         bench.stop()
         await asyncio.wait_for(bench.task, 120)
         after = (s.service.tick_delay_s, s.service.pace_every, s.service.pace_sleep_s)

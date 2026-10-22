@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from typing import Optional
+import warnings
+
 import numpy as np
 from scipy.optimize import least_squares, root, OptimizeResult
 
@@ -51,15 +54,39 @@ class PlantInputs:
     drum_liquid_leak_kmol_h: float = 0.0
 
 
+SOLVERS = ("scipy", "casadi")
+
+
+def default_solver() -> str:
+    """PLANT_SOLVER if set; else CasADi when it is installed (a dependency), else SciPy."""
+    if os.environ.get("PLANT_SOLVER"):
+        return os.environ["PLANT_SOLVER"].lower()
+    try:
+        import casadi  # noqa: F401
+    except ImportError:   # pragma: no cover
+        return "scipy"
+    return "casadi"
+
+
 class IntegratedPlantDAE:
-    """Synthetic liquid CSTR + binary distillation column direct-residual DAE."""
+    """Synthetic liquid CSTR + binary distillation column direct-residual DAE.
+
+    ``solver`` picks how each implicit step is solved: "scipy" (the reference: SciPy's hybrid method with
+    finite-difference Jacobians) or "casadi" (Newton with exact Jacobians on the same equations,
+    casadi_model.py; about 100x faster). Default: default_solver().
+    """
 
     def __init__(
         self,
         thermo: ThermoSurrogate = ThermoSurrogate(),
         cstr_config: CSTRConfig = CSTRConfig(),
         column_config: ColumnConfig = ColumnConfig(),
+        solver: str | None = None,
     ):
+        self.solver = (solver or default_solver()).lower()
+        if self.solver not in SOLVERS:
+            raise ValueError(f"unknown solver {self.solver!r} (use one of {', '.join(SOLVERS)})")
+        self._casadi = None
         self.th = thermo
         self.cstr = CSTRDAE(cstr_config, thermo)
         self.column = DistillationDAE(column_config, thermo)
@@ -69,6 +96,21 @@ class IntegratedPlantDAE:
             self.cstr.differential_mask,
             self.column.differential_mask,
         ])
+
+    def __getstate__(self):   # the compiled CasADi functions are rebuilt where the plant is unpickled
+        return {**self.__dict__, "_casadi": None}
+
+    def casadi(self):
+        """The CasADi model of this plant (built on first use, about 0.2 s), or None if CasADi is unavailable."""
+        if self._casadi is None:
+            try:
+                from .casadi_model import CasadiPlant
+            except ImportError:   # pragma: no cover - casadi is a dependency; keep the plant usable without it
+                warnings.warn("casadi is not installed: using the SciPy solver", RuntimeWarning, stacklevel=2)
+                self.solver = "scipy"
+                return None
+            self._casadi = CasadiPlant(self)
+        return self._casadi
 
     def default_inputs(self) -> PlantInputs:
         cu = self.cstr.default_inputs()
@@ -204,6 +246,7 @@ class IntegratedPlantDAE:
                       tol: float = 1e-5, max_halvings: int = 5):
         """Backward-Euler step with automatic sub-stepping.
 
+        The fast solve is SciPy's hybrid method, or CasADi's Newton method when ``solver`` is "casadi".
         A fixed step can be too large for the nonlinear solve at sharp transitions
         (SIF overrides, a column losing vapour flow, a vessel nearly empty): the
         solver then stalls with a residual around 1e-3 and the episode would end
@@ -219,7 +262,12 @@ class IntegratedPlantDAE:
         def converged(sol) -> bool:
             return np.all(np.isfinite(sol.x)) and np.linalg.norm(sol.fun) <= tol
 
+        cas = self.casadi() if self.solver == "casadi" else None
+
         def fast(y: np.ndarray, dt: float):
+            if cas is not None:
+                return cas.newton_step(y, dt, u)
+
             def fun(y_new):
                 ydot = np.zeros_like(y_new)
                 ydot[mask] = (y_new[mask] - y[mask]) / dt
