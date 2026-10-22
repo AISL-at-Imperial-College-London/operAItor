@@ -2,6 +2,20 @@
 
 ## 1.2.0 (unreleased)
 
+**The control loops retuned, without losing fault tolerance**
+- All eight PI loops are retuned (`PLANT_TUNING=v1.2`, the default). Each controller can now filter its measurement
+  (first order, 2-4 min), which lets the deadband shrink to about two standard deviations of the filtered noise, so the
+  loops settle closer to the setpoint without the valves chasing noise. On a setpoint test with 2-h holds, the mean
+  tracking error falls 2-3x for R_TIC, BOT_TIC, RB_LIC and R_LIC, with less valve travel in most loops.
+- Tuned by `operaitor.benchmark.tune_loops` (`sweep`, then `robust`). Tuning for tracking alone made faults trip the
+  plant earlier, so a better tuning is kept only if no scenario of the fault benchmark trips earlier than with
+  v1.1: in the probe phase the plant now trips in 17 of 20 scenarios instead of 18, later in four, earlier in none.
+  TOP_TIC and R_PIC improve only modestly: every faster tuning of them made a fault scenario trip earlier.
+- The loop test (`operaitor.benchmark.loop_tests`) now holds each setpoint step for 2 h (5, 125, 245 min), long enough
+  for the slow loops to settle.
+- `PLANT_TUNING=v1.1` keeps the previous tuning exactly, for the reference runs. The knowledge graph now takes the
+  tuning (and the PV filter) from the code.
+
 **The plant on CasADi: about 100x faster, same results**
 - Each 0.1-min implicit step is now solved by Newton's method with exact Jacobians from CasADi
   (`operaitor/plant/casadi_model.py`): about 0.01 s per simulated minute instead of about 1.2 s. The equations

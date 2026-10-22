@@ -267,7 +267,7 @@ class LogicalConsistencyTests(unittest.TestCase):
             ref = nodes[f"ref_{loop}_SP"]
             self.assertEqual(ref[ip + "setpointMinimum"][0]["@value"], spec.sp_min, loop)
             self.assertEqual(ref[ip + "setpointMaximum"][0]["@value"], spec.sp_max, loop)
-            kp, ti, _ = RegulatoryControlSystem.TUNING[spec.controller_attr]
+            kp, ti = RegulatoryControlSystem.TUNING[spec.controller_attr][:2]
             text = nodes[f"Equation_{loop}"]["http://www.w3.org/2000/01/rdf-schema#comment"][0]["@value"]
             self.assertIn(f"Kp={kp:g}, Ti={ti:g} h", text, loop)
 
