@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import os
 
 from .plant import IntegratedPlantDAE, PlantInputs
 
 
 @dataclass
 class PIController:
-    """Sampled PI controller with AUTO/MANUAL, clamping and tracking."""
+    """Sampled PI controller with AUTO/MANUAL, clamping and tracking.
+
+    ``filter_h`` > 0 smooths the measured PV with a first-order filter (time constant in hours) before the error is
+    formed, so a small deadband does not make the output chase sensor noise; 0 uses the raw measurement.
+    """
 
     kp: float
     ti_h: float
@@ -19,9 +24,12 @@ class PIController:
     mode: str = "AUTO"
     manual_output: float | None = None
     last_output: float | None = None
+    filter_h: float = 0.0
+    pv_filtered: float | None = None
 
     def reset(self) -> None:
         self.integral = 0.0
+        self.pv_filtered = None
         self.mode = "AUTO"
         self.manual_output = None
         self.last_output = float(self.bias)
@@ -52,7 +60,17 @@ class PIController:
             raise ValueError(f"manual output {value:g} outside [{self.u_min:g}, {self.u_max:g}]")
         self.manual_output = value
 
+    def _filter(self, pv: float, dt_h: float) -> float:
+        if self.filter_h <= 0.0:
+            return pv
+        if self.pv_filtered is None:
+            self.pv_filtered = float(pv)
+        else:
+            self.pv_filtered += dt_h / (self.filter_h + dt_h) * (float(pv) - self.pv_filtered)
+        return self.pv_filtered
+
     def output(self, sp: float, pv: float, dt_h: float) -> float:
+        pv = self._filter(pv, dt_h)
         if self.mode == "MANUAL":
             out = self.bias if self.manual_output is None else float(self.manual_output)
             return self.track(out, sp, pv)
@@ -114,17 +132,34 @@ class RegulatoryControlSystem:
         "BOT_TIC": LoopAccessSpec("BOT_TIC", "bottom_temp", "bottom_temperature_K", "bottom_temperature_K", "steam_factor", 345.0, 365.0, "K", "fraction"),
     }
 
-    # PI tuning per loop: (gain kp, integral time ti_h [h], deadband [PV units]).
-    TUNING: dict[str, tuple[float, float, float]] = {
-        "cstr_level": (-6.0, 2.0, 0.50),        # retuned 2026-10-08 (was -2.0, 0.20 h)
-        "cstr_temp": (+0.030, 0.12, 0.30),
-        "cstr_pressure": (-0.10, 0.30, 0.015),
-        "reboiler_level": (-6.0, 2.0, 0.35),    # retuned 2026-10-08 (was -2.0, 0.25 h)
-        "drum_level": (-12.0, 2.0, 0.30),       # retuned 2026-10-08 (was -4.0, 0.20 h)
-        "column_pressure": (-4.5, 0.20, 0.002), # retuned 2026-10-08 (was -1.5, 0.10 h)
-        "top_temp": (-7.0, 0.15, 0.30),
-        "bottom_temp": (+0.0325, 0.15, 0.30),  # steam valve 0-1 (was +0.055 on the 0-1.8 duty factor)
+    # PI tuning per loop: (gain kp, integral time ti_h [h], deadband [PV units], PV filter time constant [h]).
+    # "v1.1" is the tuning of every run up to release 1.1 (PLANT_TUNING=v1.1 reproduces them); "v1.2" is the default.
+    TUNINGS: dict[str, dict[str, tuple[float, float, float, float]]] = {
+        "v1.1": {
+            "cstr_level": (-6.0, 2.0, 0.50, 0.0),
+            "cstr_temp": (+0.030, 0.12, 0.30, 0.0),
+            "cstr_pressure": (-0.10, 0.30, 0.015, 0.0),
+            "reboiler_level": (-6.0, 2.0, 0.35, 0.0),
+            "drum_level": (-12.0, 2.0, 0.30, 0.0),
+            "column_pressure": (-4.5, 0.20, 0.002, 0.0),
+            "top_temp": (-7.0, 0.15, 0.30, 0.0),
+            "bottom_temp": (+0.0325, 0.15, 0.30, 0.0),
+        },
     }
+    # v1.2: operaitor.benchmark.tune_loops (benchmark_results/loop_tuning*.json): better tracking on the 2-h setpoint
+    # test, accepted only where no benchmark fault scenario trips earlier than with v1.1. The PV filter lets the
+    # deadband shrink to about two standard deviations of the filtered sensor noise.
+    TUNINGS["v1.2"] = {
+        "cstr_level": (-6, 8, 0.2236, 2 / 60),
+        "cstr_temp": (+0.06, 0.24, 0.1, 4 / 60),
+        "cstr_pressure": (-0.1, 0.3, 0.005, 4 / 60),
+        "reboiler_level": (-12, 4, 0.1543, 2 / 60),
+        "drum_level": (-12, 4, 0.3, 0.0),
+        "column_pressure": (-4.5, 0.4, 0.002236, 2 / 60),
+        "top_temp": (-10.5, 0.3, 0.1, 4 / 60),
+        "bottom_temp": (+0.0975, 0.15, 0.1342, 2 / 60),
+    }
+    TUNING: dict[str, tuple[float, float, float, float]] = TUNINGS[os.environ.get("PLANT_TUNING", "v1.2")]
 
     def __init__(self, setpoints: ControlSetpoints, nominal: PlantInputs):
         self.sp = setpoints
@@ -132,15 +167,17 @@ class RegulatoryControlSystem:
         self.nominal = nominal
 
         t = self.TUNING
-        self.cstr_level = PIController(*t["cstr_level"][:2], nominal.cstr_outflow, 0.0, 160.0, deadband=t["cstr_level"][2])
-        self.cstr_temp = PIController(*t["cstr_temp"][:2], nominal.cstr_heater_factor, 0.0, 1.0, deadband=t["cstr_temp"][2])
-        self.cstr_pressure = PIController(*t["cstr_pressure"][:2], nominal.cstr_vent_valve, 0.0, 1.0, deadband=t["cstr_pressure"][2])
-        self.reboiler_level = PIController(*t["reboiler_level"][:2], nominal.bottoms_flow, 0.0, 90.0, deadband=t["reboiler_level"][2])
-        self.drum_level = PIController(*t["drum_level"][:2], nominal.distillate_flow, 0.0, 130.0, deadband=t["drum_level"][2])
-        self.column_pressure = PIController(*t["column_pressure"][:2], nominal.condenser_cooling_valve, 0.0, 1.0,
-                                            deadband=t["column_pressure"][2])
-        self.top_temp = PIController(*t["top_temp"][:2], nominal.reflux_flow, 0.0, 180.0, deadband=t["top_temp"][2])
-        self.bottom_temp = PIController(*t["bottom_temp"][:2], nominal.steam_factor, 0.0, 1.0, deadband=t["bottom_temp"][2])
+        def pi(name: str, bias: float, u_max: float) -> PIController:
+            kp, ti_h, deadband, filter_h = t[name]
+            return PIController(kp, ti_h, bias, 0.0, u_max, deadband=deadband, filter_h=filter_h)
+        self.cstr_level = pi("cstr_level", nominal.cstr_outflow, 160.0)
+        self.cstr_temp = pi("cstr_temp", nominal.cstr_heater_factor, 1.0)
+        self.cstr_pressure = pi("cstr_pressure", nominal.cstr_vent_valve, 1.0)
+        self.reboiler_level = pi("reboiler_level", nominal.bottoms_flow, 90.0)
+        self.drum_level = pi("drum_level", nominal.distillate_flow, 130.0)
+        self.column_pressure = pi("column_pressure", nominal.condenser_cooling_valve, 1.0)
+        self.top_temp = pi("top_temp", nominal.reflux_flow, 180.0)
+        self.bottom_temp = pi("bottom_temp", nominal.steam_factor, 1.0)
         self.reset()
 
     @classmethod

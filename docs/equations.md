@@ -262,18 +262,38 @@ Both give the same trajectories to about $10^{-9}$; CasADi is about 70–100× f
 
 ## 5. Regulatory control, BPCS (`operaitor/plant/control.py`)
 
-Eight PI loops are updated every 1 min:
+Eight PI loops are updated every 1 min. The tuning since 1.2 (`PLANT_TUNING=v1.2`, the default):
 
-| Loop | PV | MV | $K_p$ | $T_i$ [h] | Deadband |
-|---|---|---|---|---|---|
-| R_LIC | reactor hold-up | reactor outflow | −6.0 | 2.0 | 0.50 kmol |
-| R_TIC | reactor T | heater factor | +0.030 | 0.12 | 0.30 K |
-| R_PIC | reactor P | PCV | −0.10 | 0.30 | 0.015 bar |
-| RB_LIC | reboiler hold-up | bottoms flow | −6.0 | 2.0 | 0.35 kmol |
-| DR_LIC | drum hold-up | distillate flow | −12.0 | 2.0 | 0.30 kmol |
-| COL_PIC | column P | condenser CW valve | −4.5 | 0.20 | 0.002 bar |
-| TOP_TIC | top tray T | reflux flow | −7.0 | 0.15 | 0.30 K |
-| BOT_TIC | bottom T | steam valve (0–1) | +0.0325 | 0.15 | 0.30 K |
+| Loop | PV | MV | $K_p$ | $T_i$ [h] | Deadband | PV filter $\tau_f$ |
+|---|---|---|---|---|---|---|
+| R_LIC | reactor hold-up | reactor outflow | −6.0 | 8.0 | 0.224 kmol | 2 min |
+| R_TIC | reactor T | heater factor | +0.060 | 0.24 | 0.10 K | 4 min |
+| R_PIC | reactor P | PCV | −0.10 | 0.30 | 0.005 bar | 4 min |
+| RB_LIC | reboiler hold-up | bottoms flow | −12.0 | 4.0 | 0.154 kmol | 2 min |
+| DR_LIC | drum hold-up | distillate flow | −12.0 | 4.0 | 0.30 kmol | – |
+| COL_PIC | column P | condenser CW valve | −4.5 | 0.40 | 0.0022 bar | 2 min |
+| TOP_TIC | top tray T | reflux flow | −10.5 | 0.30 | 0.10 K | 4 min |
+| BOT_TIC | bottom T | steam valve (0–1) | +0.0975 | 0.15 | 0.134 K | 2 min |
+
+It was chosen by `operaitor.benchmark.tune_loops` (results in `benchmark_results/loop_tuning*.json`): a sweep of
+gain, integral time and PV filter on a setpoint test with 2-h holds, then a constrained search that keeps a better
+tuning only if no scenario of the 20-scenario fault benchmark trips earlier than with v1.1. Tuning for tracking
+alone made the plant less fault-tolerant (faster loops push their valves harder and carry a fault into the next unit
+sooner); the constrained tuning trips in 17 of the 20 probe scenarios instead of 18, later in four, earlier in none.
+The deadband is about two standard deviations of the filtered sensor noise.
+
+The tuning of every run up to 1.1, including the reference runs, is kept as `PLANT_TUNING=v1.1`:
+$K_p$ / $T_i$ [h] / deadband, no PV filter: R_LIC −6.0 / 2.0 / 0.50 kmol, R_TIC +0.030 / 0.12 / 0.30 K,
+R_PIC −0.10 / 0.30 / 0.015 bar, RB_LIC −6.0 / 2.0 / 0.35 kmol, DR_LIC −12.0 / 2.0 / 0.30 kmol,
+COL_PIC −4.5 / 0.20 / 0.002 bar, TOP_TIC −7.0 / 0.15 / 0.30 K, BOT_TIC +0.0325 / 0.15 / 0.30 K.
+
+**PV filter** (first order, sampled every $\Delta t$ = 1 min; $\tau_f = 0$ uses the raw measurement):
+
+$$
+\widetilde{PV}_k = \widetilde{PV}_{k-1} + \frac{\Delta t}{\tau_f + \Delta t}\left(PV_k - \widetilde{PV}_{k-1}\right)
+$$
+
+and the error below is formed from $\widetilde{PV}_k$.
 
 **Positional PI with deadband** ($b$ is the bias, the nominal MV):
 

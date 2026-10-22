@@ -2859,13 +2859,13 @@
         rdfs:label "BOT_TIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=0.0325, Ti=0.15 h, deadband=0.3."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband (PV first-order filtered); AUTO/MANUAL transfer uses tracking/back-calculation. Kp=0.0975, Ti=0.15 h, deadband=0.1342, PV filter time constant=2 min."@en .
 
     int:Equation_COL_PIC a VDI2206:MathematicalModel ;
         rdfs:label "COL_PIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-4.5, Ti=0.2 h, deadband=0.002."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband (PV first-order filtered); AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-4.5, Ti=0.4 h, deadband=0.002236, PV filter time constant=2 min."@en .
 
     int:Equation_CSTR_Acetone a VDI2206:MathematicalModel ;
         rdfs:label "CSTR acetone balance"@en ;
@@ -2883,7 +2883,7 @@
         rdfs:label "DR_LIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-12, Ti=2 h, deadband=0.3."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband (PV first-order filtered); AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-12, Ti=4 h, deadband=0.3, PV filter time constant=0 min."@en .
 
     int:Equation_FeedPump a VDI2206:MathematicalModel ;
         rdfs:label "Feed pump transmission"@en ;
@@ -2897,25 +2897,25 @@
         rdfs:label "RB_LIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-6, Ti=2 h, deadband=0.35."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband (PV first-order filtered); AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-12, Ti=4 h, deadband=0.1543, PV filter time constant=2 min."@en .
 
     int:Equation_R_LIC a VDI2206:MathematicalModel ;
         rdfs:label "R_LIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-6, Ti=2 h, deadband=0.5."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband (PV first-order filtered); AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-6, Ti=8 h, deadband=0.2236, PV filter time constant=2 min."@en .
 
     int:Equation_R_PIC a VDI2206:MathematicalModel ;
         rdfs:label "R_PIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-0.1, Ti=0.3 h, deadband=0.015."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband (PV first-order filtered); AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-0.1, Ti=0.3 h, deadband=0.005, PV filter time constant=4 min."@en .
 
     int:Equation_R_TIC a VDI2206:MathematicalModel ;
         rdfs:label "R_TIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=0.03, Ti=0.12 h, deadband=0.3."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband (PV first-order filtered); AUTO/MANUAL transfer uses tracking/back-calculation. Kp=0.06, Ti=0.24 h, deadband=0.1, PV filter time constant=4 min."@en .
 
     int:Equation_RefluxDrum a VDI2206:MathematicalModel ;
         rdfs:label "Reflux drum balances"@en ;
@@ -2925,7 +2925,7 @@
         rdfs:label "TOP_TIC PI control law"@en ;
         ip:sourceFile "integrated_plant/control.py" ;
         ip:sourceSymbol "PIController.output" ;
-        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-7, Ti=0.15 h, deadband=0.3."@en .
+        rdfs:comment "u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband (PV first-order filtered); AUTO/MANUAL transfer uses tracking/back-calculation. Kp=-10.5, Ti=0.3 h, deadband=0.1, PV filter time constant=4 min."@en .
 
     int:Equation_Tray_Energy a VDI2206:MathematicalModel ;
         rdfs:label "Tray energy balance"@en ;

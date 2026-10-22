@@ -346,7 +346,11 @@ loops={
  'BOT_TIC':('Bottom Temperature / Steam Controller','bottom_temperature_K','steam_factor',354.42228104157755,345.0,365.0,'K',0.0325,0.15,0.0,1.0,0.30,'module_Reboiler','TT-202','FV-202'),
 }
 controller_uri={}; setpoint_uri={}
+# The tuning comes from the code (RegulatoryControlSystem.TUNING, PLANT_TUNING selects the set), not from the table above.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from operaitor.plant.control import RegulatoryControlSystem as _RCS  # noqa: E402
 for loop,(label,pv,mv,sp,spmin,spmax,spunit,kp,ti,umin,umax,deadband,mod,sensor,actuator) in loops.items():
+    kp, ti, deadband, pv_filter_h = _RCS.TUNING[_RCS.LOOP_SPECS[loop].controller_attr]
     ctrl=component('controller_'+loop,label,'module_Control',(VDI2206.InformationProcessing,),f'Sampled PI controller {loop}; supports AUTO/MANUAL and bumpless transfer.')
     controller_uri[loop]=ctrl
     po=add(U('PO_'+loop),VDI3682.ProcessOperator,'PO – '+label,f'Regulatory loop {loop}: PV={pv}, MV={mv}.')
@@ -357,7 +361,7 @@ for loop,(label,pv,mv,sp,spmin,spmax,spunit,kp,ti,umin,umax,deadband,mod,sensor,
     spi=add(U('information_'+loop+'_sp'),VDI3682.Information,loop+' Setpoint Information',f'Setpoint information for {loop}.'); link(spi,OWL.sameAs,ref); add_data_bundle(spi,loop+'_sp',loop+' setpoint',spunit,sp)
     link(po,VDI3682.hasInput,spi); link(ctrl,INT.monitorsParameter,param_uri[pv]); link(ctrl,INT.controlsParameter,param_uri[mv]); link(ctrl,INT.hasSetpoint,ref); link(ctrl,connect,U(sensor),U(actuator))
     lit(ctrl,INT.setpointMinimum,float(spmin),XSD.double); lit(ctrl,INT.setpointMaximum,float(spmax),XSD.double); lit(ctrl,INT.mvMinimum,float(umin),XSD.double); lit(ctrl,INT.mvMaximum,float(umax),XSD.double); lit(ctrl,INT.unit,spunit)
-    model=add(U('Equation_'+loop),VDI2206.MathematicalModel,f'{loop} PI control law',f'u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband; AUTO/MANUAL transfer uses tracking/back-calculation. Kp={kp:g}, Ti={ti:g} h, deadband={deadband:g}.')
+    model=add(U('Equation_'+loop),VDI2206.MathematicalModel,f'{loop} PI control law',f'u = clip(bias + Kp*(SP-PV) + integral, u_min, u_max); integral += Kp/Ti*(SP-PV)*dt outside deadband (PV first-order filtered); AUTO/MANUAL transfer uses tracking/back-calculation. Kp={kp:g}, Ti={ti:g} h, deadband={deadband:g}, PV filter time constant={60 * pv_filter_h:g} min.')
     link(po,CPSMod.processRealizesBehavior,model); link(U('module_Control'),CPSMod.technicalResourceRealizes,model); source(ctrl,'integrated_plant/control.py','RegulatoryControlSystem.LOOP_SPECS'); source(model,'integrated_plant/control.py','PIController.output')
 
 # ---------- physical process operators / models ----------

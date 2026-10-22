@@ -3,8 +3,8 @@
 For every loop, from the nominal steady state (sensor noise on):
   0-5 min    hold at the design setpoint
   5 min      setpoint step up (STEPS below)
-  45 min     setpoint back to the design value
-  85 min     end
+  125 min    setpoint back to the design value (2-h holds, so even the slow loops settle)
+  245 min    end
 Checks per step: the controller output first moves in the direction that drives PV toward SP;
 PV ends within 20 % of the step (or two deadbands) of the setpoint; no SIF, no priority-1 alarm.
 Overshoot and settling time (PV stays inside that band) are reported for both steps.
@@ -30,7 +30,8 @@ STEPS = {  # loop -> setpoint step (same sign convention as the loop's PV)
     "R_LIC": +3.0, "R_TIC": +1.5, "R_PIC": +0.10, "RB_LIC": +3.0,
     "DR_LIC": +3.0, "COL_PIC": +0.05, "TOP_TIC": +1.0, "BOT_TIC": +1.5,
 }
-T_UP, T_BACK, T_END = 5.0, 45.0, 85.0
+T_UP, HOLD = 5.0, 120.0
+T_BACK, T_END = T_UP + HOLD, T_UP + 2 * HOLD
 DISTURBANCES = [("cooling_water_temperature_K", "COL_PIC"), ("fresh_feed_temperature_K", "R_TIC"),
                 ("steam_pressure_bar", "BOT_TIC")]
 from .profit_campaign import OUT
@@ -66,34 +67,36 @@ def _step_metrics(rows: list, t0: float, t1: float, sp_before: float, sp_after: 
             "overshoot_pct": round(overshoot, 1), "ok": bool(np.sign(first) == expected and inside[-1])}
 
 
-def step_test(loop: str) -> dict:
-    env = _env(T_END + 1)
+def step_test(loop: str, hold: float = HOLD, plot: bool = True) -> dict:
+    t_back, t_end = T_UP + hold, T_UP + 2 * hold
+    env = _env(t_end + 1)
     spec = env.controllers.LOOP_SPECS[loop]
     ctrl = getattr(env.controllers, spec.controller_attr)
     sp0 = float(getattr(env.controllers.sp, spec.setpoint_attr))
     sp1 = sp0 + STEPS[loop]
     rows: list = []
     _series(env, spec, spec.controller_attr, rows)
-    while 60 * env.t_h < T_END - 1e-9:
+    while 60 * env.t_h < t_end - 1e-9:
         t = 60 * env.t_h
         if abs(t - T_UP) < 1e-6:
             env.apply_action(SupervisoryAction(setpoints={loop: sp1}))
-        if abs(t - T_BACK) < 1e-6:
+        if abs(t - t_back) < 1e-6:
             env.apply_action(SupervisoryAction(setpoints={loop: sp0}))
         env.step()
         _series(env, spec, spec.controller_attr, rows)
-    up = _step_metrics(rows, T_UP, T_BACK, sp0, sp1, ctrl)
-    back = _step_metrics(rows, T_BACK, T_END, sp1, sp0, ctrl)
+    up = _step_metrics(rows, T_UP, t_back, sp0, sp1, ctrl)
+    back = _step_metrics(rows, t_back, t_end, sp1, sp0, ctrl)
     sifs = sorted({c for r in rows for c in r["sif"]})
     p1 = sorted({a for r in rows for a in r["p1"]})
     res = {"loop": loop, "pv": spec.pv_tag, "mv": spec.mv_field, "pv_unit": spec.sp_unit, "mv_unit": spec.mv_unit,
-           "sp0": sp0, "sp1": sp1, "step_up": up, "step_back": back, "sifs": sifs, "p1_alarms": p1,
+           "sp0": sp0, "sp1": sp1, "t_back": t_back, "t_end": t_end, "step_up": up, "step_back": back,
+           "sifs": sifs, "p1_alarms": p1,
            "pass": bool(up["ok"] and back["ok"] and not sifs and not p1),
            # legacy single-step fields (dashboard)
            "pv_end": up["pv_end"], "overshoot_pct": up["overshoot_pct"], "settling_min": up["settling_min"],
            "mv_direction_ok": up["mv_direction_ok"],
            "series": {k: [round(r[k], 5) for r in rows] for k in ("t", "pv", "pv_meas", "sp", "mv")}}
-    res["plot"] = _plot_step(res)
+    res["plot"] = _plot_step(res) if plot else ""
     return res
 
 
@@ -139,7 +142,7 @@ def _plot_step(res: dict, title: str | None = None) -> str:
     if title is None:
         u, b = res["step_up"], res["step_back"]
         fmt = lambda x: "not settled" if x is None else f"settled {x:.1f} min"  # noqa: E731
-        title = (f"{res['loop']}: SP {res['sp0']:.4g} → {res['sp1']:.4g} at {T_UP:g} min, back at {T_BACK:g} min\n"
+        title = (f"{res['loop']}: SP {res['sp0']:.4g} → {res['sp1']:.4g} at {T_UP:g} min, back at {res['t_back']:g} min\n"
                  f"up: overshoot {u['overshoot_pct']:.0f} %, {fmt(u['settling_min'])} · "
                  f"back: overshoot {b['overshoot_pct']:.0f} %, {fmt(b['settling_min'])} · "
                  f"{'PASS' if res['pass'] else 'stable, slow'}")
